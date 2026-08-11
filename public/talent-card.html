@@ -240,17 +240,8 @@
     <div class="logo-text">Quality Labor Management</div>
     <span class="version-badge">v1.01</span>
   </div>
-  <div class="tool-nav"><button class="btn-settings" onclick="toggleSettings()" title="Server Settings">&#9881;</button><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav active">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a></div>
+  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav active">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a></div>
 </header>
-
-
-<div class="settings-panel" id="settings-panel">
-  <div class="config-inner">
-    <label>&#128279; Server URL</label>
-    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
-    <span id="serverStatus">Paste your Railway server URL</span>
-  </div>
-</div>
 
 
 <div class="app">
@@ -382,19 +373,10 @@
 // ══════════════════════════════════════
 //  SERVER URL
 // ══════════════════════════════════════
-function saveServerUrl() {
-  const url = document.getElementById('serverUrl').value.trim();
-  localStorage.setItem('qlm_server_url', url);
-  const s = document.getElementById('serverStatus');
-  if (!url) { s.textContent = 'Paste your Railway server URL to enable AI extract'; s.className = ''; }
-  else if (url.startsWith('https://') && url.includes('.')) { s.textContent = '✓ Server URL saved'; s.className = 'ok'; }
-  else { s.textContent = '⚠ Should start with https://'; s.className = 'err'; }
-}
+function saveServerUrl(){}
 window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('qlm_server_url');
-  if (saved) { document.getElementById('serverUrl').value = saved; saveServerUrl(); }
-});
-function getServerUrl() { return '/.netlify/functions/chat'; }
+  });
+function getServerUrl(){ return ''; }
 
 // ══════════════════════════════════════
 //  INTERVIEW NOTES TOGGLE (v1.01)
@@ -856,10 +838,7 @@ function resetAll() {
     </div>`;
 }
 
-function toggleSettings() {
-  var p = document.getElementById('settings-panel');
-  p.classList.toggle('open');
-}
+function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 var _origSave = saveServerUrl;
 saveServerUrl = function() {
