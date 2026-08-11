@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Sign In</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--blue:#0099d8;--blue-md:#0077a8;--blue-dk:#005a7e;--blue-lt:#e0f4fc;--navy:#003a52;--mid:#b8dff0;--text:#2a4a5a;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--navy);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:var(--text);}
+.wrap{width:100%;max-width:400px;}
+.brand{text-align:center;margin-bottom:24px;}
+.logo-badge{display:inline-block;background:var(--blue);color:#fff;font-weight:700;font-size:1rem;letter-spacing:3px;padding:8px 18px;border-radius:6px;margin-bottom:10px;}
+.brand p{color:var(--mid);font-size:.8rem;letter-spacing:1px;}
+.card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.card h1{font-size:1.25rem;color:var(--navy);margin-bottom:4px;}
+.card .sub{font-size:.82rem;color:#64748b;margin-bottom:20px;line-height:1.5;}
+.fl{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+.fl label{font-size:.64rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;}
+.fl input{border:1px solid #e2e8f0;border-radius:8px;padding:11px 13px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s;}
+.fl input:focus{border-color:var(--blue);}
+.btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:13px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:background .2s;}
+.btn:hover{background:var(--blue-md);}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn.ghost{background:#fff;color:var(--blue-md);border:1.5px solid var(--mid);margin-top:9px;}
+.btn.ghost:hover{background:var(--blue-lt);border-color:var(--blue);}
+.msg{padding:10px 13px;border-radius:8px;font-size:.82rem;margin-bottom:14px;line-height:1.5;display:none;}
+.msg.show{display:block;}
+.msg.error{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.msg.ok{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:#94a3b8;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e2e8f0;}
+.skip{display:block;text-align:center;margin-top:18px;color:var(--mid);font-size:.78rem;text-decoration:none;}
+.skip:hover{color:#fff;text-decoration:underline;}
+.note{font-size:.72rem;color:#94a3b8;line-height:1.6;margin-top:14px;text-align:center;}
+.toggle-link{color:var(--blue-md);cursor:pointer;font-weight:600;text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo-badge">QLM</div>
+    <p>Quality Labor Management</p>
+  </div>
+
+  <div class="card">
+    <h1 id="title">Sign in</h1>
+    <p class="sub" id="subtitle">Access your team's shared leads, candidates, and market reports.</p>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="fl" id="name-field" style="display:none;">
+      <label>Full Name</label>
+      <input type="text" id="fullname" placeholder="Daniel Luallen" autocomplete="name">
+    </div>
+
+    <div class="fl">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@myqlm.com" autocomplete="email">
+    </div>
+
+    <div class="fl">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn" id="submit-btn" onclick="doSubmit()">Sign In</button>
+    <button class="btn ghost" onclick="toggleMode()" id="toggle-btn">Create an account</button>
+
+    <div class="divider">or</div>
+    <p class="note">
+      You can use every tool without an account — data stays on this device only.
+      <br>Sign in to share leads and candidates with your team.
+    </p>
+  </div>
+
+  <a class="skip" href="/">Continue without signing in &rarr;</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
+<script>
+var mode = 'signin';
+
+function showMsg(type, text){
+  var m = document.getElementById('msg');
+  m.className = 'msg show ' + type;
+  m.textContent = text;
+}
+function hideMsg(){ document.getElementById('msg').className = 'msg'; }
+
+function toggleMode(){
+  mode = mode === 'signin' ? 'signup' : 'signin';
+  hideMsg();
+  var isSignup = mode === 'signup';
+  document.getElementById('title').textContent = isSignup ? 'Create account' : 'Sign in';
+  document.getElementById('subtitle').textContent = isSignup
+    ? 'Set up your QLM tools account to share data with your team.'
+    : "Access your team's shared leads, candidates, and market reports.";
+  document.getElementById('name-field').style.display = isSignup ? 'flex' : 'none';
+  document.getElementById('submit-btn').textContent = isSignup ? 'Create Account' : 'Sign In';
+  document.getElementById('toggle-btn').textContent = isSignup ? 'I already have an account' : 'Create an account';
+  document.getElementById('password').setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password');
+}
+
+async function doSubmit(){
+  hideMsg();
+  var email = document.getElementById('email').value.trim();
+  var pass  = document.getElementById('password').value;
+  var name  = document.getElementById('fullname').value.trim();
+  if(!email || !pass){ showMsg('error','Enter your email and password.'); return; }
+  if(mode === 'signup' && pass.length < 6){ showMsg('error','Password must be at least 6 characters.'); return; }
+
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = mode === 'signup' ? 'Creating…' : 'Signing in…';
+
+  try {
+    if(mode === 'signup'){
+      await QLM.signUp(email, pass, name);
+      showMsg('ok','Account created. Check your email if confirmation is required, then sign in.');
+      setTimeout(function(){ toggleMode(); }, 2200);
+    } else {
+      await QLM.signIn(email, pass);
+      showMsg('ok','Signed in. Redirecting…');
+      setTimeout(function(){ location.href = '/'; }, 700);
+    }
+  } catch(e){
+    showMsg('error', e.message || 'Something went wrong.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = mode === 'signup' ? 'Create Account' : 'Sign In';
+  }
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Enter') doSubmit();
+});
+
+// If already signed in, bounce to home
+window.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    if(window.QLM) QLM.getUser().then(function(u){ if(u) location.href = '/'; });
+  }, 400);
+});
+</script>
+</body>
+</html>
