@@ -389,6 +389,21 @@ function rawWebCall(prompt){
   });
 }
 
+function aiCall(prompt, maxTokens){
+  return fetch('/.netlify/functions/chat', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ max_tokens: maxTokens||3000, messages:[{role:'user',content:prompt}] })
+  }).then(function(r){
+    var status=r.status;
+    return r.text().then(function(txt){
+      if(status>=500) throw new Error('Server error ('+status+') — try again.');
+      var d=JSON.parse(txt);
+      if(d.error) throw new Error(d.error.message||JSON.stringify(d.error));
+      return (d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('').trim();
+    });
+  });
+}
+
 function webCall(prompt){
   return rawWebCall(prompt).then(function(text){
     if(text.match(/\{[\s\S]*\}/)) return text;
@@ -533,7 +548,7 @@ function generateDrillReport(market,today){
     'QLM pay rate: '+(payRate?'$'+payRate+'/hr':'not specified')+'\n'+
     'QLM bill rate: '+(billRate?'$'+billRate+'/hr':'not specified')+'\n'+
     'Date: '+today+'\n\n'+
-    'Search web for: "'+trade+' '+levelStr+' wages '+market+' 2025", "construction staffing markup rates", "Florida workers comp construction rates 2025"\n\n'+
+
     'Return ONLY raw JSON (no markdown):\n'+
     '{\n'+
     '  "trade":"'+trade+'","level":"'+levelStr+'","market":"'+market+'","date":"'+today+'",\n'+
@@ -615,7 +630,34 @@ function generateDrillReport(market,today){
     '4. Use real '+market+' data from your web search\n'+
     '5. No apostrophes in string values. Return raw JSON only.';
 
-  webCall(prompt)
+  // STEP 1 — quick web search for market facts only (small output, fits in 10s)
+  var researchPrompt =
+    'Search the web for current labor market data and answer in compact JSON.\n\n'+
+    'Trade: '+trade+'\nLevel: '+levelStr+'\nMarket: '+market+'\n\n'+
+    'Search: "'+trade+' '+levelStr+' hourly wage '+market+' 2025", "'+trade+' jobs '+market+'"\n\n'+
+    'Return ONLY this JSON, no markdown, no apostrophes in values:\n'+
+    '{"payLow":00,"payHigh":00,"competingOffers":"one sentence on what employers are offering now",'+
+    '"activePostings":"number+","activeCandidates":"estimate","demandTrend":"Rising or Flat or Declining",'+
+    '"wageGrowth":"+X%","topEmployers":"3 company names","weeksToFillSelfManaged":"X weeks",'+
+    '"shortageNote":"one sentence on availability of this trade in this market"}';
+
+  showSt('genStatus','loading','Step 1 of 2 \u2014 searching live wage and job data...');
+
+  webCall(researchPrompt)
+  .then(function(researchText){
+    var facts = {};
+    try { facts = safeJSON(researchText); } catch(e) { facts = {}; }
+
+    showSt('genStatus','loading','Step 2 of 2 \u2014 building your bill rate analysis...');
+
+    // STEP 2 — build the full report from those facts (no web search = fast)
+    var buildPrompt = prompt +
+      '\n\nUSE THESE VERIFIED MARKET FACTS (already researched — do not search again):\n' +
+      JSON.stringify(facts) +
+      '\n\nBuild the full JSON report now using these facts. Return raw JSON only.';
+
+    return aiCall(buildPrompt, 4000);
+  })
   .then(function(text){
     var data=safeJSON(text);
     reportRaw=data;
