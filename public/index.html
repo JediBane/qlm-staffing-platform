@@ -38,6 +38,17 @@ header{background:#003a52;padding:0 32px;height:64px;display:flex;align-items:ce
 .tnav:hover{border-color:#0099d8;color:#0099d8;background:rgba(0,153,216,.08);}
 .tnav.active{background:#0099d8;border-color:#0099d8;color:#fff;}
 
+
+/* --- compact nav (auth badge fits inline) --- */
+header{gap:12px;}
+.logo-text{white-space:nowrap;}
+.tool-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+.tool-nav::-webkit-scrollbar{display:none;}
+.tnav{white-space:nowrap;flex-shrink:0;}
+@media(max-width:900px){
+  .logo-text{display:none;}
+  .tnav{padding:4px 8px;font-size:.62rem;}
+}
 </style>
 </head>
 <body>
