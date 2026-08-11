@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | QLM Lead Generator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0099d8;--blue-dk:#005a7e;--blue-md:#0077a8;--blue-lt:#e0f4fc;--blue-mid2:#b8dff0;
+  --navy:#003a52;--navy-lt:#004d6b;--gray:#f4f7fb;--text:#2a4a5a;--border:#b8dff0;
+  --danger:#ef4444;--success:#22c55e;--warn:#f59e0b;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+header{background:var(--navy);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:.9rem;letter-spacing:2px;padding:5px 12px;border-radius:4px;}
+.logo-text{color:var(--blue-mid2);font-size:.82rem;letter-spacing:1px;}
+.tool-nav{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:4px 11px;border-radius:6px;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.22);color:#b8dff0;transition:all .2s;background:none;}
+.tnav:hover{border-color:var(--blue);color:var(--blue);}
+.tnav.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-settings{background:none;border:1px solid rgba(255,255,255,.2);color:#b8dff0;padding:4px 9px;border-radius:6px;cursor:pointer;font-size:.76rem;font-family:inherit;}
+.settings-panel{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:0;max-height:0;overflow:hidden;transition:max-height .3s,padding .3s;}
+.settings-panel.open{max-height:80px;padding:10px 32px;}
+.settings-panel .ci{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.settings-panel label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);}
+.settings-panel input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:.8rem;font-family:monospace;outline:none;background:#fff;}
+.settings-panel input:focus{border-color:var(--blue);}
+#srvStatus{font-size:.7rem;color:#94a3b8;}
+#srvStatus.ok{color:var(--success);font-weight:600;}
+
+/* HERO */
+.hero{background:var(--navy);border-bottom:4px solid var(--blue);padding:1.5rem 32px;}
+.hero-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.hero h1{font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:.2rem;}
+.hero h1 span{color:var(--blue);}
+.hero p{font-size:.82rem;color:var(--blue-mid2);max-width:440px;line-height:1.55;}
+.hero-stats{display:flex;gap:0;}
+.hstat{padding:.4rem 1rem;border-right:1px solid rgba(0,153,216,.25);text-align:center;}
+.hstat:last-child{border-right:none;}
+.hstat-n{font-size:1.3rem;font-weight:700;color:var(--blue);line-height:1;}
+.hstat-l{font-size:.58rem;color:var(--blue-mid2);letter-spacing:.1em;text-transform:uppercase;margin-top:1px;}
+
+/* LAYOUT */
+.main{max-width:1200px;margin:0 auto;padding:20px 20px 80px;display:grid;grid-template-columns:300px 1fr;gap:18px;}
+@media(max-width:900px){.main{grid-template-columns:1fr;}}
+
+/* LEFT PANEL */
+.left-panel{display:flex;flex-direction:column;gap:14px;}
+.pcard{background:#fff;border:1px solid var(--border);border-radius:10px;border-top:4px solid var(--blue);padding:18px;box-shadow:0 4px 14px rgba(0,0,0,.05);}
+.pcard-title{font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.pcard-title button{font-size:.62rem;padding:2px 7px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:#fff;font-family:inherit;color:#64748b;}
+.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:10px;}
+.fl label{font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;}
+.fl input,.fl select,.fl textarea{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;transition:border-color .2s;background:#fff;}
+.fl input:focus,.fl select:focus,.fl textarea:focus{border-color:var(--blue);}
+.fl select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230099d8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:1.8rem;}
+
+.trade-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.ttag{padding:3px 9px;border-radius:20px;font-size:.67rem;font-weight:600;border:1.5px solid var(--border);color:#64748b;cursor:pointer;transition:all .2s;background:#fff;}
+.ttag:hover{border-color:var(--blue);color:var(--blue);}
+.ttag.sel{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+.btn-main{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s;margin-top:4px;font-family:inherit;}
+.btn-main:hover{background:var(--blue-md);}
+.btn-main:disabled{opacity:.5;cursor:not-allowed;}
+.btn-main.navy{background:var(--navy);}
+.btn-main.navy:hover{background:var(--blue-dk);}
+
+.personalization-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.personalization-row label{font-size:.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;white-space:nowrap;min-width:80px;}
+.personalization-row input[type=range]{flex:1;accent-color:var(--blue);}
+.pers-val{font-size:.7rem;font-weight:700;color:var(--blue-md);white-space:nowrap;}
+
+.saved-search-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.ss-chip{font-size:.68rem;padding:3px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:#fff;color:var(--blue-md);transition:all .2s;font-family:inherit;}
+.ss-chip:hover{border-color:var(--blue);background:var(--blue-lt);}
+.ss-chip.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+.exclude-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.ex-tag{font-size:.68rem;padding:2px 8px;border-radius:20px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;display:flex;align-items:center;gap:4px;}
+.ex-tag button{background:none;border:none;cursor:pointer;color:#b91c1c;font-size:.75rem;padding:0;line-height:1;}
+
+/* RIGHT PANEL */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;}
+.tab{padding:7px 16px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+.results-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.results-title{font-size:.95rem;font-weight:700;color:var(--navy);}
+.results-meta{font-size:.75rem;color:#64748b;}
+.action-row{display:flex;gap:6px;flex-wrap:wrap;}
+.btn-sm{padding:5px 12px;border-radius:6px;font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);color:var(--blue-md);background:#fff;transition:all .2s;text-transform:uppercase;letter-spacing:.4px;}
+.btn-sm:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+.btn-sm.dk{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* LEAD CARDS */
+.lead-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.04);transition:box-shadow .2s;}
+.lead-card:hover{box-shadow:0 4px 20px rgba(0,153,216,.1);}
+.lead-card.duplicate{border-color:var(--warn);border-left:4px solid var(--warn);}
+.lc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;}
+.lc-company{font-size:.92rem;font-weight:700;color:var(--navy);}
+.lc-meta{font-size:.74rem;color:#64748b;margin-top:2px;display:flex;flex-wrap:wrap;gap:6px;}
+.lc-meta span{display:inline-flex;align-items:center;gap:3px;}
+.score-ring{flex-shrink:0;width:50px;height:50px;border-radius:50%;border:4px solid;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;title:"Click to see score breakdown";}
+.score-ring.high{border-color:var(--success);}
+.score-ring.mid{border-color:var(--warn);}
+.score-ring.low{border-color:var(--danger);}
+.score-num{font-size:.88rem;font-weight:700;line-height:1;}
+.score-lbl{font-size:.42rem;text-transform:uppercase;color:#94a3b8;}
+.lc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.ltag{font-size:.62rem;font-weight:600;padding:2px 7px;border-radius:20px;}
+.ltag-trade{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.ltag-urgent{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.ltag-type{background:var(--blue-lt);color:var(--blue-md);border:1px solid var(--border);}
+.ltag-dup{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.ltag-comp{background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;}
+.lc-summary{font-size:.8rem;color:#64748b;line-height:1.55;margin-bottom:8px;}
+.lc-fit{font-size:.76rem;color:var(--blue-md);background:var(--blue-lt);border:1px solid var(--border);border-radius:6px;padding:6px 9px;margin-bottom:8px;}
+.lc-contact{font-size:.75rem;color:#64748b;margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.lc-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.btn-lc{padding:5px 11px;border-radius:6px;font-size:.67rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;text-transform:uppercase;letter-spacing:.3px;border:none;}
+.btn-email{background:var(--navy);color:#fff;}
+.btn-email:hover{background:var(--blue-dk);}
+.btn-save{background:#fff;border:1.5px solid var(--border) !important;color:var(--blue-md);}
+.btn-save:hover{border-color:var(--blue) !important;color:var(--blue);background:var(--blue-lt);}
+.btn-qualify{background:#f0fdf4;color:#15803d;border:1.5px solid #bbf7d0 !important;}
+.btn-contact{background:#fefce8;color:#a16207;border:1.5px solid #fde68a !important;}
+.btn-intake{background:#f5f3ff;color:#6d28d9;border:1.5px solid #ddd6fe !important;}
+.btn-find{background:var(--blue-lt);color:var(--blue-md);border:1.5px solid var(--border) !important;}
+.btn-find:hover{background:var(--blue);color:#fff;}
+.stt-badge{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;}
+.stt-new{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
+.stt-contacted{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.stt-qualified{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.stt-dead{background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0;}
+
+/* SCORE BREAKDOWN */
+.score-breakdown{display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px;}
+.score-breakdown.open{display:block;}
+.sb-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sb-label{font-size:.7rem;color:var(--text);min-width:120px;}
+.sb-bar-wrap{flex:1;background:#e2e8f0;border-radius:10px;height:8px;}
+.sb-bar{height:100%;border-radius:10px;background:var(--blue);}
+.sb-val{font-size:.7rem;font-weight:700;color:var(--blue-md);min-width:28px;text-align:right;}
+
+/* NOTES */
+.notes-area{width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:.78rem;font-family:inherit;resize:vertical;min-height:60px;outline:none;margin-top:6px;color:var(--text);}
+.notes-area:focus{border-color:var(--blue);}
+.reminder-row{display:flex;gap:6px;margin-top:6px;align-items:center;}
+.reminder-input{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:5px 9px;font-size:.78rem;font-family:inherit;outline:none;}
+.reminder-input:focus{border-color:var(--blue);}
+.btn-note-save{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;}
+
+/* PIPELINE */
+.pipeline-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media(max-width:800px){.pipeline-wrap{grid-template-columns:1fr 1fr;}}
+.pipe-col{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;}
+.pipe-col-hdr{font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid;}
+.pipe-col.new-col .pipe-col-hdr{color:#1d4ed8;border-color:#bfdbfe;}
+.pipe-col.cont-col .pipe-col-hdr{color:#a16207;border-color:#fde68a;}
+.pipe-col.qual-col .pipe-col-hdr{color:#15803d;border-color:#bbf7d0;}
+.pipe-col.dead-col .pipe-col-hdr{color:#94a3b8;border-color:#e2e8f0;}
+.pipe-item{background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:9px;margin-bottom:7px;cursor:pointer;transition:all .2s;font-size:.78rem;}
+.pipe-item:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(0,153,216,.1);}
+.pi-company{font-weight:700;color:var(--navy);margin-bottom:2px;}
+.pi-meta{color:#94a3b8;font-size:.7rem;margin-bottom:5px;}
+.pi-overdue{color:#b91c1c;font-size:.68rem;font-weight:600;}
+.pi-actions{display:flex;gap:4px;margin-top:5px;}
+.pi-btn{font-size:.62rem;padding:2px 7px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:#fff;font-family:inherit;color:#64748b;transition:all .2s;}
+.pi-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+/* SOURCE CHART */
+.source-bars{display:flex;flex-direction:column;gap:7px;}
+.source-row{display:flex;align-items:center;gap:8px;}
+.source-label{font-size:.74rem;min-width:120px;color:var(--text);}
+.source-bar-wrap{flex:1;background:#f1f5f9;border-radius:10px;height:10px;}
+.source-bar{height:100%;border-radius:10px;background:var(--blue);}
+.source-val{font-size:.7rem;font-weight:700;color:var(--blue-md);min-width:32px;text-align:right;}
+.source-conv{font-size:.68rem;color:var(--success);min-width:40px;text-align:right;}
+
+/* MODAL */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal.hidden{display:none!important;}
+.modal-box{background:#fff;border-radius:12px;padding:24px;max-width:640px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:92vh;overflow-y:auto;}
+.modal-title{font-size:.95rem;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.modal-sub{font-size:.78rem;color:#64748b;margin-bottom:14px;}
+.seq-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;}
+.seq-tab{padding:6px 14px;font-size:.7rem;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;}
+.seq-tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.seq-pane{display:none;}
+.seq-pane.active{display:block;}
+.email-subj{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;margin-bottom:8px;outline:none;}
+.email-subj:focus{border-color:var(--blue);}
+.email-body{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:11px;font-size:.82rem;font-family:inherit;min-height:160px;resize:vertical;outline:none;line-height:1.7;}
+.email-body:focus{border-color:var(--blue);}
+.sms-box{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:11px;font-size:.82rem;font-family:inherit;min-height:80px;resize:vertical;outline:none;line-height:1.6;}
+.sms-chars{font-size:.7rem;color:#94a3b8;text-align:right;margin-top:4px;}
+.modal-actions{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap;}
+.btn-modal{padding:9px 16px;border-radius:7px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;}
+.bm-blue{background:var(--blue);color:#fff;border:none;}
+.bm-navy{background:var(--navy);color:#fff;border:none;}
+.bm-close{background:#fff;border:1px solid var(--border);color:#64748b;}
+.pers-bar{display:flex;align-items:center;gap:8px;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
+.pers-bar label{font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;white-space:nowrap;flex:1;}
+.pers-bar input[type=range]{flex:2;accent-color:var(--blue);}
+.pers-bar span{font-size:.72rem;font-weight:700;color:var(--blue-md);min-width:80px;text-align:right;}
+
+/* MISC */
+.shim{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shim 1.4s infinite;height:11px;margin-bottom:7px;border-radius:4px;}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.shim-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+.sbox{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:7px;font-size:.82rem;font-weight:600;margin:7px 0;}
+.sbox.loading{background:rgba(0,153,216,.08);color:var(--blue-md);}
+.sbox.error{background:rgba(239,68,68,.08);color:#ef4444;}
+.sbox.success{background:rgba(34,197,94,.08);color:#15803d;}
+.spin{width:14px;height:14px;border:2px solid rgba(0,153,216,.3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important;}
+.empty{text-align:center;padding:40px 20px;color:#94a3b8;}
+.empty-icon{font-size:2rem;margin-bottom:10px;}
+footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgba(255,255,255,.35);text-align:center;padding:12px;font-size:.7rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
+  <div class="tool-nav">
+    <button class="btn-settings" onclick="toggleSettings()">&#9881;</button>
+    <a href="/index.html" class="tnav">&#127968; Home</a>
+    <a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a>
+    <a href="/qlm-intake.html" class="tnav">&#128203; Apply</a>
+    <a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a>
+    <a href="/qlm-lead-generator.html" class="tnav active">&#127919; Who's Hiring</a>
+    <a href="/qlm-dashboard.html" class="tnav">&#128202; Admin</a>
+  </div>
+</header>
+<div class="settings-panel" id="settings-panel">
+  <div class="ci">
+    <label>&#128279; Server URL</label>
+    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
+    <span id="srvStatus">Paste your Railway server URL</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <h1>QLM <span>Lead Generator</span></h1>
+      <p>AI searches live job boards and the web to find companies hiring skilled trades workers — with outreach sequences, pipeline tracking, and source analytics.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hstat-n" id="st-total">0</div><div class="hstat-l">Total Leads</div></div>
+      <div class="hstat"><div class="hstat-n" id="st-new">0</div><div class="hstat-l">New</div></div>
+      <div class="hstat"><div class="hstat-n" id="st-cont">0</div><div class="hstat-l">Contacted</div></div>
+      <div class="hstat"><div class="hstat-n" id="st-qual">0</div><div class="hstat-l">Qualified</div></div>
+      <div class="hstat"><div class="hstat-n" id="st-conv">0</div><div class="hstat-l">Converted</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <!-- SAVED SEARCHES -->
+    <div class="pcard">
+      <div class="pcard-title">&#128190; Saved Searches <button onclick="saveCurrentSearch()">+ Save Current</button></div>
+      <div class="saved-search-row" id="saved-searches-row">
+        <span style="font-size:.74rem;color:#94a3b8;">No saved searches yet.</span>
+      </div>
+    </div>
+
+    <!-- SEARCH PARAMS -->
+    <div class="pcard">
+      <div class="pcard-title">&#128269; Search Parameters</div>
+      <div class="fl">
+        <label>Location / Market</label>
+        <input type="text" id="s-loc" placeholder="e.g. Tampa, FL or Brevard County" value="Florida">
+      </div>
+      <div class="fl">
+        <label>Radius (optional)</label>
+        <select id="s-radius">
+          <option value="">Entire region</option>
+          <option>Within 25 miles</option>
+          <option>Within 50 miles</option>
+          <option>Within 100 miles</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Trades to Search</label>
+        <div class="trade-tags">
+          <span class="ttag sel" onclick="toggleTrade(this,'Electrician')">Electrician</span>
+          <span class="ttag sel" onclick="toggleTrade(this,'Plumber')">Plumber</span>
+          <span class="ttag sel" onclick="toggleTrade(this,'Welder')">Welder</span>
+          <span class="ttag sel" onclick="toggleTrade(this,'HVAC')">HVAC</span>
+          <span class="ttag" onclick="toggleTrade(this,'Carpenter')">Carpenter</span>
+          <span class="ttag" onclick="toggleTrade(this,'Concrete')">Concrete</span>
+          <span class="ttag" onclick="toggleTrade(this,'Equipment Operator')">Equipment Op.</span>
+          <span class="ttag" onclick="toggleTrade(this,'Pipefitter')">Pipefitter</span>
+          <span class="ttag" onclick="toggleTrade(this,'Ironworker')">Ironworker</span>
+          <span class="ttag" onclick="toggleTrade(this,'Painter')">Painter</span>
+          <span class="ttag" onclick="toggleTrade(this,'Solar Installer')">Solar</span>
+          <span class="ttag" onclick="toggleTrade(this,'Foreman')">Foreman</span>
+        </div>
+      </div>
+      <div class="fl"><label>Project Type</label>
+        <select id="s-proj"><option value="">All types</option><option>Commercial Construction</option><option>Industrial / Manufacturing</option><option>Infrastructure / Civil</option><option>Oil and Gas / Petrochemical</option><option>Data Center / Tech</option><option>Healthcare / Institutional</option></select>
+      </div>
+      <div class="fl"><label>Company Size</label>
+        <select id="s-size"><option value="">Any size</option><option>Small (1-50 employees)</option><option>Mid-size (50-500 employees)</option><option>Large (500+ employees)</option><option>GC / Prime Contractor</option><option>Subcontractor</option></select>
+      </div>
+      <div class="fl"><label>Max Results</label>
+        <select id="s-count"><option value="10">10 leads</option><option value="15" selected>15 leads</option><option value="20">20 leads</option></select>
+      </div>
+      <div id="searchStatus"></div>
+      <button class="btn-main" id="search-btn" onclick="runSearch()">&#127919; Generate Leads</button>
+    </div>
+
+    <!-- EXCLUDE LIST -->
+    <div class="pcard">
+      <div class="pcard-title">&#128683; Exclude List</div>
+      <p style="font-size:.74rem;color:#64748b;margin-bottom:8px;">Companies added here will be filtered from all future searches.</p>
+      <div class="fl" style="flex-direction:row;gap:6px;">
+        <input type="text" id="ex-input" placeholder="Company name..." style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:7px 10px;font-size:.82rem;font-family:inherit;outline:none;" onkeydown="if(event.key==='Enter')addExclude()">
+        <button onclick="addExclude()" style="background:var(--navy);color:#fff;border:none;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:.78rem;font-weight:600;font-family:inherit;">Add</button>
+      </div>
+      <div class="exclude-tags" id="exclude-tags"></div>
+    </div>
+
+    <!-- OUTREACH SETTINGS -->
+    <div class="pcard">
+      <div class="pcard-title">&#128140; Outreach Settings</div>
+      <div class="personalization-row">
+        <label>Personalization</label>
+        <input type="range" id="pers-slider" min="1" max="3" value="2" oninput="updatePersLabel()">
+        <span class="pers-val" id="pers-label">Balanced</span>
+      </div>
+      <p style="font-size:.72rem;color:#94a3b8;line-height:1.5;" id="pers-desc">References their specific hiring needs with QLM positioning.</p>
+      <div class="fl" style="margin-top:10px;">
+        <label>Your Name / Recruiter</label>
+        <input type="text" id="recruiter-name" placeholder="e.g. Daniel Luallen" value="Daniel Luallen">
+      </div>
+    </div>
+
+    <!-- DIGEST -->
+    <div class="pcard">
+      <div class="pcard-title">&#128138; Daily Digest</div>
+      <div class="fl"><label>Send to</label>
+        <input type="email" id="digest-email" placeholder="you@email.com" value="luallen.daniel@icloud.com">
+      </div>
+      <div class="fl"><label>Frequency</label>
+        <select id="digest-freq"><option>Daily - 7am</option><option>Weekdays only - 7am</option><option>Weekly - Monday 7am</option></select>
+      </div>
+      <button class="btn-main navy" onclick="saveDigest()">&#128190; Save Digest Settings</button>
+      <div id="digestStatus"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('leads',this)">Leads <span id="leads-tab-count"></span></div>
+      <div class="tab" onclick="switchTab('pipeline',this)">Pipeline</div>
+      <div class="tab" onclick="switchTab('saved',this)">Saved <span id="saved-tab-count"></span></div>
+      <div class="tab" onclick="switchTab('analytics',this)">Analytics</div>
+    </div>
+
+    <!-- LEADS -->
+    <div class="tab-pane active" id="tab-leads">
+      <div class="results-bar">
+        <div>
+          <div class="results-title" id="res-title">Ready to search</div>
+          <div class="results-meta" id="res-meta">Configure parameters and click Generate Leads</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-sm" id="btn-export" onclick="exportCSV()" style="display:none">&#8595; CSV</button>
+          <button class="btn-sm dk" id="btn-saveall" onclick="saveAllLeads()" style="display:none">&#128190; Save All</button>
+        </div>
+      </div>
+      <div id="leads-container">
+        <div class="empty"><div class="empty-icon">&#127919;</div><p>Set parameters and click <strong>Generate Leads</strong>.</p></div>
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="tab-pane" id="tab-pipeline">
+      <div class="pipeline-wrap" id="pipeline-wrap"></div>
+    </div>
+
+    <!-- SAVED -->
+    <div class="tab-pane" id="tab-saved">
+      <div id="saved-container"><div class="empty"><div class="empty-icon">&#128190;</div><p>No saved leads yet.</p></div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="tab-pane" id="tab-analytics">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;" id="analytics-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL MODAL -->
+<div class="modal hidden" id="email-modal">
+  <div class="modal-box">
+    <div class="modal-title">&#128140; Outreach Sequence</div>
+    <div class="modal-sub" id="em-company-name"></div>
+    <div class="pers-bar">
+      <label>Personalization Level</label>
+      <input type="range" id="em-pers" min="1" max="3" value="2" oninput="updateEmPers()">
+      <span id="em-pers-lbl">Balanced</span>
+    </div>
+    <div id="em-gen-status"></div>
+    <div class="seq-tabs">
+      <div class="seq-tab active" onclick="switchSeqTab('email1',this)">Email 1</div>
+      <div class="seq-tab" onclick="switchSeqTab('email2',this)">Follow-up (Day 3)</div>
+      <div class="seq-tab" onclick="switchSeqTab('email3',this)">Value-add (Day 7)</div>
+      <div class="seq-tab" onclick="switchSeqTab('sms',this)">SMS</div>
+    </div>
+    <div class="seq-pane active" id="seq-email1">
+      <input class="email-subj" id="subj1" placeholder="Generating...">
+      <textarea class="email-body" id="body1" placeholder="Generating..."></textarea>
+    </div>
+    <div class="seq-pane" id="seq-email2">
+      <input class="email-subj" id="subj2" placeholder="Generating...">
+      <textarea class="email-body" id="body2" placeholder="Generating..."></textarea>
+    </div>
+    <div class="seq-pane" id="seq-email3">
+      <input class="email-subj" id="subj3" placeholder="Generating...">
+      <textarea class="email-body" id="body3" placeholder="Generating..."></textarea>
+    </div>
+    <div class="seq-pane" id="seq-sms">
+      <textarea class="sms-box" id="sms-body" placeholder="Generating SMS..."></textarea>
+      <div class="sms-chars" id="sms-chars">0 / 160 characters</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal bm-blue" onclick="copyCurrentSeq()">&#128203; Copy</button>
+      <button class="btn-modal bm-navy" onclick="openCurrentMailto()">&#128140; Open in Mail</button>
+      <button class="btn-modal bm-close" onclick="closeModal('email-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCORE BREAKDOWN MODAL -->
+<div class="modal hidden" id="score-modal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-title">&#127919; QLM Fit Score Breakdown</div>
+    <div class="modal-sub" id="sm-company"></div>
+    <div id="sm-breakdown" style="margin:14px 0;"></div>
+    <div style="font-size:.78rem;color:#64748b;line-height:1.6;" id="sm-reason"></div>
+    <div class="modal-actions"><button class="btn-modal bm-close" onclick="closeModal('score-modal')">Close</button></div>
+  </div>
+</div>
+
+<!-- NOTES MODAL -->
+<div class="modal hidden" id="notes-modal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-title">&#128221; Notes &amp; Follow-up</div>
+    <div class="modal-sub" id="nm-company"></div>
+    <input id="nm-notes-store" type="hidden">
+    <label style="font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Notes</label>
+    <textarea class="notes-area" id="nm-notes" placeholder="Add notes about this lead, conversations, contacts..."></textarea>
+    <label style="font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;display:block;margin-top:10px;">Follow-up Reminder</label>
+    <div class="reminder-row">
+      <input type="date" class="reminder-input" id="nm-date">
+      <button class="btn-note-save" onclick="saveNotes()">&#128190; Save</button>
+    </div>
+    <div class="modal-actions" style="margin-top:8px;"><button class="btn-modal bm-close" onclick="closeModal('notes-modal')">Close</button></div>
+  </div>
+</div>
+
+<footer>&#169; 2025 Quality Labor Management, LLC &middot; Lead Generator v2 &middot; myqlm.com</footer>
+
+<script>
+// ═══════ STATE ═══════
+var currentLeads = [];
+var selectedTrades = ['Electrician','Plumber','Welder','HVAC'];
+var excludeList = [];
+var currentEmailLeadId = null;
+var currentNotesLeadId = null;
+
+// ═══════ SERVER / SETTINGS ═══════
+function getServerUrl(){ return (document.getElementById('serverUrl').value||'').trim(); }
+function toggleSettings(){ document.getElementById('settings-panel').classList.toggle('open'); }
+function saveServerUrl(){
+  var url = getServerUrl();
+  localStorage.setItem('qlm_server_url', url);
+  var s = document.getElementById('srvStatus');
+  if(!url){ s.textContent='Paste your Railway server URL'; s.className=''; }
+  else if(url.startsWith('https://') && url.includes('.')){ s.textContent='\u2713 Saved'; s.className='ok';
+    setTimeout(function(){ document.getElementById('settings-panel').classList.remove('open'); }, 1200);
+  } else { s.textContent='\u26a0 Should start with https://'; s.className=''; }
+}
+
+// ═══════ TRADE TAGS ═══════
+function toggleTrade(el, t){
+  el.classList.toggle('sel');
+  selectedTrades = el.classList.contains('sel')
+    ? [...selectedTrades, t]
+    : selectedTrades.filter(function(x){ return x!==t; });
+}
+
+// ═══════ TABS ═══════
+function switchTab(id, el){
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='pipeline') renderPipeline();
+  if(id==='saved') renderSaved();
+  if(id==='analytics') renderAnalytics();
+}
+function switchSeqTab(id, el){
+  document.querySelectorAll('.seq-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.seq-pane').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('seq-'+id).classList.add('active');
+}
+
+// ═══════ PERSONALIZATION ═══════
+var PERS_LABELS = ['Generic', 'Balanced', 'Highly Personalized'];
+var PERS_DESCS = [
+  'Standard QLM pitch for any construction company.',
+  'References their specific hiring needs with QLM positioning.',
+  'Deep personalization referencing their exact project, trade, and context.'
+];
+function updatePersLabel(){
+  var v = parseInt(document.getElementById('pers-slider').value) - 1;
+  document.getElementById('pers-label').textContent = PERS_LABELS[v];
+  document.getElementById('pers-desc').textContent = PERS_DESCS[v];
+}
+function updateEmPers(){
+  var v = parseInt(document.getElementById('em-pers').value) - 1;
+  document.getElementById('em-pers-lbl').textContent = PERS_LABELS[v];
+}
+
+// ═══════ AI CALL ═══════
+function aiCall(messages, maxTokens){
+  return fetch('/.netlify/functions/chat', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens: maxTokens||2000, messages: messages })
+  }).then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.error) throw new Error(d.error.message||JSON.stringify(d.error));
+    return (d.content||[]).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('').trim();
+  });
+}
+
+// ═══════ LEAD SEARCH CALL (uses /api/lead-search with web search tool) ═══════
+function rawLeadSearch(prompt) {
+  return fetch('/.netlify/functions/lead-search', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ prompt: prompt })
+  }).then(function(r){
+    var status = r.status;
+    return r.text().then(function(txt){
+      if(status === 404) throw new Error('Netlify function not found — check deployment.');
+      if(status >= 500) throw new Error('Server error ('+status+') — search timed out, try again.');
+      try {
+        var d = JSON.parse(txt);
+        if(d.error) throw new Error(d.error.message||JSON.stringify(d.error));
+        return (d.content||[]).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('').trim();
+      } catch(e) {
+        if(e.message.indexOf('Function')!==-1||e.message.indexOf('error')!==-1) throw e;
+        throw new Error('Invalid response: ' + txt.substring(0,120));
+      }
+    });
+  });
+}
+
+function leadSearchCall(prompt) {
+  return rawLeadSearch(prompt).then(function(text) {
+    if(text.match(/\[[\s\S]*\]/)) return text;
+    // Server-side enforcement should have handled it, but if still no JSON — one clean retry
+    return rawLeadSearch(prompt);
+  });
+}
+
+// ═══════ LEAD STORE ═══════
+function getStore(){ try{ return JSON.parse(localStorage.getItem('qlm_leads')||'[]'); } catch(e){ return []; } }
+function setStore(leads){ localStorage.setItem('qlm_leads', JSON.stringify(leads)); }
+
+// ═══════ EXCLUDE LIST ═══════
+function loadExclude(){ excludeList = JSON.parse(localStorage.getItem('qlm_exclude')||'[]'); renderExcludeTags(); }
+function addExclude(){
+  var v = document.getElementById('ex-input').value.trim();
+  if(!v || excludeList.indexOf(v)!==-1) return;
+  excludeList.push(v);
+  localStorage.setItem('qlm_exclude', JSON.stringify(excludeList));
+  document.getElementById('ex-input').value = '';
+  renderExcludeTags();
+}
+function removeExclude(name){
+  excludeList = excludeList.filter(function(x){ return x!==name; });
+  localStorage.setItem('qlm_exclude', JSON.stringify(excludeList));
+  renderExcludeTags();
+}
+function renderExcludeTags(){
+  document.getElementById('exclude-tags').innerHTML = excludeList.map(function(e){
+    return '<span class="ex-tag">'+e+'<button onclick="removeExclude(\''+e.replace(/'/g,"\\'")+'\')">&times;</button></span>';
+  }).join('') || '<span style="font-size:.72rem;color:#94a3b8;">None added.</span>';
+}
+
+// ═══════ SAVED SEARCHES ═══════
+function getSavedSearches(){ try{ return JSON.parse(localStorage.getItem('qlm_saved_searches')||'[]'); } catch(e){ return []; } }
+function saveCurrentSearch(){
+  var name = prompt('Name this search:', document.getElementById('s-loc').value + ' - ' + selectedTrades.slice(0,2).join('/'));
+  if(!name) return;
+  var searches = getSavedSearches();
+  searches.push({ name:name, loc:document.getElementById('s-loc').value, trades:selectedTrades.slice(), proj:document.getElementById('s-proj').value, size:document.getElementById('s-size').value, count:document.getElementById('s-count').value });
+  localStorage.setItem('qlm_saved_searches', JSON.stringify(searches));
+  renderSavedSearches();
+}
+function loadSavedSearch(s){
+  document.getElementById('s-loc').value = s.loc;
+  document.getElementById('s-proj').value = s.proj || '';
+  document.getElementById('s-size').value = s.size || '';
+  document.getElementById('s-count').value = s.count || '15';
+  selectedTrades = s.trades.slice();
+  document.querySelectorAll('.ttag').forEach(function(el){
+    var t = el.textContent.trim();
+    var fullName = {'Equipment Op.':'Equipment Operator'};
+    var name = fullName[t] || t;
+    el.classList.toggle('sel', selectedTrades.indexOf(name)!==-1);
+  });
+}
+function renderSavedSearches(){
+  var searches = getSavedSearches();
+  var el = document.getElementById('saved-searches-row');
+  if(!searches.length){ el.innerHTML='<span style="font-size:.74rem;color:#94a3b8;">No saved searches yet.</span>'; return; }
+  el.innerHTML = searches.map(function(s,i){
+    return '<span class="ss-chip" onclick="loadSavedSearch('+JSON.stringify(s).replace(/"/g,'&quot;')+')" title="'+s.loc+' | '+s.trades.join(', ')+'">'+s.name+'</span>';
+  }).join('');
+}
+
+// ═══════ MAIN SEARCH ═══════
+function runSearch(){
+  if(!selectedTrades.length){ alert('Select at least one trade.'); return; }
+  var loc = document.getElementById('s-loc').value.trim()||'Florida';
+  var radius = document.getElementById('s-radius').value;
+  var proj = document.getElementById('s-proj').value;
+  var size = document.getElementById('s-size').value;
+  var count = document.getElementById('s-count').value;
+  var trades = selectedTrades.join(', ');
+
+  document.getElementById('search-btn').disabled = true;
+  showSt('searchStatus','loading','Searching live job boards — takes 15-30 seconds...');
+  document.getElementById('leads-container').innerHTML = shimCards(3);
+  document.getElementById('res-title').textContent = 'Searching live job boards...';
+  document.getElementById('res-meta').textContent = 'AI browsing Indeed, LinkedIn, ZipRecruiter, iHireConstruction in real time';
+  document.getElementById('btn-export').style.display = 'none';
+  document.getElementById('btn-saveall').style.display = 'none';
+
+  var excludeNote = excludeList.length ? 'DO NOT include these companies: ' + excludeList.join(', ') + '\n\n' : '';
+  var locationStr = loc + (radius && radius !== 'Entire region' ? ', ' + radius : '');
+  var minCount = Math.min(parseInt(count), 5);
+
+  var prompt = 'You are a business development researcher for QLM (Quality Labor Management), a skilled trades staffing company in Florida.\n\n' +
+    'TASK: Search job boards right now and find companies that are ACTIVELY HIRING ' + trades + ' workers in ' + locationStr + '.\n\n' +
+    excludeNote +
+    'Search these sources: Indeed.com, LinkedIn Jobs, ZipRecruiter, iHireConstruction.com, ConstructionJobs.com.\n' +
+    'Search queries to try:\n' +
+    '1. "' + trades.split(',')[0].trim() + ' jobs ' + loc + '"\n' +
+    '2. "electrician hiring ' + loc + '"\n' +
+    '3. "construction jobs ' + loc + ' Florida"\n\n' +
+    'IMPORTANT: If ' + loc + ' is a small market, expand your search to include the surrounding area (Brevard County, Central Florida, etc.) and include companies within driving distance.\n' +
+    'Target up to ' + count + ' companies. If the local market is small, return however many you can find — even 3-5 is fine. DO NOT fail just because you cannot find exactly ' + count + '.\n\n' +
+    (proj ? 'Prefer companies in: ' + proj + '\n' : '') +
+    (size ? 'Prefer company size: ' + size + '\n' : '') +
+    '\nReturn ONLY this JSON array with NO other text before or after it:\n' +
+    '[{"company":"Exact Company Name","location":"City, State","trades":["Trade1"],"jobCount":3,"source":"Indeed","postingDate":"3 days ago","contactSignal":"hr@company.com","projectType":"Commercial","companySize":"GC","urgency":"High","qlmFitScore":82,"fitReason":"One sentence why QLM fits","summary":"What they are hiring and why it matters","competitorSignal":"Direct hire only","jobUrl":"https://..."}]\n\n' +
+    'STRICT RULES:\n' +
+    '- Output ONLY the JSON array starting with [ and ending with ]\n' +
+    '- No text before or after the array\n' +
+    '- No markdown, no code fences, no backticks\n' +
+    '- No apostrophes inside values (write "does not" not "doesn\'t")\n' +
+    '- jobUrl must be a real URL from the search or empty string ""\n' +
+    '- qlmFitScore is 0-100 integer\n' +
+    '- Only include companies that are ACTUALLY HIRING right now based on your search';
+
+  leadSearchCall(prompt)
+  .then(function(text){
+    // Step 1: strip markdown fences
+    var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+
+    // Step 2: normalize unicode punctuation
+    clean = clean
+      .replace(/[\u2018\u2019\u2032\u02BC]/g, '')
+      .replace(/[\u201C\u201D\u00AB\u00BB]/g, '"')
+      .replace(/[\u2013\u2014\u2015]/g, '-')
+      .replace(/\u00e2\u0080\u0099/g, '')
+      .replace(/\\'/g, '');
+
+    // Step 3: extract the array
+    var match = clean.match(/\[[\s\S]*\]/);
+    if(!match) {
+      var preview = clean.length > 0 ? clean.substring(0, 200) : 'Empty response';
+      throw new Error('No JSON array in response. Got: ' + preview);
+    }
+    var jsonStr = match[0];
+
+    // Step 4: remove nested scoreBreakdown object
+    jsonStr = jsonStr.replace(/"scoreBreakdown"\s*:\s*\{[^{}]*\}/g, '"scoreBreakdown":{}');
+
+    // Step 5: char-by-char apostrophe removal inside strings (handles nested arrays)
+    var sanitized = '';
+    var inStr = false, esc = false;
+    for(var si = 0; si < jsonStr.length; si++){
+      var ch = jsonStr[si];
+      if(esc){ sanitized += ch; esc = false; continue; }
+      if(ch === '\\'){ sanitized += ch; esc = true; continue; }
+      if(ch === '"'){ inStr = !inStr; sanitized += ch; continue; }
+      if(inStr && ch === "'"){ continue; }
+      sanitized += ch;
+    }
+    jsonStr = sanitized;
+
+    var leads;
+    try {
+      leads = JSON.parse(jsonStr);
+    } catch(e) {
+      // Step 6: object-by-object extraction fallback
+      var extracted = [];
+      var depth = 0, start2 = -1;
+      for(var i = 0; i < jsonStr.length; i++) {
+        if(jsonStr[i]==='{') { if(depth===0) start2=i; depth++; }
+        else if(jsonStr[i]==='}') {
+          depth--;
+          if(depth===0 && start2>=0) {
+            try { extracted.push(JSON.parse(jsonStr.slice(start2,i+1))); } catch(e2){}
+            start2=-1;
+          }
+        }
+      }
+      if(!extracted.length) throw new Error('Could not parse leads: ' + e.message);
+      leads = extracted;
+    }
+
+    if(!leads || !leads.length) throw new Error('No leads found. Try different parameters.');
+
+    // Step 7: normalize field names
+    leads = leads.map(function(l) {
+      return {
+        company:          l.company || l.companyName || l.name || 'Unknown Company',
+        location:         l.location || l.city || '',
+        trades:           Array.isArray(l.trades) ? l.trades : (l.tradeTypes ? [l.tradeTypes] : []),
+        jobCount:         l.jobCount || l.openings || 1,
+        source:           l.source || l.jobBoard || 'Web',
+        postingDate:      l.postingDate || l.datePosted || 'Recent',
+        contactSignal:    l.contactSignal || l.contact || 'No contact found',
+        projectType:      l.projectType || l.industry || '',
+        companySize:      l.companySize || l.size || '',
+        urgency:          l.urgency || 'Medium',
+        qlmFitScore:      parseInt(l.qlmFitScore || l.fitScore || l.score || 50) || 50,
+        scoreBreakdown:   null,
+        fitReason:        l.fitReason || l.reason || '',
+        summary:          l.summary || l.description || '',
+        competitorSignal: l.competitorSignal || l.competitor || '',
+        jobUrl:           l.jobUrl || l.url || ''
+      };
+    });
+
+    // Mark duplicates
+    var store = getStore();
+    var knownNames = store.map(function(l){ return (l.company||'').toLowerCase(); });
+    currentLeads = leads.map(function(l,i){
+      var isDup = knownNames.indexOf((l.company||'').toLowerCase()) !== -1;
+      return Object.assign({id:'lead_'+Date.now()+'_'+i, status:'new', savedAt:null, notes:'', reminderDate:'', isDuplicate:isDup}, l);
+    });
+
+    renderLeads(currentLeads);
+    document.getElementById('res-title').textContent = leads.length + ' Leads Found';
+    document.getElementById('res-meta').textContent = trades + ' \u00b7 ' + loc + ' \u00b7 ' + new Date().toLocaleDateString();
+    document.getElementById('btn-export').style.display = '';
+    document.getElementById('btn-saveall').style.display = '';
+    document.getElementById('leads-tab-count').textContent = '('+leads.length+')';
+    clearSt('searchStatus');
+    updateStats();
+
+    // Track search in source analytics
+    trackSourceSearch(leads);
+  })
+  .catch(function(e){
+    var msg = e.message || 'Search failed';
+    if(msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')) {
+      msg = 'Search timed out — web search can take 20-30 seconds. Click Generate Leads to try again.';
+    }
+    showSt('searchStatus','error', msg);
+    document.getElementById('leads-container').innerHTML = '<div class="empty"><div class="empty-icon">&#9888;&#65039;</div><p>'+msg+'</p></div>';
+    document.getElementById('res-title').textContent = 'Search failed — try again';
+  })
+  .finally(function(){ document.getElementById('search-btn').disabled = false; });
+}
+
+// ═══════ SOURCE TRACKING ═══════
+function trackSourceSearch(leads){
+  var analytics = JSON.parse(localStorage.getItem('qlm_lead_analytics')||'{}');
+  if(!analytics.sources) analytics.sources = {};
+  leads.forEach(function(l){
+    var src = l.source || 'Unknown';
+    if(!analytics.sources[src]) analytics.sources[src] = { found:0, saved:0, qualified:0, converted:0 };
+    analytics.sources[src].found++;
+  });
+  localStorage.setItem('qlm_lead_analytics', JSON.stringify(analytics));
+}
+function trackSourceAction(lead, action){
+  if(!lead || !lead.source) return;
+  var analytics = JSON.parse(localStorage.getItem('qlm_lead_analytics')||'{}');
+  if(!analytics.sources) analytics.sources = {};
+  if(!analytics.sources[lead.source]) analytics.sources[lead.source] = {found:0,saved:0,qualified:0,converted:0};
+  analytics.sources[lead.source][action] = (analytics.sources[lead.source][action]||0) + 1;
+  localStorage.setItem('qlm_lead_analytics', JSON.stringify(analytics));
+}
+
+// ═══════ RENDER LEAD CARD ═══════
+function renderLeads(leads){
+  if(!leads.length){ document.getElementById('leads-container').innerHTML='<div class="empty"><div class="empty-icon">&#128269;</div><p>No leads found. Try different parameters.</p></div>'; return; }
+  document.getElementById('leads-container').innerHTML = leads.map(function(l){ return leadCardHTML(l, false); }).join('');
+}
+
+function leadCardHTML(lead, isSaved){
+  var sc = lead.qlmFitScore||0;
+  var ring = sc>=75?'high':sc>=50?'mid':'low';
+  var col = sc>=75?'#15803d':sc>=50?'#a16207':'#b91c1c';
+  var trades = (lead.trades||[]).map(function(t){ return '<span class="ltag ltag-trade">'+t+'</span>'; }).join('');
+  var urgTag = lead.urgency==='High'?'<span class="ltag ltag-urgent">&#9889; Urgent</span>':'';
+  var dupTag = lead.isDuplicate?'<span class="ltag ltag-dup">&#9888; Already in pipeline</span>':'';
+  var compTag = (lead.competitorSignal&&lead.competitorSignal!=='No competitor signal')?'<span class="ltag ltag-comp">&#128101; '+lead.competitorSignal+'</span>':'';
+  var sttBadge = '<span class="stt-badge stt-'+(lead.status||'new')+'">'+(lead.status||'new')+'</span>';
+  var reminder = lead.reminderDate ? '<div style="font-size:.72rem;color:'+(new Date(lead.reminderDate)<new Date()?'#b91c1c':'var(--blue-md)')+';">&#128197; Follow-up: '+lead.reminderDate+'</div>' : '';
+
+  return '<div class="lead-card'+(lead.isDuplicate?' duplicate':'')+'" id="lc-'+lead.id+'">' +
+    '<div class="lc-top">' +
+      '<div><div class="lc-company">'+lead.company+' '+sttBadge+'</div>' +
+      '<div class="lc-meta"><span>&#128205; '+(lead.location||'')+'</span><span>&#128194; '+(lead.source||'')+'</span><span>&#128336; '+(lead.postingDate||'')+'</span>'+(lead.jobCount?'<span>&#128101; '+lead.jobCount+' openings</span>':'')+'</div></div>' +
+      '<div class="score-ring '+ring+'" style="border-color:'+col+'" onclick="showScoreBreakdown(\''+lead.id+'\')" title="Click for score breakdown"><div class="score-num" style="color:'+col+'">'+sc+'</div><div class="score-lbl">Fit</div></div>' +
+    '</div>' +
+    '<div class="lc-tags">'+trades+urgTag+dupTag+compTag+(lead.projectType?'<span class="ltag ltag-type">'+lead.projectType+'</span>':'')+(lead.companySize?'<span class="ltag ltag-type">'+lead.companySize+'</span>':'')+'</div>' +
+    '<div class="lc-summary">'+(lead.summary||'')+'</div>' +
+    (lead.fitReason?'<div class="lc-fit">&#10022; <strong>QLM Fit:</strong> '+lead.fitReason+'</div>':'') +
+    (lead.contactSignal?'<div class="lc-contact">&#128100; <span>'+lead.contactSignal+'</span> <button class="btn-lc btn-find" onclick="findContact(\''+lead.id+'\')">&#128269; Find Contact</button></div>':'') +
+    (reminder?'<div class="lc-contact">'+reminder+'</div>':'') +
+    (lead.notes?'<div class="lc-contact" style="font-style:italic;color:#64748b;">&#128221; '+lead.notes.substring(0,100)+(lead.notes.length>100?'...':'')+'</div>':'') +
+    '<div class="lc-actions">' +
+      '<button class="btn-lc btn-email" onclick="generateEmail(\''+lead.id+'\')">&#128140; Write Outreach</button>' +
+      (isSaved?'':'<button class="btn-lc btn-save" onclick="saveLead(\''+lead.id+'\')" id="save-btn-'+lead.id+'">&#128190; Save</button>') +
+      '<button class="btn-lc btn-contact" onclick="moveTo(\''+lead.id+'\',\'contacted\')">&#128172; Contacted</button>' +
+      '<button class="btn-lc btn-qualify" onclick="moveTo(\''+lead.id+'\',\'qualified\')">&#10003; Qualify</button>' +
+      '<button class="btn-lc btn-intake" onclick="convertToIntake(\''+lead.id+'\')">&#128203; To Intake</button>' +
+      '<button class="btn-lc btn-find" onclick="openNotes(\''+lead.id+'\')">&#128221; Notes</button>' +
+      (lead.jobUrl?'<a class="btn-lc btn-save" href="'+lead.jobUrl+'" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">&#128279; View</a>':'') +
+    '</div>' +
+  '</div>';
+}
+
+function shimCards(n){
+  var o='';
+  for(var i=0;i<n;i++) o+='<div class="shim-card"><div class="shim" style="width:55%"></div><div class="shim" style="width:38%"></div><div class="shim"></div><div class="shim" style="width:75%"></div></div>';
+  return o;
+}
+
+// ═══════ SCORE BREAKDOWN ═══════
+function showScoreBreakdown(id){
+  var lead = findLead(id);
+  if(!lead) return;
+  document.getElementById('sm-company').textContent = lead.company + ' — QLM Fit Score: ' + lead.qlmFitScore;
+  var sb = lead.scoreBreakdown || {workforceNeed:Math.round(lead.qlmFitScore*.35),tradeMatch:Math.round(lead.qlmFitScore*.3),urgency:Math.round(lead.qlmFitScore*.2),projectType:Math.round(lead.qlmFitScore*.15)};
+  var rows = [
+    {label:'Workforce Need', val:sb.workforceNeed||0, max:30},
+    {label:'Trade Match', val:sb.tradeMatch||0, max:25},
+    {label:'Urgency', val:sb.urgency||0, max:25},
+    {label:'Project Type', val:sb.projectType||0, max:20},
+  ];
+  document.getElementById('sm-breakdown').innerHTML = rows.map(function(r){
+    return '<div class="sb-row"><span class="sb-label">'+r.label+' (max '+r.max+')</span><div class="sb-bar-wrap"><div class="sb-bar" style="width:'+Math.round(r.val/r.max*100)+'%"></div></div><span class="sb-val">'+r.val+'</span></div>';
+  }).join('');
+  document.getElementById('sm-reason').textContent = lead.fitReason || '';
+  document.getElementById('score-modal').classList.remove('hidden');
+}
+
+// ═══════ CONTACT FINDER ═══════
+function findContact(id){
+  var lead = findLead(id);
+  if(!lead) return;
+  var btn = document.querySelector('#lc-'+id+' .btn-find');
+  if(btn){ btn.textContent='Searching...'; btn.disabled=true; }
+
+  var prompt = 'Find the hiring contact for this company. Search LinkedIn, their website, and job postings.\n\nCompany: '+lead.company+'\nLocation: '+(lead.location||'')+'\nIndustry: Construction / '+lead.projectType+'\n\nReturn ONLY a JSON object with no markdown:\n{"name":"Full Name or empty","title":"Job Title or empty","email":"email or empty","linkedin":"profile URL or empty","confidence":"High/Medium/Low","notes":"one sentence on how you found this"}\n\nNo apostrophes in values. Return raw JSON only.';
+
+  aiCall([{role:'user',content:prompt}], 400)
+  .then(function(text){
+    var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()
+      .replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
+    var data = JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
+    var parts = [];
+    if(data.name) parts.push(data.name+(data.title?' ('+data.title+')':''));
+    if(data.email) parts.push(data.email);
+    if(data.linkedin) parts.push('<a href="'+data.linkedin+'" target="_blank" style="color:var(--blue);">LinkedIn</a>');
+    var contact = parts.join(' \u00b7 ') || 'No contact found';
+    // Update card contact area
+    var el = document.querySelector('#lc-'+id+' .lc-contact');
+    if(el) el.innerHTML = '&#128100; <span>'+contact+'</span> <span style="font-size:.68rem;color:var(--success);">&#10003; '+data.confidence+' confidence</span>';
+    // Update stored lead
+    updateLead(id, {contactSignal: contact});
+  })
+  .catch(function(){ if(btn){ btn.textContent='&#128269; Find Contact'; btn.disabled=false; } });
+}
+
+// ═══════ EMAIL GENERATION ═══════
+function generateEmail(id){
+  var lead = findLead(id);
+  if(!lead) return;
+  currentEmailLeadId = id;
+  document.getElementById('em-company-name').textContent = 'Writing 3-touch outreach sequence for: ' + lead.company;
+  ['subj1','body1','subj2','body2','subj3','body3','sms-body'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('em-pers').value = document.getElementById('pers-slider').value;
+  updateEmPers();
+  showSt('em-gen-status','loading','Generating 3-email sequence + SMS...');
+  document.getElementById('email-modal').classList.remove('hidden');
+  // Reset to first tab
+  document.querySelectorAll('.seq-tab')[0].click();
+
+  var persLevel = PERS_LABELS[parseInt(document.getElementById('pers-slider').value)-1];
+  var recruiter = document.getElementById('recruiter-name').value || 'Your QLM Recruiter';
+  var prompt = 'Write a 3-touch outreach email sequence + SMS for a construction staffing company reaching out to a company hiring skilled trades workers. Sign emails as: ' + recruiter + ', QLM.\n\n' +
+    'Company: '+lead.company+'\nLocation: '+(lead.location||'')+'\nTrades needed: '+(lead.trades||[]).join(', ')+'\nProject type: '+(lead.projectType||'commercial')+'\nContext: '+lead.summary+'\nContact: '+(lead.contactSignal||'unknown')+'\n\n' +
+    'Personalization level: ' + persLevel + '\n\n' +
+    'QLM value prop: Pre-screened skilled trades workers with safety certs and skills assessments. Fast placement on commercial and industrial job sites in Florida.\n\n' +
+    'Return ONLY raw JSON (no markdown):\n{"email1":{"subject":"","body":""},"email2":{"subject":"Day 3 follow-up subject","body":"Short 100-word follow-up"},"email3":{"subject":"Day 7 value-add subject","body":"Value-add email with a tip or resource"},"sms":"160 char max SMS"}\n\nNo apostrophes in values. Raw JSON only.';
+
+  aiCall([{role:'user',content:prompt}], 1200)
+  .then(function(text){
+    var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()
+      .replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,'-');
+    var data = JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
+    document.getElementById('subj1').value = (data.email1||{}).subject||'';
+    document.getElementById('body1').value = (data.email1||{}).body||'';
+    document.getElementById('subj2').value = (data.email2||{}).subject||'';
+    document.getElementById('body2').value = (data.email2||{}).body||'';
+    document.getElementById('subj3').value = (data.email3||{}).subject||'';
+    document.getElementById('body3').value = (data.email3||{}).body||'';
+    document.getElementById('sms-body').value = data.sms||'';
+    updateSmsChars();
+    clearSt('em-gen-status');
+  })
+  .catch(function(e){ showSt('em-gen-status','error',e.message); });
+}
+
+function updateSmsChars(){
+  var n = (document.getElementById('sms-body').value||'').length;
+  document.getElementById('sms-chars').textContent = n + ' / 160 characters';
+  document.getElementById('sms-chars').style.color = n>160?'#ef4444':'#94a3b8';
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var smsEl = document.getElementById('sms-body');
+  if(smsEl) smsEl.addEventListener('input', updateSmsChars);
+});
+
+function getCurrentSeqData(){
+  var active = document.querySelector('.seq-pane.active');
+  if(!active) return null;
+  var id = active.id;
+  if(id==='seq-sms') return { subject:'', body: document.getElementById('sms-body').value, isSms:true };
+  var num = id.replace('seq-email','');
+  return { subject: document.getElementById('subj'+num).value, body: document.getElementById('body'+num).value };
+}
+function copyCurrentSeq(){
+  var d = getCurrentSeqData();
+  if(!d) return;
+  var text = d.isSms ? d.body : 'Subject: '+d.subject+'\n\n'+d.body;
+  navigator.clipboard.writeText(text).then(function(){
+    var btn = document.querySelector('.bm-blue');
+    var o = btn.textContent; btn.textContent='\u2713 Copied!';
+    setTimeout(function(){ btn.textContent=o; },2000);
+  });
+}
+function openCurrentMailto(){
+  var d = getCurrentSeqData();
+  if(!d||d.isSms) return;
+  window.location.href='mailto:?subject='+encodeURIComponent(d.subject)+'&body='+encodeURIComponent(d.body);
+}
+
+// ═══════ NOTES ═══════
+function openNotes(id){
+  var lead = findLead(id);
+  if(!lead) return;
+  currentNotesLeadId = id;
+  document.getElementById('nm-company').textContent = lead.company;
+  document.getElementById('nm-notes').value = lead.notes || '';
+  document.getElementById('nm-date').value = lead.reminderDate || '';
+  document.getElementById('notes-modal').classList.remove('hidden');
+}
+function saveNotes(){
+  var id = currentNotesLeadId;
+  var notes = document.getElementById('nm-notes').value;
+  var date = document.getElementById('nm-date').value;
+  updateLead(id, {notes:notes, reminderDate:date});
+  // Refresh card note display
+  var noteEl = document.querySelector('#lc-'+id+' .lc-contact:last-of-type');
+  closeModal('notes-modal');
+}
+
+// ═══════ SAVE / MOVE ═══════
+function saveLead(id){
+  var lead = findLead(id);
+  if(!lead) return;
+  lead.savedAt = new Date().toISOString();
+  var store = getStore();
+  if(!store.find(function(l){ return l.id===id; })) store.unshift(lead);
+  else store = store.map(function(l){ return l.id===id ? lead : l; });
+  setStore(store);
+  trackSourceAction(lead, 'saved');
+  var btn = document.getElementById('save-btn-'+id);
+  if(btn){ btn.textContent='\u2713 Saved'; btn.disabled=true; }
+  updateSavedCount();
+  updateStats();
+}
+function saveAllLeads(){
+  currentLeads.forEach(function(l){ l.savedAt=new Date().toISOString(); });
+  var store = getStore();
+  currentLeads.forEach(function(lead){
+    if(!store.find(function(l){ return l.id===lead.id; })) store.unshift(lead);
+  });
+  setStore(store);
+  document.querySelectorAll('[id^=save-btn-]').forEach(function(b){ b.textContent='\u2713 Saved'; b.disabled=true; });
+  updateSavedCount(); updateStats();
+}
+function moveTo(id, status){
+  updateLead(id, {status:status, savedAt: new Date().toISOString()});
+  var lead = findLead(id);
+  if(lead && status==='qualified') trackSourceAction(lead,'qualified');
+  var badge = document.querySelector('#lc-'+id+' .stt-badge');
+  if(badge){ badge.className='stt-badge stt-'+status; badge.textContent=status; }
+  // Auto-save
+  var store = getStore();
+  var found = store.find(function(l){ return l.id===id; });
+  if(!found && lead){ lead.status=status; lead.savedAt=new Date().toISOString(); store.unshift(lead); setStore(store); }
+  updateStats();
+}
+function updateLead(id, updates){
+  // Update in currentLeads
+  currentLeads = currentLeads.map(function(l){ return l.id===id ? Object.assign({},l,updates) : l; });
+  // Update in store
+  var store = getStore().map(function(l){ return l.id===id ? Object.assign({},l,updates) : l; });
+  setStore(store);
+}
+function convertToIntake(id){
+  var lead = findLead(id);
+  if(!lead) return;
+  var url = '/qlm-intake.html?company='+encodeURIComponent(lead.company||'')+'&location='+encodeURIComponent(lead.location||'')+'&trade='+encodeURIComponent((lead.trades||[])[0]||'');
+  window.open(url, '_blank');
+}
+function findLead(id){
+  return currentLeads.find(function(l){ return l.id===id; }) || getStore().find(function(l){ return l.id===id; });
+}
+
+// ═══════ PIPELINE ═══════
+function renderPipeline(){
+  var store = getStore();
+  var stages = [
+    {key:'new',cls:'new-col',label:'&#128313; New'},
+    {key:'contacted',cls:'cont-col',label:'&#128172; Contacted'},
+    {key:'qualified',cls:'qual-col',label:'&#10003; Qualified'},
+    {key:'dead',cls:'dead-col',label:'&#128683; Dead'}
+  ];
+  document.getElementById('pipeline-wrap').innerHTML = stages.map(function(s){
+    var leads = store.filter(function(l){ return (l.status||'new')===s.key; });
+    var items = leads.map(function(l){
+      var overdue = l.reminderDate && new Date(l.reminderDate)<new Date() ? '<div class="pi-overdue">&#128197; Overdue: '+l.reminderDate+'</div>' : '';
+      var nextStage = {new:'contacted',contacted:'qualified',qualified:'dead',dead:'new'};
+      return '<div class="pipe-item" id="lc-'+l.id+'">' +
+        '<div class="pi-company">'+l.company+'</div>' +
+        '<div class="pi-meta">'+(l.location||'')+' &middot; '+(l.trades||[]).slice(0,2).join(', ')+'</div>' +
+        overdue +
+        '<div class="pi-actions">' +
+          '<button class="pi-btn" onclick="moveTo(\''+l.id+'\',\''+nextStage[s.key]+'\')">\u27a1 '+nextStage[s.key]+'</button>' +
+          '<button class="pi-btn" onclick="generateEmail(\''+l.id+'\')">\u2709</button>' +
+          '<button class="pi-btn" onclick="openNotes(\''+l.id+'\')">\u270f</button>' +
+          (s.key!=='dead'?'<button class="pi-btn" onclick="moveTo(\''+l.id+'\',\'dead\')" style="color:#ef4444;">\u2715</button>':'') +
+          '<button class="pi-btn" onclick="markConverted(\''+l.id+'\')" style="color:#15803d;" title="Mark as converted/placed">\u2713 Placed</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') || '<div style="font-size:.74rem;color:#94a3b8;text-align:center;padding:10px;">Empty</div>';
+    return '<div class="pipe-col '+s.cls+'"><div class="pipe-col-hdr">'+s.label+' ('+leads.length+')</div>'+items+'</div>';
+  }).join('');
+}
+function markConverted(id){
+  updateLead(id,{status:'qualified',converted:true,convertedDate:new Date().toISOString()});
+  var lead = findLead(id);
+  if(lead) trackSourceAction(lead,'converted');
+  updateStats();
+  renderPipeline();
+}
+
+// ═══════ SAVED TAB ═══════
+function renderSaved(){
+  var store = getStore();
+  var el = document.getElementById('saved-container');
+  if(!store.length){ el.innerHTML='<div class="empty"><div class="empty-icon">&#128190;</div><p>No saved leads yet.</p></div>'; return; }
+  el.innerHTML = store.map(function(l){ return leadCardHTML(l, true); }).join('');
+}
+function updateSavedCount(){
+  var n = getStore().length;
+  document.getElementById('saved-tab-count').textContent = n?'('+n+')':'';
+}
+
+// ═══════ ANALYTICS ═══════
+function renderAnalytics(){
+  var analytics = JSON.parse(localStorage.getItem('qlm_lead_analytics')||'{}');
+  var sources = analytics.sources || {};
+  var store = getStore();
+
+  // Source performance
+  var srcEntries = Object.entries(sources).sort(function(a,b){ return b[1].found-a[1].found; });
+  var maxFound = srcEntries.length ? srcEntries[0][1].found : 1;
+  var srcHtml = srcEntries.length
+    ? srcEntries.map(function(e){
+        var conv = e[1].converted||0;
+        var pct = e[1].found ? Math.round(conv/e[1].found*100) : 0;
+        return '<div class="source-row"><span class="source-label">'+e[0]+'</span><div class="source-bar-wrap"><div class="source-bar" style="width:'+Math.round(e[1].found/maxFound*100)+'%"></div></div><span class="source-val">'+e[1].found+'</span><span class="source-conv">'+pct+'% conv</span></div>';
+      }).join('')
+    : '<p style="color:#94a3b8;font-size:.82rem;">Run searches to see source data.</p>';
+
+  // Status breakdown
+  var statuses = {new:0,contacted:0,qualified:0,dead:0};
+  store.forEach(function(l){ if(statuses[l.status]!==undefined) statuses[l.status]++; });
+  var converted = store.filter(function(l){ return l.converted; }).length;
+
+  // Overdue reminders
+  var overdue = store.filter(function(l){ return l.reminderDate && new Date(l.reminderDate)<new Date() && l.status!=='dead'; });
+
+  document.getElementById('analytics-wrap').innerHTML =
+    '<div style="grid-column:1/-1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 4px 14px rgba(0,0,0,.05);">' +
+      '<div style="font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Lead Source Performance</div>' +
+      '<div class="source-bars">'+srcHtml+'</div>' +
+      '<div style="font-size:.68rem;color:#94a3b8;margin-top:8px;">conv = converted to placement</div>' +
+    '</div>' +
+    '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 4px 14px rgba(0,0,0,.05);">' +
+      '<div style="font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Pipeline Status</div>' +
+      Object.entries(statuses).map(function(e){
+        var col = {new:'#1d4ed8',contacted:'#a16207',qualified:'#15803d',dead:'#94a3b8'}[e[0]]||'#64748b';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.82rem;"><span style="text-transform:capitalize;">'+e[0]+'</span><strong style="color:'+col+'">'+e[1]+'</strong></div>';
+      }).join('') +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:.82rem;"><span style="color:var(--success);">Converted / Placed</span><strong style="color:var(--success);">'+converted+'</strong></div>' +
+    '</div>' +
+    '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 4px 14px rgba(0,0,0,.05);">' +
+      '<div style="font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">&#128197; Overdue Follow-ups ('+(overdue.length)+')</div>' +
+      (overdue.length ? overdue.map(function(l){
+        return '<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-weight:600;">'+l.company+'</span><span style="color:#b91c1c;">'+l.reminderDate+'</span></div>';
+      }).join('') : '<p style="color:#94a3b8;font-size:.82rem;">No overdue follow-ups.</p>') +
+    '</div>';
+}
+
+// ═══════ STATS ═══════
+function updateStats(){
+  var store = getStore();
+  document.getElementById('st-total').textContent = store.length;
+  document.getElementById('st-new').textContent = store.filter(function(l){ return (l.status||'new')==='new'; }).length;
+  document.getElementById('st-cont').textContent = store.filter(function(l){ return l.status==='contacted'; }).length;
+  document.getElementById('st-qual').textContent = store.filter(function(l){ return l.status==='qualified'; }).length;
+  document.getElementById('st-conv').textContent = store.filter(function(l){ return l.converted; }).length;
+  updateSavedCount();
+}
+
+// ═══════ EXPORT CSV ═══════
+function exportCSV(){
+  var leads = currentLeads.length ? currentLeads : getStore();
+  if(!leads.length){ alert('No leads to export.'); return; }
+  var hdrs = ['Company','Location','Trades','Job Count','Source','Posting Date','Project Type','Company Size','Urgency','QLM Fit Score','Contact','Summary','Competitor Signal','Status','Notes','Reminder Date','Job URL'];
+  var rows = leads.map(function(l){
+    return [l.company,l.location,(l.trades||[]).join(';'),l.jobCount,l.source,l.postingDate,l.projectType,l.companySize,l.urgency,l.qlmFitScore,l.contactSignal,(l.summary||'').replace(/,/g,' '),l.competitorSignal,l.status,l.notes,l.reminderDate,l.jobUrl||''].map(function(v){ return '"'+(v||'')+'"'; }).join(',');
+  });
+  var csv = [hdrs.join(',')].concat(rows).join('\n');
+  var blob = new Blob([csv],{type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url; a.download='qlm-leads-'+new Date().toISOString().split('T')[0]+'.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+// ═══════ DIGEST ═══════
+function saveDigest(){
+  var email = document.getElementById('digest-email').value.trim();
+  if(!email){ alert('Enter an email.'); return; }
+  localStorage.setItem('qlm_lead_digest', JSON.stringify({email:email,freq:document.getElementById('digest-freq').value,trades:selectedTrades,location:document.getElementById('s-loc').value}));
+  showSt('digestStatus','success','\u2713 Digest settings saved.');
+  setTimeout(function(){ clearSt('digestStatus'); },3000);
+}
+
+// ═══════ UTILITIES ═══════
+function showSt(id,type,msg){ document.getElementById(id).innerHTML='<div class="sbox '+type+'">'+(type==='loading'?'<div class="spin"></div>':'')+'<span>'+msg+'</span></div>'; }
+function clearSt(id){ document.getElementById(id).innerHTML=''; }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+
+// ═══════ INIT ═══════
+window.addEventListener('DOMContentLoaded', function(){
+  var saved = localStorage.getItem('qlm_server_url');
+  if(saved){ document.getElementById('serverUrl').value=saved; saveServerUrl(); }
+  loadExclude();
+  renderSavedSearches();
+  updateStats();
+  updateSavedCount();
+  updatePersLabel();
+});
+</script>
+</body>
+</html>
