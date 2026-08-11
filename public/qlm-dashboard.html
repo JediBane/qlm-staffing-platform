@@ -141,6 +141,16 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     </div>
   </div>
 
+
+  <!-- RECENT ACTIVITY FEED -->
+  <div class="table-card">
+    <div class="table-head">
+      <div class="table-title">&#128338; Recent Activity — All Tools</div>
+      <div style="font-size:.75rem;color:#94a3b8;">Live across intake, talent cards, reports &amp; searches</div>
+    </div>
+    <div id="activity-feed" style="padding:0 4px;"></div>
+  </div>
+
   <!-- ASSESSMENT HISTORY TABLE -->
   <div class="table-card">
     <div class="table-head">
@@ -188,6 +198,9 @@ function getAssessments(){
 }
 function getLeads(){
   try{ return JSON.parse(localStorage.getItem('qlm_leads')||'[]'); } catch(e){ return []; }
+}
+function getActivity(){
+  try{ return JSON.parse(localStorage.getItem('qlm_activity')||'[]'); } catch(e){ return []; }
 }
 
 function filterByDate(items, days){
@@ -240,20 +253,26 @@ function selectRecruiter(r, el){
 function render(){
   var assessments = filterByDate(getAssessments(), dateFilter);
   var leads = filterByDate(getLeads(), dateFilter);
+  var activity = filterByDate(getActivity(), dateFilter);
 
   if(currentView==='recruiter' && selectedRecruiter!=='all'){
     assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
   }
 
-  renderKPIs(assessments, leads);
+  renderKPIs(assessments, leads, activity);
   renderTradeChart(assessments);
   renderVerdictChart(assessments);
   renderAssessTable(assessments);
   renderLeadsTable(leads);
+  renderActivity(activity);
 }
 
 // ─── KPI CARDS ───────────────────────────────────────────────────────────
-function renderKPIs(assessments, leads){
+function renderKPIs(assessments, leads, activity){
+  activity = activity || [];
+  var intakes = activity.filter(function(a){ return a.type==='intake'; }).length;
+  var cards   = activity.filter(function(a){ return a.type==='talent_card'; }).length;
+  var reports = activity.filter(function(a){ return a.type==='insight'; }).length;
   var passes = assessments.filter(function(a){ return (a.verdict||'').toLowerCase().includes('pass'); }).length;
   var fails  = assessments.filter(function(a){ return (a.verdict||'').toLowerCase().includes('fail'); }).length;
   var avgScore = assessments.length ? Math.round(assessments.reduce(function(s,a){ return s+(a.score||0); },0)/assessments.length) : 0;
@@ -267,6 +286,9 @@ function renderKPIs(assessments, leads){
     { color:'blue',  num: avgScore||'—',      label:'Avg Score',         sub: 'Across all assessments' },
     { color:'purple',num: leads.length,       label:'Total Leads',       sub: 'In lead database' },
     { color:'green', num: qualified,          label:'Qualified Leads',   sub: contacted + ' contacted' },
+    { color:'purple',num: intakes,            label:'Candidate Intakes', sub: 'Applications submitted' },
+    { color:'blue',  num: cards,              label:'Talent Cards',      sub: 'Generated for clients' },
+    { color:'green', num: reports,            label:'Market Reports',    sub: 'Hiring Insights run' },
   ].map(function(s){
     return '<div class="stat-card '+s.color+'"><div class="stat-num">'+s.num+'</div><div class="stat-label">'+s.label+'</div><div class="stat-sub">'+s.sub+'</div></div>';
   }).join('');
@@ -398,6 +420,37 @@ function viewAssessment(btn){
 }
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────
+// ─── RECENT ACTIVITY FEED ────────────────────────────────────────────────
+function renderActivity(activity){
+  var el = document.getElementById('activity-feed');
+  if(!el) return;
+  if(!activity.length){
+    el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:14px 0;">No activity yet. Activity appears here as your team uses the tools.</p>';
+    return;
+  }
+  var meta = {
+    intake:      { icon:'\uD83D\uDCCB', label:'Candidate Intake',  color:'#6d28d9' },
+    talent_card: { icon:'\uD83D\uDCC4', label:'Talent Card',       color:'#0077a8' },
+    insight:     { icon:'\uD83D\uDCCA', label:'Market Report',     color:'#15803d' },
+    lead_search: { icon:'\uD83C\uDFAF', label:'Lead Search',       color:'#a16207' }
+  };
+  el.innerHTML = activity.slice(0,15).map(function(a){
+    var m = meta[a.type] || { icon:'\u2022', label:a.type, color:'#64748b' };
+    var detail = a.name || a.label || (a.count!=null ? a.count+' leads found' : '');
+    var sub = [a.trade, a.city, a.location].filter(Boolean).join(' \u00b7 ');
+    var when = '';
+    try{ when = new Date(a.date).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){}
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9;">'+
+      '<div style="width:30px;height:30px;border-radius:8px;background:'+m.color+'18;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;">'+m.icon+'</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:.85rem;font-weight:600;color:#003a52;">'+detail+'</div>'+
+        '<div style="font-size:.72rem;color:#94a3b8;">'+m.label+(sub?' \u00b7 '+sub:'')+'</div>'+
+      '</div>'+
+      '<div style="font-size:.72rem;color:#94a3b8;white-space:nowrap;">'+when+'</div>'+
+    '</div>';
+  }).join('');
+}
+
 function exportAllCSV(){
   var assessments = filterByDate(getAssessments(), dateFilter);
   var leads = filterByDate(getLeads(), dateFilter);
