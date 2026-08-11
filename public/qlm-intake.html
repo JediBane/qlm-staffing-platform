@@ -967,6 +967,16 @@ function aiCall(prompt, maxTokens) {
 }
 
 // ══ SUBMIT ══
+
+// ─── QLM ACTIVITY LOG (feeds Admin Dashboard) ───────────────────────────
+function qlmLog(type, payload){
+  try{
+    var log = JSON.parse(localStorage.getItem('qlm_activity')||'[]');
+    log.unshift(Object.assign({ type:type, date:new Date().toISOString() }, payload||{}));
+    localStorage.setItem('qlm_activity', JSON.stringify(log.slice(0,500)));
+  }catch(e){}
+}
+
 function submitForm() {
   if (!document.getElementById('consent').checked) {
     showStatus('submit','error','Please check the consent box first.'); return;
@@ -976,6 +986,13 @@ function submitForm() {
 
   var data = collectData();
   var ctx = buildCtx(data);
+
+  qlmLog('intake', {
+    name: data.name || 'Unnamed candidate',
+    trade: data.trade || data.title || '',
+    city: data.city || '',
+    experience: data.experience || ''
+  });
 
   document.getElementById('form-view').style.display = 'none';
   document.getElementById('results-view').style.display = 'block';
