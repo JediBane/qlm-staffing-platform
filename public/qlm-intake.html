@@ -237,19 +237,10 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     <div class="logo-text">Quality Labor Management</div>
     <span class="version-badge">v1.0</span>
   </div>
-  <div class="tool-nav"><button class="btn-settings" onclick="toggleSettings()" title="Server Settings">&#9881;</button><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav active">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a></div>
+  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav active">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a></div>
 </header>
 
 <!-- SERVER URL BAR -->
-
-<div class="settings-panel" id="settings-panel">
-  <div class="config-inner">
-    <label>&#128279; Server URL</label>
-    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
-    <span id="serverStatus">Paste your Railway server URL</span>
-  </div>
-</div>
-
 
 <!-- FORM VIEW -->
 <div id="form-view">
@@ -675,15 +666,8 @@ function populateFromExtract(info) {
 }
 
 // ══ SERVER URL ══
-function saveServerUrl() {
-  var url = document.getElementById('serverUrl').value.trim();
-  localStorage.setItem('qlm_intake_url', url);
-  var s = document.getElementById('serverStatus');
-  if (!url) { s.textContent = 'Paste your Railway server URL to enable AI generation'; s.className = ''; }
-  else if (url.startsWith('https://') && url.includes('.')) { s.textContent = '&#10003; Server URL saved'; s.className = 'ok'; }
-  else { s.textContent = '&#9888; Should start with https://'; s.className = 'err'; }
-}
-function getServerUrl() { return document.getElementById('serverUrl').value.trim(); }
+function saveServerUrl(){}
+function getServerUrl(){ return ''; }
 
 window.addEventListener('DOMContentLoaded', function() {
   var saved = localStorage.getItem('qlm_intake_url') || localStorage.getItem('qlm_server_url');
@@ -1067,10 +1051,7 @@ function startOver() {
   goStep(1);
 }
 
-function toggleSettings() {
-  var p = document.getElementById('settings-panel');
-  p.classList.toggle('open');
-}
+function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 var _origSave = saveServerUrl;
 saveServerUrl = function() {
