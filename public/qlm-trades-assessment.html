@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | QLM Trades Assessment</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0099d8;--blue-dk:#005a7e;--blue-md:#0077a8;--blue-lt:#e0f4fc;--blue-mid2:#b8dff0;
+  --navy:#003a52;--navy-lt:#004d6b;--gray:#f4f7fb;--text:#2a4a5a;--border:#b8dff0;
+  --danger:#ef4444;--success:#22c55e;--warn:#f59e0b;--white:#fff;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+
+/* HEADER */
+header{background:var(--navy);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:1rem;letter-spacing:2px;padding:6px 14px;border-radius:4px;}
+.logo-text{color:var(--blue-mid2);font-size:.85rem;letter-spacing:1px;}
+.hdr-tag{color:var(--blue-mid2);font-size:.75rem;letter-spacing:2px;text-transform:uppercase;}
+
+/* CONFIG BAR */
+.config-bar{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:10px 32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.config-bar label{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);white-space:nowrap;}
+.config-bar input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:.82rem;font-family:monospace;outline:none;background:#fff;color:var(--text);}
+.config-bar input:focus{border-color:var(--blue);}
+#serverStatus{font-size:.72rem;color:#94a3b8;}
+#serverStatus.ok{color:var(--success);font-weight:600;}
+#serverStatus.err{color:var(--danger);font-weight:600;}
+
+/* TRADE SELECT SCREEN */
+.screen{max-width:900px;margin:0 auto;padding:2rem 24px 5rem;}
+.page-title{font-size:1.6rem;font-weight:700;color:var(--navy);margin-bottom:.4rem;}
+.page-sub{font-size:.9rem;color:#64748b;margin-bottom:2rem;}
+
+.trade-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:2rem;}
+.trade-card{background:#fff;border:2px solid var(--border);border-radius:12px;padding:24px 20px;cursor:pointer;transition:all .2s;text-align:center;}
+.trade-card:hover{border-color:var(--blue);background:var(--blue-lt);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,153,216,.15);}
+.trade-card.selected{border-color:var(--blue);background:var(--blue-lt);box-shadow:0 0 0 3px rgba(0,153,216,.2);}
+.trade-icon{font-size:2.2rem;margin-bottom:10px;}
+.trade-name{font-size:.92rem;font-weight:700;color:var(--navy);}
+.trade-sub{font-size:.72rem;color:#64748b;margin-top:4px;}
+
+.candidate-info{background:#fff;border:1px solid var(--border);border-radius:10px;border-top:4px solid var(--blue);padding:24px;margin-bottom:24px;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+.section-label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.field-row.three{grid-template-columns:1fr 1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;}
+.field input,.field select{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s;background:#fff;color:var(--text);}
+.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,153,216,.1);}
+.field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230099d8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:2rem;}
+
+.btn-start{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:14px 36px;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s;}
+.btn-start:hover{background:var(--blue-dk);}
+.btn-start:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ASSESSMENT SCREEN */
+#assessment-screen{display:none;}
+.progress-header{background:var(--navy);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.progress-info{color:#fff;}
+.progress-info .trade-badge{background:var(--blue);color:#fff;font-size:.7rem;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;display:inline-block;margin-bottom:4px;}
+.progress-info .candidate-name{font-size:1rem;font-weight:600;color:var(--blue-mid2);}
+.progress-bar-wrap{flex:1;max-width:300px;}
+.progress-bar-track{background:rgba(255,255,255,.15);border-radius:20px;height:8px;overflow:hidden;}
+.progress-bar-fill{background:var(--blue);height:100%;border-radius:20px;transition:width .4s ease;}
+.progress-text{font-size:.7rem;color:var(--blue-mid2);margin-top:4px;text-align:right;}
+
+.q-card{background:#fff;border:1px solid var(--border);border-radius:12px;border-top:4px solid var(--blue);padding:32px;margin:24px auto;max-width:860px;box-shadow:0 4px 24px rgba(0,0,0,.07);animation:fadeQ .3s ease;}
+@keyframes fadeQ{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.q-meta{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.q-num{font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;}
+.q-category{font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+.cat-technical{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
+.cat-safety{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.cat-scenario{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.cat-math{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.cat-trap{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
+.cat-leadership{background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;}
+.q-difficulty{font-size:.65rem;font-weight:700;color:#94a3b8;margin-left:auto;}
+
+.q-text{font-size:1.05rem;font-weight:600;color:var(--navy);line-height:1.55;margin-bottom:20px;}
+.q-hint{font-size:.8rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:20px;line-height:1.5;}
+.q-hint strong{color:var(--blue-md);}
+
+/* Multiple choice */
+.choices{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.choice{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all .2s;background:#fff;}
+.choice:hover{border-color:var(--blue);background:var(--blue-lt);}
+.choice.selected{border-color:var(--blue);background:var(--blue-lt);}
+.choice-letter{width:26px;height:26px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#64748b;flex-shrink:0;transition:all .2s;}
+.choice.selected .choice-letter{background:var(--blue);border-color:var(--blue);color:#fff;}
+.choice-text{font-size:.9rem;color:var(--text);line-height:1.45;padding-top:2px;}
+
+/* Open text */
+.answer-textarea{width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.9rem;font-family:inherit;outline:none;resize:vertical;min-height:120px;line-height:1.6;transition:border-color .2s;}
+.answer-textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,153,216,.1);}
+
+.char-count{font-size:.72rem;color:#94a3b8;text-align:right;margin-top:4px;}
+.char-count.warn{color:var(--warn);}
+
+.q-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;}
+.btn-prev{background:transparent;border:2px solid var(--border);color:var(--blue-md);padding:.65rem 1.5rem;cursor:pointer;font-family:inherit;font-size:.88rem;font-weight:600;border-radius:8px;transition:all .2s;}
+.btn-prev:hover{border-color:var(--blue);color:var(--blue);}
+.btn-next-q{background:var(--blue);color:#fff;border:none;padding:.7rem 2rem;cursor:pointer;font-family:inherit;font-size:.9rem;font-weight:700;border-radius:8px;transition:background .2s;}
+.btn-next-q:hover{background:var(--blue-md);}
+.btn-next-q:disabled{opacity:.4;cursor:not-allowed;}
+.btn-submit-test{background:var(--navy);color:#fff;border:none;padding:.8rem 2.25rem;cursor:pointer;font-family:inherit;font-size:.95rem;font-weight:700;border-radius:8px;transition:background .2s;}
+.btn-submit-test:hover{background:var(--blue-dk);}
+
+/* RESULTS */
+#results-screen{display:none;}
+.results-hero{background:var(--navy);border-bottom:4px solid var(--blue);padding:32px;text-align:center;}
+.results-hero h2{font-size:1.8rem;font-weight:700;color:#fff;margin-bottom:.4rem;}
+.results-hero .sub{font-size:.9rem;color:var(--blue-mid2);}
+
+.score-dashboard{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,.06);}
+@media(max-width:600px){.score-dashboard{grid-template-columns:1fr;}}
+.overall-score{text-align:center;}
+.score-ring{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:8px solid var(--border);position:relative;margin:0 auto;}
+.score-ring.high{border-color:#22c55e;}
+.score-ring.mid{border-color:var(--warn);}
+.score-ring.low{border-color:var(--danger);}
+.score-num{font-size:2rem;font-weight:700;line-height:1;}
+.score-num.high{color:#15803d;}
+.score-num.mid{color:#a16207;}
+.score-num.low{color:#b91c1c;}
+.score-label{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-top:2px;}
+.verdict{display:inline-block;margin-top:10px;padding:5px 16px;border-radius:20px;font-size:.78rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.verdict.pass{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.verdict.review{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.verdict.fail{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+
+.category-scores{display:flex;flex-direction:column;gap:12px;}
+.cat-score-row{display:flex;align-items:center;gap:12px;}
+.cat-score-label{font-size:.78rem;font-weight:600;color:var(--text);min-width:130px;}
+.cat-bar-wrap{flex:1;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden;}
+.cat-bar{height:100%;border-radius:20px;transition:width .8s ease;}
+.cat-score-pct{font-size:.78rem;font-weight:700;min-width:36px;text-align:right;}
+
+.result-card{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+.result-card-head{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--blue-lt);display:flex;align-items:center;gap:10px;}
+.result-card-title{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);}
+.result-card-body{padding:20px;font-size:.88rem;line-height:1.75;color:var(--text);white-space:pre-wrap;}
+
+.flag-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:8px;margin-bottom:8px;}
+.flag-item.red{background:#fef2f2;border:1px solid #fecaca;}
+.flag-item.yellow{background:#fefce8;border:1px solid #fde68a;}
+.flag-item.green{background:#f0fdf4;border:1px solid #bbf7d0;}
+.flag-icon{font-size:1rem;flex-shrink:0;margin-top:1px;}
+.flag-text{font-size:.85rem;color:var(--text);line-height:1.5;}
+
+.q-review-item{border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px;background:#f8fafc;}
+.q-review-q{font-size:.85rem;font-weight:600;color:var(--navy);margin-bottom:8px;}
+.q-review-a{font-size:.85rem;color:var(--text);background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;margin-bottom:8px;font-style:italic;}
+.q-review-score{font-size:.75rem;font-weight:700;display:inline-block;padding:2px 10px;border-radius:20px;}
+
+.rc-foot{display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:#f8fafc;}
+.btn-cp{flex:1;padding:8px;font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--blue-md);background:transparent;border-radius:6px;letter-spacing:.5px;text-transform:uppercase;transition:all .2s;}
+.btn-cp:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+.btn-new{flex:1;padding:8px;font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;border:none;border-radius:6px;letter-spacing:.5px;text-transform:uppercase;}
+
+.shim{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shim 1.4s infinite;height:13px;margin-bottom:9px;border-radius:4px;}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.shim-wrap{padding:20px;}
+.status-box{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;font-size:.82rem;font-weight:600;margin:12px 0;}
+.status-box.loading{background:rgba(0,153,216,.08);color:var(--blue-md);}
+.status-box.error{background:rgba(239,68,68,.08);color:#ef4444;}
+.spinner{width:15px;height:15px;border:2px solid rgba(0,153,216,.3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important;}
+
+
+/* HISTORY DASHBOARD */
+#history-screen{display:none;}
+.hist-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.hist-table th{background:var(--navy);color:var(--blue-mid2);font-size:.68rem;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;font-weight:700;}
+.hist-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.hist-table tr:hover td{background:var(--blue-lt);}
+.hist-empty{text-align:center;padding:48px;color:#94a3b8;font-size:.9rem;}
+.hist-verdict{font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;}
+.hist-verdict.pass{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.hist-verdict.review{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.hist-verdict.fail{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.btn-hist-view{background:none;border:1px solid var(--border);color:var(--blue-md);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;transition:all .2s;}
+.btn-hist-view:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+.btn-hist-del{background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;transition:all .2s;}
+.btn-hist-del:hover{background:rgba(239,68,68,.08);}
+.hdr-nav{display:flex;gap:8px;align-items:center;}
+
+
+/* SHARE LINK MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.hidden{display:none!important;}
+.modal-box{background:#fff;border-radius:12px;padding:28px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-title{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.modal-sub{font-size:.82rem;color:#64748b;margin-bottom:16px;line-height:1.5;}
+.modal-url{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:.78rem;color:var(--text);word-break:break-all;margin-bottom:14px;line-height:1.6;}
+.modal-actions{display:flex;gap:8px;}
+.btn-modal-copy{flex:1;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;}
+.btn-modal-email{flex:1;background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;}
+.btn-modal-close{background:none;border:1px solid var(--border);color:#64748b;border-radius:8px;padding:10px 16px;cursor:pointer;font-family:inherit;font-size:.85rem;}
+
+/* CANDIDATE MODE (URL param) */
+.cand-mode-banner{background:var(--blue);color:#fff;text-align:center;padding:10px;font-size:.82rem;font-weight:600;letter-spacing:.3px;}
+
+/* PRINT STYLES */
+@media print {
+  header,.config-bar,.hdr-nav,.rc-foot,.btn-new,.btn-cp,.btn-modal-copy,.btn-modal-email,
+  #select-screen,#assessment-screen,#history-screen,footer,.modal-overlay,
+  .shim,.shim-wrap{display:none!important;}
+  body{background:#fff!important;color:#000!important;}
+  #results-screen{display:block!important;}
+  .results-hero{background:#003a52!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:20px 32px!important;}
+  .score-dashboard{box-shadow:none!important;border:1px solid #b8dff0!important;}
+  .result-card{box-shadow:none!important;break-inside:avoid;}
+  .print-header{display:flex!important;justify-content:space-between;align-items:center;padding:12px 0 16px;border-bottom:3px solid #0099d8;margin-bottom:20px;}
+  .print-logo{font-size:1.1rem;font-weight:700;color:#003a52;}
+  .print-meta{font-size:.75rem;color:#64748b;text-align:right;}
+}
+@media screen{.print-header{display:none;}}
+
+footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgba(255,255,255,.35);text-align:center;padding:14px;font-size:.72rem;}
+@media(max-width:560px){.field-row,.field-row.three{grid-template-columns:1fr;}.trade-grid{grid-template-columns:1fr 1fr;}}
+
+/* ── TOOL NAV ── */
+.tool-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:5px 13px;border-radius:6px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;transition:all .2s;cursor:pointer;font-family:inherit;background:none;}
+.tnav:hover{border-color:#0099d8;color:#0099d8;background:rgba(0,153,216,.08);}
+.tnav.active{background:#0099d8;border-color:#0099d8;color:#fff;}
+
+
+/* SETTINGS PANEL */
+.settings-panel{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:0;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
+.settings-panel.open{max-height:80px;padding:10px 32px;}
+.settings-panel .config-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.settings-panel label{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);white-space:nowrap;}
+.settings-panel input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:.82rem;font-family:monospace;outline:none;background:#fff;color:var(--text);}
+.settings-panel input:focus{border-color:var(--blue);}
+.settings-panel input::placeholder{color:#94a3b8;}
+#serverStatus{font-size:.72rem;color:#94a3b8;}
+#serverStatus.ok{color:var(--success);font-weight:600;}
+#serverStatus.err{color:var(--danger);font-weight:600;}
+.btn-settings{background:none;border:1px solid rgba(255,255,255,.2);color:#b8dff0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;}
+.btn-settings:hover{border-color:var(--blue);color:var(--blue);}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-badge">QLM</div>
+    <div class="logo-text">Quality Labor Management</div>
+  </div>
+  <div class="tool-nav"><button class="btn-settings" onclick="toggleSettings()" title="Server Settings">&#9881;</button><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Trades Test</a><button class="tnav" id="nav-history" onclick="showScreen('history')">History <span id="hist-count"></span></button></div>
+</header>
+<div id="cand-mode-banner" class="cand-mode-banner hidden">&#128100; Candidate Mode — Complete all questions and submit when finished.</div>
+
+
+<div class="settings-panel" id="settings-panel">
+  <div class="config-inner">
+    <label>&#128279; Server URL</label>
+    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
+    <span id="serverStatus">Paste your Railway server URL</span>
+  </div>
+</div>
+
+
+<!-- TRADE SELECT SCREEN -->
+<div id="select-screen" class="screen">
+  <div class="page-title">Skilled Trades Knowledge Assessment</div>
+  <div class="page-sub">Select a trade below and enter the candidate's information to begin their skills screening. Questions are scenario-based and designed to verify real hands-on knowledge.</div>
+
+  <div class="candidate-info">
+    <div class="section-label" style="margin-bottom:14px;">Candidate Information</div>
+    <div class="field-row">
+      <div class="field"><label>First Name</label><input type="text" id="c-fname" placeholder="John"></div>
+      <div class="field"><label>Last Name</label><input type="text" id="c-lname" placeholder="Doe"></div>
+    </div>
+    <div class="field-row three">
+      <div class="field"><label>Years of Experience</label>
+        <select id="c-yoe">
+          <option value="">Select...</option>
+          <option>0-1 years</option><option>2-4 years</option><option>5-9 years</option><option>10-15 years</option><option>15+ years</option>
+        </select>
+      </div>
+      <div class="field"><label>Claimed Certifications</label><input type="text" id="c-certs" placeholder="e.g. OSHA 30, AWS, CDL-A"></div>
+      <div class="field"><label>Recruiter / Branch</label><input type="text" id="c-recruiter" placeholder="e.g. Tampa - Jane B."></div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-bottom:14px;">Select Trade to Assess</div>
+  <div class="trade-grid" id="trade-grid">
+    <div class="trade-card" onclick="selectTrade('electrician')" id="t-electrician">
+      <div class="trade-icon">⚡</div>
+      <div class="trade-name">Electrician</div>
+      <div class="trade-sub">Commercial / Industrial</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('plumber')" id="t-plumber">
+      <div class="trade-icon">🔧</div>
+      <div class="trade-name">Plumber / Pipefitter</div>
+      <div class="trade-sub">Commercial / Industrial</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('welder')" id="t-welder">
+      <div class="trade-icon">🔥</div>
+      <div class="trade-name">Welder</div>
+      <div class="trade-sub">Structural / Pipe / MIG/TIG</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('hvac')" id="t-hvac">
+      <div class="trade-icon">❄️</div>
+      <div class="trade-name">HVAC Technician</div>
+      <div class="trade-sub">Commercial / Controls</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('carpenter')" id="t-carpenter">
+      <div class="trade-icon">🪚</div>
+      <div class="trade-name">Carpenter / Framing</div>
+      <div class="trade-sub">Commercial / Structural</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('concrete')" id="t-concrete">
+      <div class="trade-icon">🏗️</div>
+      <div class="trade-name">Concrete / Formwork</div>
+      <div class="trade-sub">Slabs / Poured Walls</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('operator')" id="t-operator">
+      <div class="trade-icon">🚜</div>
+      <div class="trade-name">Heavy Equipment Operator</div>
+      <div class="trade-sub">Excavator / Crane / Grader</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('foreman')" id="t-foreman">
+      <div class="trade-icon">👷</div>
+      <div class="trade-name">Foreman / Superintendent</div>
+      <div class="trade-sub">Field Leadership / Safety</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('solar')" id="t-solar">
+      <div class="trade-icon">&#9728;&#65039;</div>
+      <div class="trade-name">Solar / PV Installer</div>
+      <div class="trade-sub">Utility / Commercial</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('pipefitter')" id="t-pipefitter">
+      <div class="trade-icon">&#128295;</div>
+      <div class="trade-name">Pipefitter (Industrial)</div>
+      <div class="trade-sub">Process / Industrial</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('ironworker')" id="t-ironworker">
+      <div class="trade-icon">&#127959;</div>
+      <div class="trade-name">Ironworker</div>
+      <div class="trade-sub">Structural / Reinforcing</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('painter')" id="t-painter">
+      <div class="trade-icon">&#127748;</div>
+      <div class="trade-name">Painter / Coatings</div>
+      <div class="trade-sub">Industrial / Commercial</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('instrumentation')" id="t-instrumentation">
+      <div class="trade-icon">&#127775;</div>
+      <div class="trade-name">Instrumentation Tech</div>
+      <div class="trade-sub">Industrial / Process Control</div>
+    </div>
+  </div>
+
+  <button class="btn-start" id="start-btn" onclick="startAssessment()" disabled>Start Assessment &#8594;</button>
+</div>
+
+<!-- ASSESSMENT SCREEN -->
+<div id="assessment-screen">
+  <div class="progress-header">
+    <div class="progress-info">
+      <div class="trade-badge" id="ph-trade">Electrician</div>
+      <div class="candidate-name" id="ph-name">Candidate Name</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-text" id="prog-text">Question 1 of 12</div>
+    </div>
+  </div>
+
+  <div style="max-width:860px;margin:0 auto;padding:0 24px;">
+    <div class="q-card" id="q-card">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="results-screen">
+  <div class="results-hero">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Assessment Complete</div>
+    <h2 id="r-candidate-name">Candidate Assessment Results</h2>
+    <div class="sub" id="r-trade-date"></div>
+  </div>
+
+  <div style="max-width:900px;margin:0 auto;padding:24px 24px 60px;">
+    <!-- Score dashboard -->
+    <div class="score-dashboard" id="score-dashboard">
+      <div class="overall-score">
+        <div class="score-ring" id="score-ring">
+          <div class="score-num" id="score-num">--</div>
+          <div class="score-label">Overall</div>
+        </div>
+        <div class="verdict" id="verdict-badge">Analyzing...</div>
+      </div>
+      <div class="category-scores" id="category-scores">
+        <div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:80%"></div><div class="shim" style="width:90%"></div></div>
+      </div>
+    </div>
+
+    <!-- AI Analysis cards -->
+    <div class="result-card">
+      <div class="result-card-head" style="border-top:4px solid var(--blue);">
+        <span>&#128203;</span><span class="result-card-title">AI Recruiter Analysis</span>
+      </div>
+      <div class="result-card-body" id="r-analysis">
+        <div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:85%"></div><div class="shim" style="width:78%"></div><div class="shim" style="width:91%"></div><div class="shim" style="width:70%"></div></div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-card-head" style="border-top:4px solid #ef4444;">
+        <span>&#9888;&#65039;</span><span class="result-card-title">Red Flags &amp; Concerns</span>
+      </div>
+      <div class="result-card-body" id="r-flags">
+        <div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:75%"></div><div class="shim" style="width:88%"></div></div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-card-head" style="border-top:4px solid #6d28d9;">
+        <span>&#10067;</span><span class="result-card-title">Suggested Follow-Up Interview Questions</span>
+      </div>
+      <div class="result-card-body" id="r-followup">
+        <div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:82%"></div><div class="shim" style="width:79%"></div><div class="shim" style="width:88%"></div></div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-card-head" style="border-top:4px solid #0099d8;">
+        <span>&#128196;</span><span class="result-card-title">Question-by-Question Review</span>
+      </div>
+      <div class="result-card-body" id="r-qreview" style="padding:16px;">
+        <div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:80%"></div></div>
+      </div>
+    </div>
+
+    <!-- Print header (visible only in print) -->
+    <div class="print-header">
+      <div class="print-logo">QLM — Quality Labor Management<br><small style="font-weight:400;color:#64748b;">Skilled Trades Assessment Report</small></div>
+      <div class="print-meta" id="print-meta-block"></div>
+    </div>
+
+    <div class="rc-foot" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn-cp" onclick="copyResults(this)" style="flex:1;min-width:140px;">&#128203; Copy Report</button>
+      <button class="btn-cp" onclick="printReport()" style="flex:1;min-width:140px;">&#128438; Print / PDF</button>
+      <button class="btn-cp" onclick="emailReport(this)" style="flex:1;min-width:140px;">&#128140; Email Report</button>
+      <button class="btn-cp" onclick="showShareModal()" style="flex:1;min-width:140px;">&#128279; Share Link</button>
+      <button class="btn-new" onclick="saveAndNew()" style="flex:1;min-width:140px;">&#10010; New Assessment</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- HISTORY DASHBOARD -->
+<div id="history-screen" style="display:none;">
+  <div style="max-width:960px;margin:0 auto;padding:2rem 24px 5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:1.4rem;font-weight:700;color:var(--navy);margin-bottom:.3rem;">Assessment History</div>
+        <div style="font-size:.85rem;color:#64748b;">All assessments saved in this browser. Click View to reopen any report.</div>
+      </div>
+      <button onclick="clearAllHistory()" style="background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.78rem;font-weight:600;font-family:inherit;">Clear All History</button>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.06);">
+      <table class="hist-table" id="hist-table">
+        <thead><tr>
+          <th>Candidate</th><th>Trade</th><th>Score</th><th>Verdict</th><th>Date</th><th>Recruiter</th><th style="width:120px;">Actions</th>
+        </tr></thead>
+        <tbody id="hist-tbody"><tr><td colspan="7" class="hist-empty">No assessments on record yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE LINK MODAL -->
+<div class="modal-overlay hidden" id="share-modal">
+  <div class="modal-box">
+    <div class="modal-title">&#128279; Candidate Assessment Link</div>
+    <div class="modal-sub">Send this link to the candidate. They open it on their device, complete the assessment, and results are automatically emailed to you when they finish — or you can have them take it in person.</div>
+    <div class="modal-url" id="share-url-display"></div>
+    <div style="font-size:.75rem;color:#94a3b8;margin-bottom:14px;">Tip: Candidate will see their trade pre-selected. They fill in their own name and take the full test.</div>
+    <div class="modal-actions">
+      <button class="btn-modal-copy" onclick="copyShareLink()">&#128203; Copy Link</button>
+      <button class="btn-modal-email" onclick="emailShareLink()">&#128140; Open in Email</button>
+      <button class="btn-modal-close" onclick="closeShareModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer>&#169; 2025 Quality Labor Management, LLC &middot; SPQ Assessment Tool &middot; Confidential &middot; myqlm.com</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  SERVER URL
+// ═══════════════════════════════════════════════════
+function saveServerUrl() {
+  var url = document.getElementById('serverUrl').value.trim();
+  localStorage.setItem('qlm_server_url', url);
+  var s = document.getElementById('serverStatus');
+  if (!url) { s.textContent = 'Paste your Railway server URL to enable AI scoring'; s.className = ''; }
+  else if (url.startsWith('https://') && url.includes('.')) { s.textContent = '\u2713 Server URL saved'; s.className = 'ok'; }
+  else { s.textContent = '\u26a0 Should start with https://'; s.className = 'err'; }
+}
+function getServerUrl() { return document.getElementById('serverUrl').value.trim(); }
+
+// ═══════════════════════════════════════════════════
+//  QUESTION BANK
+// ═══════════════════════════════════════════════════
+var QUESTIONS = {
+
+electrician: [
+  { id:'e1', cat:'technical', diff:'mid', type:'mc',
+    q:'A 20-amp branch circuit requires conductors sized at a minimum of:',
+    choices:['10 AWG copper','12 AWG copper','14 AWG copper','8 AWG copper'],
+    correct:1, explain:'Per NEC 240.4(D), 20A circuits require minimum 12 AWG copper.' },
+  { id:'e2', cat:'technical', diff:'hard', type:'mc',
+    q:'When calculating the ampacity of a 3-phase, 480V motor with a nameplate FLA of 42A, the minimum branch circuit conductor ampacity must be:',
+    choices:['42A','52.5A','47A','56A'],
+    correct:1, explain:'NEC 430.22 requires conductors sized at 125% of FLA: 42 x 1.25 = 52.5A.' },
+  { id:'e3', cat:'safety', diff:'mid', type:'mc',
+    q:'Before working on a 480V panel, you must verify LOTO. After locking out the breaker, what is the NEXT required step?',
+    choices:['Begin work immediately','Test for absence of voltage at the work point','Inform your foreman','Put on rubber gloves'],
+    correct:1, explain:'OSHA 1910.333 requires testing for absence of voltage after lockout, before touching anything.' },
+  { id:'e4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are pulling wire in a commercial building and the inspector flags that your conduit fill is over the allowed percentage. The conduit is already in the wall. Walk me through exactly how you determine the correct fill percentage and what your options are to fix it.',
+    hint:'Be specific — mention the NEC table you use, how you calculate it, and at least two real solutions.' },
+  { id:'e5', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the maximum number of quarter-bends (360 degrees total) allowed in a conduit run between pull points?',
+    choices:['Two 90-degree bends','Three 90-degree bends','Four 90-degree bends — 360 degrees total','No limit'],
+    correct:2, explain:'NEC 358.26 / 344.26 limits bends to 360 degrees total between pull points.' },
+  { id:'e6', cat:'trap', diff:'hard', type:'mc',
+    q:'A journeyman electrician tells you: "On a single-phase 120/240V panel, I always connect the neutral to the ground bus because they are the same thing." This statement is:',
+    choices:['Correct — neutral and ground are bonded at the panel','Correct only for subpanels','Wrong — in a subpanel, neutral and ground must be kept separate','Wrong — you should never bond neutral and ground anywhere'],
+    correct:2, explain:'Critical trap: Neutral and ground are bonded only at the MAIN panel/service entrance. In subpanels they MUST be kept separate. Confusing this is a serious code violation and safety hazard.' },
+  { id:'e7', cat:'scenario', diff:'hard', type:'open',
+    q:'A tenant in a commercial building complains of tripping breakers on a 20A circuit. You check and find the circuit has 18 amps of continuous load. The existing wire is 12 AWG. Is this a problem? What does code say and what would you do?',
+    hint:'Think about the 80% rule for continuous loads under NEC 210.20.' },
+  { id:'e8', cat:'safety', diff:'mid', type:'open',
+    q:'You arrive on a job site and discover a coworker has bypassed the GFCI protection on a temporary power panel because it "keeps tripping." What do you do? Walk through your exact steps.',
+    hint:'Think about OSHA requirements, safety culture, and root cause — why is it tripping?' },
+  { id:'e9', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the minimum burial depth for a 120/240V residential service entrance cable (USE-2) installed without conduit?',
+    choices:['6 inches','12 inches','18 inches','24 inches'],
+    correct:3, explain:'NEC Table 300.5: USE-2 direct burial minimum is 24 inches.' },
+  { id:'e10', cat:'scenario', diff:'expert', type:'open',
+    q:'You are sizing a service for a new 20,000 sq ft commercial building. The load schedule shows 200kVA of lighting, 150kVA of HVAC, and 80kVA of receptacle load. Walk me through how you would calculate the minimum service size in amps at 480/277V 3-phase.',
+    hint:'Show your math. Total kVA, convert to amps using 3-phase formula: I = kVA / (1.732 x kV).' },
+  { id:'e11', cat:'trap', diff:'hard', type:'mc',
+    q:'An electrician states he torques all lugs to 35 ft-lbs because "that\'s standard for all connections." This practice is:',
+    choices:['Correct — 35 ft-lbs is the NEC standard','Correct for 480V only','Wrong — torque specs vary by manufacturer and must be followed per the equipment labeling','Wrong — you should never torque lugs, just make them tight'],
+    correct:2, explain:'Torque specs are manufacturer-specific and must be on the equipment label per NEC 110.14. "One size fits all" torque is a common and dangerous mistake.' },
+  { id:'e12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead electrician on a job with 6 apprentices. At 7am Monday you notice one apprentice\'s tools are missing PPE tags from last week\'s inspection and another is wearing a hoodie instead of FR clothing in the arc flash zone. What do you do before the day begins?',
+    hint:'Think about safety culture, documentation, escalation, and how you handle it without killing morale.' }
+],
+
+plumber: [
+  { id:'p1', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the minimum slope required for a 3-inch horizontal drain line per the IPC/UPC?',
+    choices:['1/16 inch per foot','1/8 inch per foot','1/4 inch per foot','1/2 inch per foot'],
+    correct:2, explain:'IPC 704.1: 3-inch pipe requires 1/4 inch per foot (2%) minimum slope.' },
+  { id:'p2', cat:'safety', diff:'mid', type:'mc',
+    q:'Before entering a below-grade manhole or sewer vault to perform repairs, what is required by OSHA?',
+    choices:['Just let your supervisor know','Confined space entry permit, atmospheric testing, and standby person','A 10-minute ventilation period is sufficient','OSHA does not regulate this type of work'],
+    correct:1, explain:'OSHA 1910.146 requires permit-required confined space procedures including atmospheric testing for O2, combustible gas, and toxic vapors before entry.' },
+  { id:'p3', cat:'technical', diff:'hard', type:'mc',
+    q:'A 4-inch sanitary drain line serves a toilet, lavatory, and floor drain. Using the fixture unit method, what is the minimum pipe size required if the total fixture units exceed 20?',
+    choices:['3-inch pipe is sufficient','4-inch pipe','You must re-run the calculation — fixture units alone don\'t determine size','The slope matters more than fixture units'],
+    correct:1, explain:'Per IPC Table 710.1(2): 20+ DFUs on a horizontal branch requires 4-inch minimum.' },
+  { id:'p4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are roughing in a commercial restroom with 6 water closets, 6 lavatories, and a floor drain on a slab. The architect\'s plans show a floor drain in a location that will create a trap arm longer than code allows. What do you do and what are your options?',
+    hint:'Think about max trap arm lengths, RFI process, and practical solutions.' },
+  { id:'p5', cat:'trap', diff:'hard', type:'mc',
+    q:'A plumber tells you: "I always use slip-joint fittings inside the walls to make future repairs easier." In a commercial rough-in, this practice is:',
+    choices:['Acceptable if the pipe is accessible','A code violation — accessible slip joints are fine but hidden slip joints in walls are not allowed','Acceptable for PVC but not for copper','Perfectly fine under IPC'],
+    correct:1, explain:'IPC 605.9/706.3: Slip joints are only permitted in accessible, exposed locations. Hiding them in walls is a code violation.' },
+  { id:'p6', cat:'technical', diff:'mid', type:'mc',
+    q:'What pressure is required to pass a rough-in pressure test for domestic water supply piping?',
+    choices:['25 PSI for 15 minutes','50 PSI for 15 minutes','The system\'s working pressure, minimum 150% of working pressure, held for 15 minutes','100 PSI for 1 hour'],
+    correct:2, explain:'IPC 312.5: Water supply systems tested at 1.5x working pressure (minimum 50 PSI) for 15 minutes with no leaks.' },
+  { id:'p7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are installing a commercial grease interceptor for a restaurant kitchen. The kitchen has three 3-compartment sinks, a dishwasher, and a floor drain. Walk me through how you size the interceptor and what the venting requirements are.',
+    hint:'Think about flow rate calculation method, PDI G101 standard, and local AHJ requirements.' },
+  { id:'p8', cat:'safety', diff:'mid', type:'open',
+    q:'During a hot works permit for sweating copper in a ceiling plenum, a fire watch calls out smoke from the insulation above. Walk me through your exact response — step by step.',
+    hint:'Think about hot works permit requirements, fire watch duties, and evacuation vs. suppression decisions.' },
+  { id:'p9', cat:'technical', diff:'hard', type:'mc',
+    q:'On a multi-story building, which type of vent system uses one vent pipe that serves multiple fixtures on multiple floors without individual trap vents?',
+    choices:['Common vent','Air admittance valve','Sovent system (single-stack system)','Loop vent'],
+    correct:2, explain:'A Sovent or single-stack system uses special aerator and deaerator fittings to handle both drain and vent functions in one pipe on multi-story buildings.' },
+  { id:'p10', cat:'trap', diff:'hard', type:'mc',
+    q:'A pipefitter says: "For a steam system, I always install gate valves because they have less restriction than ball valves." For throttling/regulating flow in a steam system, this is:',
+    choices:['Correct — gate valves are best for steam','Correct only for low-pressure steam','Wrong — gate valves are fully open or closed; globe valves are used for throttling','Wrong — you should only use butterfly valves for steam'],
+    correct:2, explain:'Gate valves are for isolation only (full open/full closed). Globe valves are for flow throttling. Using a gate valve for throttling causes erosion, vibration, and premature failure.' },
+  { id:'p11', cat:'scenario', diff:'hard', type:'open',
+    q:'You arrive on a job site and find the previous plumber ran all the supply lines in the same chase as the drain lines, with no separation. The rough-in inspection is tomorrow. What problems does this create, what code sections apply, and how do you handle it with the GC?',
+    hint:'Think cross-connection prevention, code requirements, and how to communicate the issue professionally.' },
+  { id:'p12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the foreman on a 6-month plumbing contract. Three weeks in, one of your best pipefitters is consistently showing up 20-30 minutes late and his work quality has dropped. How do you handle this?',
+    hint:'Think documentation, private conversation, progressive discipline, and protecting the job.' }
+],
+
+welder: [
+  { id:'w1', cat:'technical', diff:'mid', type:'mc',
+    q:'When welding A36 structural steel with SMAW (Stick) process, which electrode is most commonly specified?',
+    choices:['E6010','E6011','E7018','E6013'],
+    correct:2, explain:'E7018 is the standard low-hydrogen electrode for structural steel welding per AWS D1.1. It produces X-ray quality welds and is required for most structural applications.' },
+  { id:'w2', cat:'safety', diff:'mid', type:'mc',
+    q:'You are about to weld on a structure that has old yellow paint. Before welding, you must:',
+    choices:['Just wear a standard respirator','Test the paint for lead content and follow OSHA 1926.62 lead in construction standard if positive','Grind off a 2-inch area around the weld and proceed','No special precautions needed — welding fumes are all the same'],
+    correct:1, explain:'Old yellow/orange paint often contains lead chromate. OSHA 1926.62 requires testing and specific controls including supplied air respirators and medical monitoring if lead is present.' },
+  { id:'w3', cat:'technical', diff:'hard', type:'mc',
+    q:'A weld procedure specification (WPS) calls for 1/2-inch fillet welds on a T-joint with 3/4-inch plate. The inspector measures your welds at 7/16 inch. This is:',
+    choices:['Acceptable — within standard tolerance','A non-conformance — undersized welds must be repaired to meet the WPS','Acceptable if you weld two passes','A non-conformance only if it exceeds 3/4 inch total leg size'],
+    correct:1, explain:'Undersized welds are non-conformances under AWS D1.1. A 7/16" weld on a 1/2" requirement must be repaired. There is no minus tolerance for structural fillet welds.' },
+  { id:'w4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are TIG welding stainless steel pipe (304L) for a sanitary process line and your welds are showing sugaring (oxidation) on the inside of the pipe. Walk me through what is causing this and exactly how you fix it.',
+    hint:'Think back-purging, purge gas, flow rates, and verification methods.' },
+  { id:'w5', cat:'trap', diff:'expert', type:'mc',
+    q:'A welder tells you: "I always pre-heat A36 steel when the ambient temperature drops below 32°F." According to AWS D1.1, pre-heating A36 at 32°F is:',
+    choices:['Correct — always preheat below freezing','Correct only for material over 3/4 inch thick','Not specifically required for A36 under 3/4 inch — but moisture removal is required','Always required regardless of thickness'],
+    correct:2, explain:'AWS D1.1 Table 4.5: A36 under 3/4" does not always require preheat, but all moisture must be removed and base metal should be at or above 32°F. Knowing the difference shows real code knowledge.' },
+  { id:'w6', cat:'technical', diff:'mid', type:'mc',
+    q:'In MIG welding (GMAW), porosity in the weld most commonly indicates:',
+    choices:['Too much wire feed speed','Shielding gas contamination or loss','Wrong polarity','Travel speed too fast'],
+    correct:1, explain:'Porosity is almost always caused by shielding gas issues — contamination, leaks, drafts, or wrong flow rate. It can also indicate moisture or contamination on the base metal.' },
+  { id:'w7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are welding a structural connection on a bridge repair with AWS D1.5 code. The inspector requires full ultrasonic testing (UT) of the welds. Your first pass UT comes back with a linear indication at 3/4 of the weld depth. Walk me through what happens next.',
+    hint:'Think about the AWS D1.5 acceptance criteria, repair procedure, and documentation requirements.' },
+  { id:'w8', cat:'safety', diff:'mid', type:'open',
+    q:'You are asked to weld in a confined space — a below-grade valve vault. What specific precautions do you require before entering and during welding operations?',
+    hint:'Think confined space permit, atmospheric monitoring, ventilation, fume extraction, and fire watch.' },
+  { id:'w9', cat:'technical', diff:'hard', type:'mc',
+    q:'When qualifying a welder under AWS D1.1 with a 3G (vertical) test plate, which positions does that qualification cover?',
+    choices:['Vertical only','Flat and vertical','Flat, horizontal, and vertical','All positions including overhead'],
+    correct:2, explain:'AWS D1.1 Table 4.12: A 3G (vertical) qualification covers flat (1G), horizontal (2G), and vertical (3G). It does NOT cover overhead (4G).' },
+  { id:'w10', cat:'trap', diff:'hard', type:'mc',
+    q:'After completing a weld, a welder immediately quenches it with water to speed up cooling. On structural carbon steel, this practice is:',
+    choices:['Acceptable — rapid cooling improves hardness','Acceptable for plate under 1/2 inch','A code violation per AWS D1.1 — rapid quenching is prohibited','Fine as long as you use clean water'],
+    correct:2, explain:'AWS D1.1 5.27: Rapid quenching of welds is prohibited. It causes quench cracking, hydrogen embrittlement, and can create hard, brittle zones. This is a critical code violation.' },
+  { id:'w11', cat:'scenario', diff:'hard', type:'open',
+    q:'You pick up a welding rod from a bucket and notice the flux coating is chipped on about 20% of the rod. Do you use it? What problems can chipped flux cause and what is the proper storage and handling for low-hydrogen electrodes?',
+    hint:'Think E7018 moisture absorption, rebaking, rod ovens, and the specific defects damaged flux causes.' },
+  { id:'w12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are a lead welder and you catch a fellow welder grinding down a weld cap (convexity) to make it look better before inspection instead of repairing a legitimate crack. What do you do?',
+    hint:'Think about safety culture, your obligation to the code and the client, and how you handle it.' }
+],
+
+hvac: [
+  { id:'h1', cat:'technical', diff:'mid', type:'mc',
+    q:'What EPA certification is required to purchase and handle refrigerants for commercial HVAC systems using R-410A?',
+    choices:['EPA Type I','EPA Type II','EPA Type III','EPA Universal (608)'],
+    correct:3, explain:'EPA Section 608 Universal certification is required to purchase and handle refrigerants in stationary equipment. Type I, II, and III cover specific equipment types but Universal covers all.' },
+  { id:'h2', cat:'technical', diff:'hard', type:'mc',
+    q:'A commercial chiller is showing high discharge pressure and low suction pressure. The most likely cause is:',
+    choices:['Refrigerant overcharge','Restriction in the liquid line (TXV stuck closed or filter-drier plugged)','Oversized condenser','Compressor failure'],
+    correct:1, explain:'High discharge + low suction = restriction on the high side or liquid line. TXV stuck closed or plugged filter-drier are the most common causes. This combination with normal superheat rules out charge issues.' },
+  { id:'h3', cat:'safety', diff:'mid', type:'mc',
+    q:'You are recovering refrigerant from a 20-ton commercial system. At what point are you legally allowed to vent the remaining refrigerant?',
+    choices:['When the system is below 0 PSIG','When the pressure is below 15 PSIG','When the system reaches the EPA-required recovery level for the equipment size','You can never vent — all refrigerant must be recovered'],
+    correct:2, explain:'EPA 608 requires recovery to specific levels based on equipment capacity before disposal — not just reaching 0 PSI. Intentional venting is illegal and carries fines up to $44,539 per day per violation.' },
+  { id:'h4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are servicing a 15-ton rooftop unit that is not cooling. Gauges show: suction 58 PSIG, discharge 210 PSIG, superheat 28°F, subcooling 4°F on an R-22 system. Walk me through your diagnosis.',
+    hint:'Convert pressures to saturated temps, analyze superheat and subcooling together, and give a specific likely diagnosis.' },
+  { id:'h5', cat:'trap', diff:'hard', type:'mc',
+    q:'An HVAC tech says: "I always add refrigerant when superheat is high." High superheat with also HIGH subcooling most likely indicates:',
+    choices:['Low refrigerant charge — add refrigerant','TXV restriction or failure — adding refrigerant will make it worse','A dirty evaporator coil','Normal operating conditions'],
+    correct:1, explain:'This is a critical trap. High superheat + high subcooling = TXV restriction, NOT low charge. Adding refrigerant to this condition will overcharge the system and risk compressor damage. A tech who always adds refrigerant for high superheat without checking subcooling will cause expensive failures.' },
+  { id:'h6', cat:'technical', diff:'mid', type:'mc',
+    q:'When brazing refrigerant lines, nitrogen should be flowing through the tubing because:',
+    choices:['It helps the braze flow better','It prevents oxidation scale (mill scale) inside the copper that would contaminate the refrigerant system','It cools the joint faster','OSHA requires it for all brazing operations'],
+    correct:1, explain:'Nitrogen purge during brazing prevents copper oxide scale formation inside the tubing. This scale will contaminate the system, plug the TXV, and destroy compressors. This is fundamental practice any real HVAC tech knows.' },
+  { id:'h7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are commissioning a new 50-ton variable refrigerant flow (VRF) system in a 10-story building. The system uses R-410A. Walk me through your pressure testing procedure, leak check process, and what documentation you need before starting the system.',
+    hint:'Think nitrogen pressure test levels, standing time, leak detection methods, OEM requirements, and commissioning documentation.' },
+  { id:'h8', cat:'safety', diff:'hard', type:'open',
+    q:'While working on a rooftop unit, you accidentally release a significant amount of R-410A. What are your obligations under EPA Section 608 and OSHA? What do you do in the next 30 minutes?',
+    hint:'Think release reporting thresholds, EPA violation exposure, employer notification, and documentation.' },
+  { id:'h9', cat:'technical', diff:'hard', type:'mc',
+    q:'A building automation system shows a chiller\'s approach temperature (leaving condenser water temp minus entering condenser water temp) has increased from 10°F to 18°F over 6 months with the same load. The most likely cause is:',
+    choices:['Refrigerant undercharge','Fouled condenser tubes (scaling or biological growth)','Compressor wear','Refrigerant overcharge'],
+    correct:1, explain:'Increasing approach temperature with same load = heat transfer degradation in the condenser. Fouled tubes are the most common cause and require tube brushing or chemical cleaning.' },
+  { id:'h10', cat:'trap', diff:'expert', type:'mc',
+    q:'A technician says R-410A can be charged as a liquid or vapor because it is a "near-azeotropic" blend. This statement is:',
+    choices:['Correct — R-410A can be charged either way','Wrong — R-410A must always be charged as a liquid from the cylinder to prevent fractionation','Correct only when charging through the suction side','Wrong — R-410A is a single-component refrigerant'],
+    correct:1, explain:'R-410A is a near-azeotropic blend (R-32/R-125). While fractionation is minimal, best practice and most manufacturer requirements specify liquid charging. A tech who says "either way" is showing incomplete knowledge of blended refrigerants.' },
+  { id:'h11', cat:'scenario', diff:'hard', type:'open',
+    q:'You walk into a mechanical room and see a pneumatic controls system on an older commercial building. The building owner wants to upgrade to DDC. Walk me through the general conversion process, what you need to understand about the existing system before starting, and what the biggest risks are.',
+    hint:'Think about understanding existing control sequences, sensor locations, valve actuators, and maintaining occupant comfort during cutover.' },
+  { id:'h12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead HVAC tech on a large project with two junior techs. One junior tech consistently skips the nitrogen purge when brazing because "it takes too long." You have corrected him twice. It happens again. What do you do?',
+    hint:'Think about documentation, consequences to the system and client, and your own liability.' }
+],
+
+carpenter: [
+  { id:'ca1', cat:'technical', diff:'mid', type:'mc',
+    q:'On a commercial wood-framed wall, studs are typically spaced at 16 inches on center. When a door opening is framed, what structural member carries the load above the opening?',
+    choices:['A cripple stud','A king stud','A header','A trimmer stud'],
+    correct:2, explain:'The header (double or LVL beam) spans the opening and carries the load from above. King studs and trimmers support the header at its ends.' },
+  { id:'ca2', cat:'technical', diff:'hard', type:'mc',
+    q:'When installing metal stud framing in a commercial building for a non-load-bearing wall, the deflection criteria for the top track is typically:',
+    choices:['The top track is rigid — no deflection allowed','The top track must allow for floor deflection — typically a slip track detail','The top track is welded to the structure','The top track must be braced every 4 feet'],
+    correct:1, explain:'Commercial non-load-bearing steel stud walls use a slip track (slotted) at the top to allow structural deflection without loading the wall framing. This is critical in high-rise construction.' },
+  { id:'ca3', cat:'safety', diff:'mid', type:'mc',
+    q:'You are working on scaffolding 15 feet above grade. OSHA requires fall protection at what height for construction work?',
+    choices:['4 feet','6 feet','10 feet','15 feet'],
+    correct:1, explain:'OSHA 1926.502: Fall protection required at 6 feet in construction. Scaffolding over 10 feet requires guardrails per 1926.451.' },
+  { id:'ca4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are framing a 12-foot span opening in a load-bearing wall on a two-story wood-framed commercial building. The architect has not specified the header size. Walk me through how you determine the correct header size and what you do before cutting.',
+    hint:'Think span tables, load path, tributary area, what is above the opening, and RFI process.' },
+  { id:'ca5', cat:'trap', diff:'hard', type:'mc',
+    q:'A carpenter tells you: "LVL beams are stronger than dimensional lumber of the same size so I can use a smaller LVL for the same span." This statement is:',
+    choices:['Correct — LVL always allows smaller member sizes','Correct only for residential spans','Wrong — LVL is stronger but span tables and structural engineer specifications still govern sizing. You cannot substitute without engineering approval','Correct only when the LVL is glued rather than nailed'],
+    correct:2, explain:'LVL is stronger than dimensional lumber, but sizing is governed by engineer-of-record specifications and span tables. Field substitutions without engineering approval are code violations and liability issues.' },
+  { id:'ca6', cat:'technical', diff:'mid', type:'mc',
+    q:'Plywood sheathing installed on exterior walls for shear resistance must be fastened per the shear wall schedule. If the schedule calls for 8d nails at 4 inches on center at panel edges, and a carpenter nails at 6 inches, this is:',
+    choices:['Close enough — a 2-inch variance is acceptable','A non-conformance that must be corrected — the shear wall will not meet its design capacity','Acceptable if the framing is 16 inches on center','Only a problem in seismic zones'],
+    correct:1, explain:'Shear wall nailing is structural and must match the schedule exactly. Under-nailed shear walls fail under lateral loads and is a structural deficiency requiring correction before cover.' },
+  { id:'ca7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are installing curtain wall framing on a 6-story commercial building. The engineer\'s drawings show a lateral bracing requirement every 10 feet of height. You notice the current layout will have a 14-foot unbraced section due to a mechanical clearance conflict. What do you do?',
+    hint:'Think RFI, structural implications, who you notify, and how you document the conflict.' },
+  { id:'ca8', cat:'safety', diff:'mid', type:'open',
+    q:'You are cutting treated lumber (ACQ) with a circular saw on a job site. What PPE is required and what are the disposal requirements for the sawdust?',
+    hint:'Think respiratory protection for pressure-treated wood, skin/eye protection, and proper disposal of treated wood waste.' },
+  { id:'ca9', cat:'technical', diff:'hard', type:'mc',
+    q:'On a concrete formwork system for a 12-foot wall pour, the form ties must be designed for the lateral pressure of wet concrete. If the concrete is poured at 5 feet per hour at 70°F, the maximum lateral pressure is approximately:',
+    choices:['Always the full hydrostatic pressure','Calculated using ACI 347 formula considering pour rate and temperature','150 PSF regardless of height','Equal to the weight of the concrete per linear foot'],
+    correct:1, explain:'ACI 347R provides formulas for form pressure based on pour rate, temperature, and concrete type. This is fundamental formwork engineering that experienced carpenters should know.' },
+  { id:'ca10', cat:'trap', diff:'hard', type:'mc',
+    q:'A carpenter says: "I always nail the rim joist to the top plate with 16d nails at 16 inches on center — that\'s standard everywhere." For a commercial application, this practice is:',
+    choices:['Correct — this is the standard','Possibly wrong — connection schedules on commercial projects are specified by the structural engineer and must be followed exactly','Correct only for light framing','Wrong — you should always use structural screws instead of nails'],
+    correct:1, explain:'Commercial projects have engineer-specified connection schedules that supersede "standard practice." Always follow the project structural drawings. Field shortcuts based on habit are a common source of non-conformances.' },
+  { id:'ca11', cat:'scenario', diff:'hard', type:'open',
+    q:'During a wall framing inspection, the inspector flags that your wall is 3/4 inch out of plumb over 8 feet. The drywall is already staged to hang tomorrow. How do you fix this, what caused it, and how do you prevent it next time?',
+    hint:'Think correction methods, downstream impacts, and root cause analysis.' },
+  { id:'ca12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead carpenter with four laborers. Your company\'s superintendent tells you to frame a wall without waiting for the engineer\'s approval on a revised drawing that changes the header size. He says "we need to stay on schedule." What do you do?',
+    hint:'Think about your own liability, the safety/structural issue, and how to communicate pushback professionally.' }
+],
+
+concrete: [
+  { id:'co1', cat:'technical', diff:'mid', type:'mc',
+    q:'A concrete mix design specifies a water-cement ratio of 0.45. If the cement content is 600 lbs per cubic yard, the maximum water content should be:',
+    choices:['270 lbs','300 lbs','225 lbs','350 lbs'],
+    correct:0, explain:'W/C ratio = water/cement. 0.45 x 600 lbs = 270 lbs of water per cubic yard. Exceeding this ratio weakens the concrete and increases permeability.' },
+  { id:'co2', cat:'safety', diff:'mid', type:'mc',
+    q:'Fresh concrete is caustic and can cause severe chemical burns. The minimum PPE required when working directly with wet concrete includes:',
+    choices:['Standard leather gloves and work boots','Waterproof gloves, rubber boots, safety glasses, and long sleeves — concrete burns take time to appear','Nitrile gloves are sufficient','Only gloves are needed for short exposures'],
+    correct:1, explain:'Wet concrete has a pH of 12-13 and causes alkali burns that may not appear for hours. Full barrier protection is required. Concrete dermatitis is a leading cause of occupational skin injury in construction.' },
+  { id:'co3', cat:'technical', diff:'hard', type:'mc',
+    q:'During a slab pour, the inspector asks for a slump test. The mix design specifies a 4-inch slump with a tolerance of +/-1 inch. The test shows 6 inches. What happens next?',
+    choices:['The load can proceed — 6 inches is close enough','The load is rejected — slump out of spec means too much water was added, compromising strength','Add cement to bring the slump down','Request a waiver from the engineer'],
+    correct:1, explain:'A 6-inch slump on a 4-inch spec is out of tolerance. Excess slump means excess water, which reduces strength and increases shrinkage cracking. The load should be rejected or the engineer consulted before placement.' },
+  { id:'co4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are placing a 5,000 SF elevated concrete slab (post-tensioned). At the 2/3 completion point, a thunderstorm moves in and rain begins falling hard on the fresh concrete. Walk me through exactly what you do.',
+    hint:'Think about plastic shrinkage cracking, protecting the surface, stopping placement, and documentation.' },
+  { id:'co5', cat:'trap', diff:'hard', type:'mc',
+    q:'A finisher adds water to the surface of a concrete slab while finishing because it is "getting stiff." This practice is:',
+    choices:['Acceptable if done sparingly','Acceptable only in hot weather','A serious defect — adding water to the surface creates a weak zone that will scale and dust','Standard practice for smoother finishes'],
+    correct:2, explain:'Adding water to the surface while finishing is one of the most common and destructive concrete mistakes. It creates a high water-cement ratio zone at the surface, causing scaling, dusting, and delamination. Any experienced concrete worker should know this is never acceptable.' },
+  { id:'co6', cat:'technical', diff:'mid', type:'mc',
+    q:'Concrete test cylinders must be cured under what conditions before laboratory testing at 28 days?',
+    choices:['At ambient temperature, no special conditions','At 73°F +/-3°F in moist curing per ASTM C31','In the sun to simulate field conditions','Refrigerated at 40°F'],
+    correct:1, explain:'ASTM C31 requires standard curing at 73°F ± 3°F in moist conditions. Improper curing of test cylinders will show lower-than-actual strength and can falsely fail a pour.' },
+  { id:'co7', cat:'scenario', diff:'expert', type:'open',
+    q:'Your 28-day cylinder breaks come back at 3,200 PSI on a 4,000 PSI specified mix. The structural engineer is requiring core samples before the next pour. Walk me through the process, what the core sample results might show, and what happens if cores also fail.',
+    hint:'Think ASTM C803/C42 core procedure, core acceptance criteria (85% of specified), and the chain of decisions if cores fail.' },
+  { id:'co8', cat:'safety', diff:'hard', type:'open',
+    q:'You are pouring a foundation wall using a concrete pump with a 4-inch line. The boom arm is extended 50 feet over workers below. What safety requirements apply and what do you do if the pump line gets plugged?',
+    hint:'Think swing radius exclusion zones, pump line blowout risk, clearing a plug safely, and OSHA requirements.' },
+  { id:'co9', cat:'technical', diff:'hard', type:'mc',
+    q:'Rebar placed in a slab on grade should have a minimum cover of:',
+    choices:['3/4 inch','1.5 inches for slabs on grade per ACI 318','2 inches from the formed surface for concrete cast in place','3 inches for all conditions'],
+    correct:1, explain:'ACI 318 Table 20.6.1.3: Slabs not exposed to weather require 3/4" minimum cover. Slabs on grade (in contact with earth) require 1.5" minimum. This varies by exposure condition.' },
+  { id:'co10', cat:'trap', diff:'hard', type:'mc',
+    q:'A concrete laborer vibrates each area for about 30 seconds to ensure full consolidation. An experienced finisher says "more vibration is better — you can\'t over-vibrate." This statement is:',
+    choices:['Correct — more vibration always improves consolidation','Wrong — over-vibration causes segregation of aggregate and paste, weakening the concrete and causing surface defects','Correct only for stiff mixes (low slump)','Correct only for walls, not slabs'],
+    correct:1, explain:'Over-vibration causes aggregate segregation (heavy aggregate sinks, paste rises) and can cause form failure in walls. The rule is 5-15 seconds per insertion point, moving the vibrator in a grid pattern. This is fundamental — any experienced person should know this.' },
+  { id:'co11', cat:'scenario', diff:'hard', type:'open',
+    q:'You are the foreman on a large parking structure pour scheduled for Monday at 6am, 600 CY of 5000 PSI mix. On Sunday afternoon, you learn the night temperature will drop to 28°F. Walk me through your cold weather concrete plan.',
+    hint:'Think ACI 306, heating water/aggregates, minimum placement temp, insulating blankets, and who you notify.' },
+  { id:'co12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the concrete foreman and you notice the pump operator is pushing through a section of rebar that has clearly shifted out of position from its engineered location. He says "it\'s close enough — the engineer won\'t even check it." What do you do?',
+    hint:'Think structural consequences, your obligations, and how to stop work professionally.' }
+],
+
+operator: [
+  { id:'op1', cat:'technical', diff:'mid', type:'mc',
+    q:'Before starting an excavator each morning, which pre-operational check is required?',
+    choices:['Just check the fuel level','Walk-around inspection including fluid levels, tracks, bucket pins, and safety devices, then check from the cab before operation','Start the machine and listen for problems','Check only if something felt wrong the day before'],
+    correct:1, explain:'OSHA 1926.602 and manufacturer requirements mandate daily pre-operational inspections. Walking around the machine checks for fluid leaks, pin wear, track damage, and structural cracks before any movement.' },
+  { id:'op2', cat:'safety', diff:'mid', type:'mc',
+    q:'You are excavating near an existing building foundation. At what depth must you have a competent person assess the soil and determine if a protective system is required?',
+    choices:['6 feet','4 feet','5 feet','Any depth if working near a structure'],
+    correct:2, explain:'OSHA 1926.652: A protective system (sloping, shoring, or trench box) is required for any excavation 5 feet or deeper. A competent person must classify soil at any depth near structures or when sloughing is observed.' },
+  { id:'op3', cat:'technical', diff:'hard', type:'mc',
+    q:'While grading a parking lot, your grade laser shows you are .08 feet high on one corner. How much do you need to cut?',
+    choices:['.8 inches','About 1 inch','Approximately 1/12 of a foot — about 1 inch','.08 feet = 0.96 inches — cut just under 1 inch'],
+    correct:3, explain:'.08 feet x 12 = 0.96 inches. Grade work requires understanding foot-decimal conversion. An experienced operator should be able to convert laser readings to inches in their head.' },
+  { id:'op4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are using an excavator to dig a 12-foot deep utility trench. At 8 feet, you hit what appears to be an unmarked utility line — it could be gas or electric. Walk me through your exact response.',
+    hint:'Think stop work, emergency response, one-call verification, and what you do before any further digging.' },
+  { id:'op5', cat:'trap', diff:'hard', type:'mc',
+    q:'An operator says: "I always back-drag with the bucket to finish grading because it gives a smoother surface." For compaction purposes, back-dragging versus forward cutting is:',
+    choices:['Correct — back-dragging always produces a better finish grade','Fine for finish grading but does not compact the subgrade','The method does not matter — a motor grader is needed for any real finish grade','Wrong — you should always use a dozer for finish grading'],
+    correct:1, explain:'Back-dragging with an excavator bucket can achieve a smooth surface but does not provide compaction. The subgrade still requires a plate compactor, jumping jack, or roller. An operator who thinks back-dragging also compacts the soil is showing a knowledge gap.' },
+  { id:'op6', cat:'technical', diff:'mid', type:'mc',
+    q:'A crane\'s load chart shows a maximum lift capacity of 20 tons at a 30-foot radius. You need to lift a 17-ton load at 30 feet. This lift:',
+    choices:['Is safe — 17 tons is under the 20-ton limit','Requires a critical lift plan — you must be at 85% or less of rated capacity','Cannot be done — you need 25% safety margin','Is safe if you have a spotter'],
+    correct:1, explain:'ASME B30.5 and most site safety programs require lifts over 75-85% of rated capacity to be treated as critical lifts requiring a formal lift plan, rigging inspection, and often a second person. 17/20 = 85% — right at the threshold.' },
+  { id:'op7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are operating a 50-ton hydraulic crane setting precast concrete panels on a 5-story building. The panels are 8 tons each. During a lift, you notice the crane is beginning to tip slightly on the left outrigger. Walk me through what you do in the next 30 seconds and why.',
+    hint:'Think load management, outrigger settlement, boom position, emergency response, and never letting the load swing.' },
+  { id:'op8', cat:'safety', diff:'hard', type:'open',
+    q:'You are operating an excavator on a site where underground utilities were marked. You are 5 feet away from a marked gas line. What is your procedure for working in this area?',
+    hint:'Think about hand-digging requirements, clearance distances, potholing, spotter requirements, and one-call confirmation.' },
+  { id:'op9', cat:'technical', diff:'hard', type:'mc',
+    q:'When operating a motor grader to achieve a 2% cross-slope on a road, the blade must be angled. If the road is 24 feet wide, the outside edge must be lower than the centerline by:',
+    choices:['2.4 inches','4.8 inches','0.24 feet','5.76 inches'],
+    correct:3, explain:'2% slope x 12 feet (half width from crown) = 0.24 feet = 2.88 inches per side. Full cross-slope from one edge to other: 2% x 24 feet = 0.48 feet = 5.76 inches. Grade math is daily work for experienced operators.' },
+  { id:'op10', cat:'trap', diff:'hard', type:'mc',
+    q:'An operator says: "The load chart in my crane is just a guideline — I use my experience to feel when I am getting close to the limit." This approach is:',
+    choices:['Acceptable for experienced operators','Acceptable only for picks under 10 tons','Unacceptable — load charts are engineering documents and must be followed exactly','Acceptable if a rigger is spotting'],
+    correct:2, explain:'Crane load charts are engineering calculations based on structural analysis. "Feeling" when you are near the limit is how crane accidents happen. 85% of crane accidents involve exceeding rated capacity or improper rigging.' },
+  { id:'op11', cat:'scenario', diff:'hard', type:'open',
+    q:'You are operating a compactor on a fill project. The geotechnical report specifies compaction to 95% Standard Proctor in 8-inch lifts. The job superintendent tells you to compact 12-inch lifts to "save time." What do you do?',
+    hint:'Think about structural consequences, your role in the project, and how to address the directive.' },
+  { id:'op12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead equipment operator on a grading crew. A new operator is clearly struggling with fine grading — he is slow and his grades are consistently off. The project is behind schedule. How do you handle this without the superintendent noticing the problem?',
+    hint:'Think about mentoring, task assignment, quality vs. speed, and when you do need to escalate.' }
+],
+
+foreman: [
+  { id:'f1', cat:'safety', diff:'mid', type:'mc',
+    q:'As a foreman, you are a "competent person" under OSHA. What does this legally mean?',
+    choices:['You have more than 10 years of experience','You can identify existing and predictable hazards and have authority to take prompt corrective measures, including stopping work','You have completed OSHA 30-hour training','You are the most senior person on the crew'],
+    correct:1, explain:'OSHA defines "competent person" as someone who can identify hazardous or dangerous conditions AND has authority to correct them, including stopping work. This is a legal designation with real liability implications.' },
+  { id:'f2', cat:'leadership', diff:'hard', type:'mc',
+    q:'You are a foreman and you discover that a subcontractor\'s crew has been signing their own daily safety inspection forms without actually conducting the inspections. You are:',
+    choices:['Not responsible — it is the subcontractor\'s problem','Potentially liable as the competent person on site if you knew or should have known and did not act','Only responsible if someone is injured','Only responsible if you signed the forms yourself'],
+    correct:1, explain:'As the on-site foreman and competent person, you have legal and contractual obligations to ensure safety documentation reflects reality. Knowingly allowing falsified safety records exposes you and your employer to OSHA citations, contract penalties, and civil liability.' },
+  { id:'f3', cat:'scenario', diff:'hard', type:'open',
+    q:'It is Monday morning and you have a crew of 12 starting on a new phase of work. Walk me through how you run your morning toolbox talk — what you cover, how long it takes, and how you document it.',
+    hint:'Think about daily hazard identification, task-specific hazards, PPE requirements, sign-in sheet, and how you keep it from becoming a checkbox exercise.' },
+  { id:'f4', cat:'technical', diff:'hard', type:'mc',
+    q:'Your project schedule shows a critical path activity that is 5 days behind. As a foreman, your first action is:',
+    choices:['Tell the crew to work faster','Identify the root cause (manpower, material, equipment, weather, or scope change) and report to the superintendent with a recovery plan','Add overtime immediately','Blame the delay on a previous trade'],
+    correct:1, explain:'Schedule recovery requires root cause analysis before solution. Overtime costs money and burns out crews. Identifying whether the delay is manpower, material, access, or scope change determines the right recovery action.' },
+  { id:'f5', cat:'trap', diff:'hard', type:'mc',
+    q:'A foreman says: "I never put anything negative in writing because it can be used against us later." On a construction project, this approach is:',
+    choices:['Smart — verbal communication protects the company','Correct for internal matters but not for safety','Dangerous — failure to document issues, delays, and safety concerns creates liability and destroys your legal protection if disputes arise','Correct — verbal documentation is sufficient under most contracts'],
+    correct:2, explain:'Not documenting issues is one of the most common and costly mistakes foremen make. In construction disputes, litigation, and OSHA investigations, the party with written documentation wins. "If it isn\'t written, it didn\'t happen" is the standard in construction law.' },
+  { id:'f6', cat:'scenario', diff:'expert', type:'open',
+    q:'You are the foreman on a $4M commercial tenant improvement. The owner\'s representative walks the job and tells your crew directly (without going through the GC) to move a wall 2 feet to accommodate new furniture. How do you handle this?',
+    hint:'Think about chain of command, change order process, scope creep, cost/schedule impacts, and protecting your company.' },
+  { id:'f7', cat:'safety', diff:'hard', type:'open',
+    q:'You arrive at the job site and discover a worker was injured yesterday on the night shift — a laceration requiring 4 stitches. The night foreman told the worker to go to urgent care and did not fill out an incident report. It is now 18 hours after the incident. What do you do?',
+    hint:'Think about OSHA recordkeeping requirements, 300 log, reporting obligations, and preserving the scene.' },
+  { id:'f8', cat:'leadership', diff:'hard', type:'open',
+    q:'You have a worker on your crew who is excellent technically but has a bad attitude — he argues with direction, makes negative comments in front of the crew, and undermines morale. He has been with the company for 8 years. How do you manage this person?',
+    hint:'Think about private conversation, specific behavior vs. personality, documentation, and what escalation looks like.' },
+  { id:'f9', cat:'technical', diff:'mid', type:'mc',
+    q:'Your crew is behind on a concrete pour because of a delivery delay. It is 3pm and the ready-mix plant closes at 5pm. You need 40 more CY and each truck delivers 10 CY. Each truck cycle is 45 minutes. Can you finish today?',
+    choices:['Yes — 4 trucks x 45 min = 3 hours, finishing at 6pm','No — 4 trucks x 45 min = 3 hours — you run out of time unless trucks overlap','Maybe — depends on pump speed','Yes — trucks can overlap and deliver faster'],
+    correct:1, explain:'4 trucks x 45 min = 180 min = 3 hours. Starting at 3pm finishes at 6pm — after plant closes. With overlap you might get 3 trucks but not reliably 4. A good foreman runs this math proactively, not at 3pm.' },
+  { id:'f10', cat:'trap', diff:'hard', type:'mc',
+    q:'A superintendent tells a foreman: "Let the sub\'s workers fix that out-of-spec work — it\'s their problem, not ours." As the foreman of record on the GC side, your position is:',
+    choices:['The superintendent is right — it is the sub\'s problem','Wrong — as the GC\'s foreman you are responsible for the quality of all work on the project, including subs','Correct only if it is documented in the subcontract','Correct if the sub has its own quality control plan'],
+    correct:1, explain:'The GC\'s foreman is responsible for quality across the entire project, including subcontractor work. Ignoring known non-conformances creates GC liability. The foreman\'s job is to document it, issue a formal NCR or non-conformance report, and ensure it is corrected.' },
+  { id:'f11', cat:'scenario', diff:'expert', type:'open',
+    q:'You are a foreman on a high-rise and a worker reports seeing another worker\'s hands shaking badly, his speech is slurred, and he seems confused. It is 10am. He says he is fine. What do you do and what are the possibilities you are considering?',
+    hint:'Think medical emergency vs. substance impairment, your duty of care, removing the worker from the site, and how you handle it without assuming.' },
+  { id:'f12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are taking over as foreman on a project that is 20% complete. The previous foreman left suddenly and the crew does not know you. On your first day, what are the first five things you do to establish yourself and assess where the job stands?',
+    hint:'Think about meeting the crew, reviewing safety and quality status, understanding the schedule, and quick wins.' }
+]
+
+
+,
+solar: [
+  { id:'s1', cat:'technical', diff:'mid', type:'mc',
+    q:'What does STC stand for in solar PV and what conditions does it represent?',
+    choices:['Standard Testing Conditions — 1000 W/m² irradiance, 25°C cell temp, 1.5 air mass','Standard Temperature Conditions — outdoor ambient 25°C only','System Test Criteria — factory test before shipping','Solar Thermal Coefficient — efficiency rating under heat'],
+    correct:0, explain:'STC (Standard Test Conditions) is the universal benchmark: 1000 W/m² irradiance, 25°C cell temperature, AM 1.5 spectrum. All module nameplate ratings are at STC.' },
+  { id:'s2', cat:'safety', diff:'mid', type:'mc',
+    q:'You are working on a rooftop solar installation. At what point does a PV array become energized and dangerous, even before the inverter is connected?',
+    choices:['Only after the inverter is connected and turned on','As soon as modules are exposed to light — even partial shading — DC voltage is present','Only when strings are series-connected','Only at full nameplate voltage in direct sun'],
+    correct:1, explain:'PV modules generate DC voltage the moment they receive light. A single module in partial sun can produce lethal voltage. This is the most critical safety concept in solar — the source cannot be turned off like a utility circuit.' },
+  { id:'s3', cat:'technical', diff:'hard', type:'mc',
+    q:'A string of 20 modules has a Voc of 45V per module at STC. At a site minimum temperature of -10°C, approximately what voltage must the string wiring and combiner be rated for?',
+    choices:['900V (20 x 45V)','Around 1050V — Voc increases as temperature drops','750V — use 80% of STC Voc','Exactly 900V — temperature does not affect Voc'],
+    correct:1, explain:'Voc has a negative temperature coefficient — it INCREASES as temperature drops (approximately +0.3%/°C below STC 25°C). At -10°C that is 35°C below STC, adding roughly 5-10% to Voc. Sizing at STC only is a code violation and equipment hazard.' },
+  { id:'s4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are installing a 500kW ground-mount utility solar project. During installation you discover that the racking foundation spacing is 2 inches off from the module layout drawing on every other row. The modules have already arrived on site. Walk me through exactly what you do.',
+    hint:'Think RFI process, who you notify, whether work stops, and practical solutions.' },
+  { id:'s5', cat:'trap', diff:'hard', type:'mc',
+    q:'An installer says: "I always use the same torque for all module frame bolts — the racking manufacturer says 15 ft-lbs and that works for everything." This practice is:',
+    choices:['Correct — one torque spec is standard industry practice','Correct for aluminum racking only','Wrong — torque specs vary by bolt diameter, material, and racking manufacturer and must be followed per the specific installation manual','Wrong — you should never torque solar mounting hardware'],
+    correct:2, explain:'Torque specs are specific to each racking system, bolt size, and material. Under-torquing causes module movement and wind damage. Over-torquing strips aluminum and breaks module frames. Always follow the specific IOM.' },
+  { id:'s6', cat:'technical', diff:'mid', type:'mc',
+    q:'NEC Article 690 requires a rapid shutdown system on rooftop PV systems. What does rapid shutdown accomplish?',
+    choices:['It shuts down the inverter only','It de-energizes the DC conductors within the array boundary to below 30V within 30 seconds of initiation — to protect first responders','It disconnects the system from the grid','It activates the fire suppression system'],
+    correct:1, explain:'NEC 690.12 Rapid Shutdown: DC conductors inside the array boundary must be reduced to 30V or less within 30 seconds when the rapid shutdown initiator is activated — specifically to protect firefighters from energized rooftop conductors.' },
+  { id:'s7', cat:'scenario', diff:'expert', type:'open',
+    q:'Your production monitoring shows string #4 of a 10-string 250kW array has been producing 40% below expected for three days. The weather has been clear. Walk me through your diagnostic procedure from the monitoring system to the physical inspection.',
+    hint:'Think IV curve tracing, clamp meter testing, combiner fuse check, soiling vs. shading vs. degradation vs. wiring fault.' },
+  { id:'s8', cat:'safety', diff:'mid', type:'open',
+    q:'You are working on a commercial rooftop with no parapet walls. The roof is 40 feet above grade. What fall protection system is required and how do you set it up before any workers access the roof?',
+    hint:'Think OSHA 1926.502, warning line systems, personal fall arrest, and leading edge requirements.' },
+  { id:'s9', cat:'technical', diff:'hard', type:'mc',
+    q:'What is the purpose of the equipment grounding conductor (EGC) vs. the grounding electrode conductor (GEC) in a PV system?',
+    choices:['They are the same thing — both ground the system','EGC bonds equipment metal to prevent shock hazard; GEC connects the system to earth ground — they serve different purposes','GEC carries fault current; EGC connects to the utility neutral','Only the GEC is required by NEC 690'],
+    correct:1, explain:'EGC (green wire/bare copper): bonds all metal equipment together for fault current path and shock protection. GEC: connects the system to the earth electrode (ground rod). Both are required. Confusing them leads to improper grounding installations.' },
+  { id:'s10', cat:'trap', diff:'hard', type:'mc',
+    q:'A solar tech says: "Microinverters are always better than string inverters because each module is independent." For a utility-scale 2MW ground mount, this statement is:',
+    choices:['Correct — microinverters are always superior','Wrong — at utility scale, string or central inverters are standard; microinverters are cost-prohibitive and create massive maintenance complexity','Correct only if shading is present','Correct for commercial but not utility scale'],
+    correct:1, explain:'Microinverters are appropriate for residential and small commercial with shading challenges. At utility scale (500kW+), central or string inverters are the industry standard. Proposing microinverters for a 2MW project shows a residential-only background.' },
+  { id:'s11', cat:'scenario', diff:'hard', type:'open',
+    q:'The AHJ inspector arrives for your final inspection on a commercial rooftop system and immediately asks to see your arc-fault protection documentation and your rapid shutdown compliance label locations. Walk me through what you show them and where each label must be placed per NEC 690.',
+    hint:'Think NEC 690.12 signage requirements, 690.11 AFCI, and combiner/disconnect labeling.' },
+  { id:'s12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead installer on a solar project with four laborers. It is 95°F and one worker says he feels dizzy and has stopped sweating. What do you do immediately and what does this tell you about your heat illness prevention plan?',
+    hint:'Think heat stroke vs. heat exhaustion symptoms, immediate first aid, stopping work, OSHA heat illness prevention, and documentation.' }
+],
+
+pipefitter: [
+  { id:'pf1', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the purpose of a P&ID (Piping and Instrumentation Diagram) on an industrial process job?',
+    choices:['Shows the physical layout of pipes on the site','Shows the process flow, pipe sizes, instrumentation, valves, and control logic for all process systems','Shows the structural support locations for pipe hangers','Shows the isometric views for field fabrication'],
+    correct:1, explain:'P&IDs are the primary engineering document for industrial pipefitting — they show every instrument, valve, control loop, and connection in the process system. Reading P&IDs fluently is fundamental for industrial pipefitters.' },
+  { id:'pf2', cat:'safety', diff:'mid', type:'mc',
+    q:'Before breaking into an active process line that may contain hydrocarbons, you must have:',
+    choices:['Just a work order and your supervisor\'s verbal OK','A line break permit, LOTO on all isolation valves, drain/bleed to atmosphere to verify zero energy, gas test, and PPE specific to the substance in the line','Only LOTO on the main isolation valve','A safety observer — no formal permit needed for a quick break'],
+    correct:1, explain:'Line break permits on process systems are among the most critical safety documents in industrial work. Failure to verify zero energy and atmosphere in a hydrocarbon line has killed workers through explosion, toxic exposure, and oxygen displacement.' },
+  { id:'pf3', cat:'technical', diff:'hard', type:'mc',
+    q:'A process line spec calls for ASTM A106 Grade B seamless carbon steel pipe at 300 psi / 750°F service. You find A53 Grade B ERW pipe on the rack. Can you use it?',
+    choices:['Yes — A53 and A106 are interchangeable','No — A53 ERW is not suitable for high-temperature high-pressure process service; A106 seamless is specifically required','Yes — both are carbon steel so they are equivalent','Yes if you reduce the operating pressure by 20%'],
+    correct:1, explain:'A106 Grade B seamless is the standard for high-temp/high-pressure process piping. A53 ERW (Electric Resistance Welded) has a longitudinal seam weld and is not rated for the same service conditions. Substituting without engineering approval is a serious process safety violation.' },
+  { id:'pf4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are installing a 6-inch carbon steel process line on a refinery expansion. The isometric drawing calls for a butt weld at a flange connection but the flange face shows slight pitting from storage corrosion. Walk me through what you do before making that connection.',
+    hint:'Think flange face inspection criteria, surface preparation, gasket selection, and RFI if needed.' },
+  { id:'pf5', cat:'trap', diff:'hard', type:'mc',
+    q:'A pipefitter says: "For a 300-class flange, I always torque bolts to 100 ft-lbs — that is the standard." This practice is:',
+    choices:['Correct — 100 ft-lbs is the ASME standard for 300 class','Wrong — bolt torque depends on bolt diameter, gasket type, fluid service, and flange rating. There is no universal torque value','Correct only for spiral wound gaskets','Correct for carbon steel bolts only'],
+    correct:1, explain:'Flange bolt torque is calculated per ASME PCC-1 based on bolt size, gasket seating stress, flange rating, and service conditions. "One size fits all" torque is one of the most common sources of flange leaks on process systems.' },
+  { id:'pf6', cat:'technical', diff:'mid', type:'mc',
+    q:'What does PWHT (Post Weld Heat Treatment) accomplish on a high-alloy or thick carbon steel weld?',
+    choices:['It makes the weld look better cosmetically','It relieves residual stresses from welding, reduces hardness in the HAZ, and improves corrosion resistance and toughness','It increases the weld strength beyond the base metal','It is only required for stainless steel'],
+    correct:1, explain:'PWHT relieves residual welding stresses, tempers martensite in the heat-affected zone, and improves resistance to hydrogen-induced cracking and stress corrosion. Required by code (ASME B31.3) for many services above certain wall thicknesses.' },
+  { id:'pf7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are hydro-testing a new 4-inch process line at 1.5x MAWP (150 PSIG working pressure = 225 PSIG test). At 200 PSIG you notice a slow weep at a socket weld fitting. What do you do? Can you repair under pressure?',
+    hint:'Think ASME B31.3 test requirements, depressurizing before repair, documentation, and retest procedure.' },
+  { id:'pf8', cat:'safety', diff:'hard', type:'open',
+    q:'You arrive at a job site and notice that another crew has been using yellow PTFE thread tape on a steam line connection — the same tape commonly used for gas and water. What is the problem and what should be used instead?',
+    hint:'Think temperature rating of standard PTFE vs. high-temp tape, steam service requirements, and what the right sealant is.' },
+  { id:'pf9', cat:'technical', diff:'hard', type:'mc',
+    q:'On a process line drawing, you see a symbol for an orifice plate. What is its primary function?',
+    choices:['It is a flow restriction for pressure reduction','It is a primary flow measurement element — the differential pressure across it is measured to calculate flow rate','It is a check valve to prevent backflow','It is a strainer to remove particulate'],
+    correct:1, explain:'An orifice plate is a primary flow element. It creates a known pressure drop that is proportional to flow rate squared. A differential pressure transmitter measures across it to calculate flow. Knowing P&ID instrumentation symbols is fundamental for industrial pipefitters.' },
+  { id:'pf10', cat:'trap', diff:'hard', type:'mc',
+    q:'A pipefitter installs a gate valve in a steam line with the bonnet pointing downward because "it fits better that way." This installation is:',
+    choices:['Acceptable — valve orientation does not matter','Acceptable only for low-pressure steam','Wrong — gate valves in steam service should be installed with the bonnet vertical or angled upward to prevent condensate from accumulating in the bonnet and causing water hammer or packing damage','Wrong — gate valves should never be used in steam service'],
+    correct:2, explain:'Bonnet-down gate valve installation traps condensate in the bonnet, causing accelerated packing wear, stem corrosion, and potential water hammer. This is a common mistake that causes expensive valve failures. Proper installation is bonnet up or horizontal.' },
+  { id:'pf11', cat:'scenario', diff:'hard', type:'open',
+    q:'You are reading an isometric drawing for a pipe spool to be prefabricated in the shop. The drawing shows a 2-inch NPT threaded connection going into a 2-inch socket weld tee. Is this correct? What problem does this combination create?',
+    hint:'Think about threaded vs. socket weld connections and mixing end types on the same fitting.' },
+  { id:'pf12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead pipefitter on a plant turnaround with a 10-day window. You are behind schedule due to material delivery delays. The plant operations team is pressuring you to put workers on 12-hour days starting tomorrow. What are your considerations and what do you tell them?',
+    hint:'Think fatigue and safety risk, labor agreements, quality impact on complex welds, and realistic recovery options.' }
+],
+
+ironworker: [
+  { id:'iw1', cat:'technical', diff:'mid', type:'mc',
+    q:'When erecting structural steel, what is the purpose of a "tag line"?',
+    choices:['It labels the steel members for identification','A rope attached to the load to control swing and rotation during the lift','It connects the crane hook to the rigging','It marks the anchor bolt locations on the foundation'],
+    correct:1, explain:'Tag lines are essential for controlling steel members during lifting — they prevent uncontrolled rotation and swing that can injure workers or damage the structure. Workers holding tag lines must stay clear of the load\'s fall zone.' },
+  { id:'iw2', cat:'safety', diff:'mid', type:'mc',
+    q:'OSHA 1926 Subpart R (Steel Erection) requires a safety deck or safety net when the working surface is above what height?',
+    choices:['6 feet','15 feet','30 feet','There is no height limit — harnesses are always required regardless of height'],
+    correct:2, explain:'OSHA 1926.760: Ironworkers working on connectors must have fall protection when exposed to falls of more than 30 feet to a lower level. The Subpart R rules (Steel Erection Standard) are specific to structural ironwork and differ from general fall protection rules.' },
+  { id:'iw3', cat:'technical', diff:'hard', type:'mc',
+    q:'A structural drawing shows a beam connection with A325 bolts in a "slip-critical" connection. How does the installation requirement differ from a "bearing type" connection?',
+    choices:['No difference — all high-strength bolts are the same','Slip-critical connections require bolts to be tensioned to their proof load (using turn-of-nut, DTI washers, or calibrated wrench) — snug-tight is not sufficient','Bearing type requires higher tension than slip-critical','Slip-critical means finger tight plus one turn'],
+    correct:1, explain:'Slip-critical connections transfer load through friction between faying surfaces, which requires the bolts to be fully tensioned. Bearing connections allow the bolts to bear against the hole. Using snug-tight bolts in a slip-critical connection is a structural deficiency.' },
+  { id:'iw4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are connecting a 30-foot W18x97 beam 40 feet in the air. The erection drawing shows a bolted moment connection with 8 A325 bolts each side. During fit-up you discover the beam is 3/4 inch short — the holes don\'t line up on the far end. Walk me through what you do.',
+    hint:'Think about documenting the discrepancy, who you notify, options for correction, and whether you can proceed.' },
+  { id:'iw5', cat:'trap', diff:'hard', type:'mc',
+    q:'An ironworker says: "A325 and A490 bolts are interchangeable — just use whichever is on the truck." On a structural connection, this is:',
+    choices:['Correct — both are high-strength structural bolts','Correct if you add more bolts to compensate','Wrong — A325 and A490 have different strength levels. The connection is designed for a specific bolt grade and substitution requires engineering approval','Wrong only if the connection is slip-critical'],
+    correct:2, explain:'A325 (120 ksi min tensile) and A490 (150 ksi min tensile) are not interchangeable. The structural engineer sized the connection for a specific bolt grade. Field substitution without engineering approval is a structural violation — A490 in an A325 connection can cause brittle fracture under certain conditions.' },
+  { id:'iw6', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the minimum number of bolts required to be installed before a crane can release a steel beam during erection?',
+    choices:['One bolt per connection point','Two bolts per connection — one at each end','The connection must be fully bolted before release','Per OSHA 1926.756, the number is determined by the erection engineer but generally at least two per connection'],
+    correct:3, explain:'OSHA 1926.756(b): Seats and connections must have at least two bolts or equivalent before the crane releases. The erection procedure from the structural engineer may require more. "One and done" is a common unsafe shortcut.' },
+  { id:'iw7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are placing rebar for a 24-inch concrete column with a tight rebar cage — #9 bars at 6 inches on center with #4 ties at 4 inches. The concrete pump operator says the aggregate is getting hung up and asks you to spread the rebar to help the pour flow. What do you do?',
+    hint:'Think structural drawing requirements, engineer approval for any changes, mix design alternatives, and who owns this problem.' },
+  { id:'iw8', cat:'safety', diff:'hard', type:'open',
+    q:'You are working on a structural steel project and the crane operator calls out that he has a "two-block" condition. What does this mean, why is it immediately dangerous, and what do you do?',
+    hint:'Think about what two-blocking is, the potential failure mode, and the correct response.' },
+  { id:'iw9', cat:'technical', diff:'hard', type:'mc',
+    q:'A rebar placing drawing calls for #8 bars with a standard hook. What are the two dimensions that define a standard 90-degree hook for a #8 bar per ACI 318?',
+    choices:['6-inch bend diameter and 6-inch extension','Inside bend diameter of 6 bar diameters and 12 bar diameter extension','3-inch radius and 4-inch extension','Standard hooks are not specified — the ironworker determines the dimensions'],
+    correct:1, explain:'ACI 318 Table 25.3.1: Standard 90° hook — inside bend diameter of 6db minimum (for #3-#8), extension of 12db. For #8 bar (1 inch diameter), that is 6-inch bend diameter and 12-inch extension. Knowing ACI hook geometry is fundamental for structural rebar work.' },
+  { id:'iw10', cat:'trap', diff:'hard', type:'mc',
+    q:'An ironworker says: "I always lap splices on adjacent bars in the same location to make it easier to tie." Per ACI 318 and most structural drawings, this practice is:',
+    choices:['Correct — same-location splices are more efficient','Correct only when bars are the same size','Wrong — structural drawings typically stagger lap splices to prevent creating a single weak plane. Stacking all splices in one location can create a failure plane in the concrete','Wrong only in seismic zones'],
+    correct:2, explain:'Staggering lap splices is standard structural practice per ACI 318 to prevent a single failure plane. The structural drawing specifies splice locations and stagger requirements. Concentrating all splices in one zone undermines the structural design.' },
+  { id:'iw11', cat:'scenario', diff:'hard', type:'open',
+    q:'You are placing post-tension tendons in a concrete slab. After the pour, one of the tendons cannot be stressed — the chuck won\'t seat and the tendon appears to have a kink 10 feet from the pocket. What are your options and who do you call?',
+    hint:'Think about the structural implications of a missing tendon, the post-tension engineer, options for correction, and documentation.' },
+  { id:'iw12', cat:'leadership', diff:'mid', type:'open',
+    q:'Your crew of 6 ironworkers is erecting steel on a windy day. Gusts are hitting 28 mph. The superintendent wants to keep working because "we are behind schedule and it\'s not THAT windy." What do you do?',
+    hint:'Think about OSHA crane wind limits, your authority to stop work, the risk to your crew, and how you communicate this to the superintendent.' }
+],
+
+painter: [
+  { id:'pt1', cat:'technical', diff:'mid', type:'mc',
+    q:'A coating spec calls for a DFT (Dry Film Thickness) of 4-6 mils per coat. You measure 3.2 mils average. This is:',
+    choices:['Close enough — within normal variance','A non-conformance — you must apply an additional coat to reach minimum DFT','Acceptable if the total system DFT is correct','Only a problem if visible to the owner'],
+    correct:1, explain:'Coating specifications are engineering requirements based on the substrate protection needed. Under-DFT coatings provide inadequate corrosion protection. Per SSPC/NACE standards, each coat must meet minimum DFT. You must apply an additional coat and re-measure.' },
+  { id:'pt2', cat:'safety', diff:'mid', type:'mc',
+    q:'Before applying a solvent-borne coating in an enclosed space, the MINIMUM ventilation requirement is:',
+    choices:['Just open a door or window','Mechanical ventilation providing at least 1 CFM per square foot AND continuous atmospheric monitoring for LEL (Lower Explosive Limit) — work stops above 10% LEL','A fan blowing into the space','OSHA does not regulate painting in enclosed spaces'],
+    correct:1, explain:'Solvent vapors in enclosed spaces create explosion and asphyxiation hazards. OSHA 1926.66 and NFPA 33 require specific ventilation rates AND continuous LEL monitoring. Work must stop above 10% LEL — 25% for some standards. This kills workers every year.' },
+  { id:'pt3', cat:'technical', diff:'hard', type:'mc',
+    q:'A structural steel coating system specifies SSPC-SP 10 surface preparation. What does this require?',
+    choices:['Hand tool cleaning — wire brush and scraper','Commercial blast — 2/3 of surface free of all visible contamination','Near-white blast — minimum 95% of surface free of all visible contamination with no staining on remaining 5%','White metal blast — 100% clean surface'],
+    correct:2, explain:'SSPC-SP 10 Near-White Blast is the most common spec for structural steel coating systems. Near-white (95% clean) vs. white metal (SP5, 100%) is a key distinction. Getting this wrong either causes coating failure (under-prep) or unnecessary cost (over-prep).' },
+  { id:'pt4', cat:'scenario', diff:'hard', type:'open',
+    q:'You are applying a 3-coat epoxy/urethane system on a steel bridge. After the second coat cures, you notice fish-eye defects (small craters) across 30% of the surface. Walk me through the cause, remediation, and how you prevent it on the third coat.',
+    hint:'Think contamination sources (silicone, oil, wax), proper surface prep after fisheye, and application technique.' },
+  { id:'pt5', cat:'trap', diff:'hard', type:'mc',
+    q:'A painter says: "I always thin the coating 10-15% with mineral spirits to make it spray easier." For a VOC-regulated project spec, this practice is:',
+    choices:['Standard practice accepted by all manufacturers','Acceptable if you apply a thicker coat to compensate','A potential spec violation — thinning beyond manufacturer limits affects DFT, film formation, and may violate VOC content regulations and warranty','Acceptable only for primer coats'],
+    correct:2, explain:'Over-thinning beyond manufacturer recommendations reduces DFT per pass, disrupts film formation chemistry, and can push VOC content over the regulatory limit for the project. It also typically voids the coating warranty. Always thin to manufacturer specifications only.' },
+  { id:'pt6', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the minimum surface temperature requirement relative to the dew point when applying most industrial coating systems?',
+    choices:['Surface can be at or above dew point','Surface must be at least 5°F above the dew point temperature','Surface temperature does not matter as long as it is above 50°F','Only humidity matters — dew point is irrelevant for brush application'],
+    correct:1, explain:'SSPC and most manufacturer specs require substrate temperature to be at least 5°F (some require more) above dew point. Moisture condensing on the surface during or after application causes adhesion failure, blistering, and coating delamination.' },
+  { id:'pt7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are the lead painter on a petrochemical tank lining job. The spec calls for a 100% solids epoxy interior lining applied in a confined space. Walk me through your pre-job safety planning, the ventilation requirements, and your crew\'s monitoring protocol during application.',
+    hint:'Think confined space entry permit, air monitoring for O2/LEL/H2S, supplied air vs. air-purifying respirators, and thermal hazards from 100% solids epoxy curing.' },
+  { id:'pt8', cat:'safety', diff:'hard', type:'open',
+    q:'You are blasting a structure with lead-containing paint. Walk me through the specific OSHA requirements for worker protection, air monitoring, and waste disposal.',
+    hint:'Think OSHA 1926.62, lead PEL, action level, supplied air respirators, PPE, medical surveillance, and RCRA hazardous waste requirements for lead blast debris.' },
+  { id:'pt9', cat:'technical', diff:'hard', type:'mc',
+    q:'A coating inspection report shows adhesion test results per ASTM D4541 (pull-off adhesion) of 280 PSI on an epoxy primer specified at 300 PSI minimum. The result is:',
+    choices:['Acceptable — within normal test variance','A non-conformance — 280 PSI fails the 300 PSI minimum spec','Acceptable if three tests average 300 PSI','Acceptable if the failure is cohesive within the coating, not adhesive'],
+    correct:1, explain:'280 PSI on a 300 PSI minimum is a non-conformance requiring investigation. While failure mode (adhesive vs. cohesive) provides diagnostic information, the numeric result must meet the minimum. Averaging multiple tests to pass one low result is not acceptable without spec language allowing it.' },
+  { id:'pt10', cat:'trap', diff:'hard', type:'mc',
+    q:'A painter says: "I check the weather app and if humidity is below 85%, we are good to coat." For a precision industrial coating application, this approach is:',
+    choices:['Correct — 85% RH is the standard limit','Correct for latex paint only','Insufficient — you need surface temperature, air temperature, AND dew point to calculate actual risk. Humidity alone does not tell you if condensation will occur on the substrate','Correct only for water-based coatings'],
+    correct:2, explain:'Relative humidity alone cannot tell you if condensation will form on the steel surface. You need: surface temperature, air temperature, and relative humidity to calculate dew point — then compare surface temp to dew point. A 60% RH day with cold steel can still fail the dew point test.' },
+  { id:'pt11', cat:'scenario', diff:'hard', type:'open',
+    q:'During a final inspection on a structural steel project, the third-party coating inspector fails the job because 15% of the steel has DFT readings below minimum spec. The GC is pressuring you to just "touch up the low spots." What are the problems with this approach and what is the correct process?',
+    hint:'Think about inter-coat adhesion requirements, recoat windows, surface prep before touch-up, and documentation.' },
+  { id:'pt12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead on a coating crew and you discover one of your workers has been falsifying DFT inspection log readings to avoid re-coating. He says "the readings were close and it would have taken another day." What do you do?',
+    hint:'Think about the downstream consequences of false inspection data, your personal liability, and the employee accountability process.' }
+],
+
+instrumentation: [
+  { id:'in1', cat:'technical', diff:'mid', type:'mc',
+    q:'A 4-20mA transmitter reads 12mA. What percentage of its calibrated span is this reading?',
+    choices:['60%','50%','75%','12%'],
+    correct:1, explain:'4-20mA spans 16mA (20-4=16). 12mA - 4mA = 8mA above zero. 8/16 = 50%. This is the most fundamental calculation in instrumentation — any tech should answer this in seconds.' },
+  { id:'in2', cat:'safety', diff:'mid', type:'mc',
+    q:'You need to calibrate a level transmitter on an active process vessel containing hydrogen sulfide (H2S). Before you begin, what is your primary safety concern and required personal protective equipment?',
+    choices:['Standard safety glasses are sufficient','H2S requires a supplied-air respirator (SCBA or SAR), H2S detector, buddy system, and escape route plan — H2S is immediately dangerous at 100 PPM and kills without warning','Just a half-face respirator with organic vapor cartridges','H2S is only a concern above 500 PPM'],
+    correct:1, explain:'H2S (IDLH: 100 PPM) is odorless at high concentrations (it paralyzes the olfactory nerve), heavier than air, and kills rapidly. OSHA requires supplied air (not air-purifying) for H2S atmospheres above the IDLH. This is one of the top killers in the petrochemical industry.' },
+  { id:'in3', cat:'technical', diff:'hard', type:'mc',
+    q:'A differential pressure flow transmitter is reading 40% low after a process line cleaning. The most likely cause is:',
+    choices:['The transmitter is out of calibration','The impulse lines (sensing lines) have air or debris in them, creating an incorrect DP reading','The orifice plate was installed backwards after maintenance','The transmitter span is set wrong'],
+    correct:1, explain:'Plugged or air-filled impulse lines are the most common cause of DP transmitter errors after maintenance. The sensing lines between the orifice taps and transmitter must be fully liquid-filled and free of blockage. This should be the first check before re-calibrating the transmitter.' },
+  { id:'in4', cat:'scenario', diff:'hard', type:'open',
+    q:'A control valve on a critical cooling water line is stuck in the 40% open position and will not respond to the DCS output. The process needs 80% flow. Walk me through your diagnostic sequence — from the control room to the field.',
+    hint:'Think DCS output verification, I/P converter check, instrument air supply, positioner, actuator, and valve body — in order.' },
+  { id:'in5', cat:'trap', diff:'hard', type:'mc',
+    q:'A technician says: "When I commission a thermocouple, I always verify continuity with a multimeter across the leads to check if it is good." This practice is:',
+    choices:['Correct — continuity test verifies a good thermocouple','Correct only for Type K thermocouples','Wrong — a thermocouple can show continuity and still be incorrect. You must verify the millivolt output against a reference temperature using a calibrator or ice bath, not just continuity','Wrong — you should use a megohmmeter, not a multimeter'],
+    correct:2, explain:'Continuity on a thermocouple only tells you the circuit is not open. It tells you nothing about accuracy, drift, or whether the junction is actually measuring the correct temperature. Proper verification requires known temperature reference and mV output check against the thermocouple table.' },
+  { id:'in6', cat:'technical', diff:'mid', type:'mc',
+    q:'What is the purpose of a "intrinsically safe barrier" in an instrumentation installation?',
+    choices:['It protects the instrument from mechanical damage','It limits electrical energy (voltage and current) to levels that cannot ignite a hazardous atmosphere — allowing instruments to operate in Class I Division 1 areas','It provides electrical isolation to prevent ground loops','It filters noise from the signal'],
+    correct:1, explain:'Intrinsic safety (IS) barriers limit the electrical energy in the field loop to below the ignition threshold for the classified area. They are required for instruments installed in Class I Div 1 (continuously hazardous) locations. Incorrect IS installation is a serious process safety deficiency.' },
+  { id:'in7', cat:'scenario', diff:'expert', type:'open',
+    q:'You are troubleshooting a PID control loop on a gas compressor suction pressure controller. The loop is hunting (oscillating) with a period of about 30 seconds even though the setpoint is stable. Walk me through how you diagnose whether this is a tuning problem, a process problem, or an instrument problem.',
+    hint:'Think about trend data analysis, valve response testing, process gain vs. controller gain, and how you would adjust PID parameters if tuning is the cause.' },
+  { id:'in8', cat:'safety', diff:'hard', type:'open',
+    q:'You are about to perform a functional test of a Safety Instrumented System (SIS) trip on a reactor high-pressure shutdown. The operations team says "just simulate the input — don\'t actually trip the reactor." What are your concerns with this approach?',
+    hint:'Think about IEC 61511 proof test requirements, partial vs. full functional testing, and what a bypass or simulation actually proves about the safety function.' },
+  { id:'in9', cat:'technical', diff:'hard', type:'mc',
+    q:'A pH transmitter has a reading of 7.0 in a process stream that the lab confirms is actually pH 5.0. After checking that the process connection is correct and there are no air bubbles on the electrode, what is the most likely cause?',
+    choices:['The transmitter amplifier card is failed','The pH electrode is coated, fouled, or the reference junction is contaminated — preventing accurate potential measurement','The 4-20mA loop is open','The temperature compensation is set wrong'],
+    correct:1, explain:'pH measurement errors after accurate wiring verification almost always trace back to electrode condition — coating, fouling, dehydration, or contaminated reference junction. pH electrodes require regular cleaning and replacement. The transmitter electronics rarely fail compared to the electrode itself.' },
+  { id:'in10', cat:'trap', diff:'hard', type:'mc',
+    q:'An instrument tech says: "I recalibrate every transmitter in the plant on the same annual schedule regardless of performance because that\'s what the PM says." In a well-run facility, this approach is:',
+    choices:['Correct — fixed calibration intervals are required by OSHA','Correct for SIS instruments but not general process','Sub-optimal — best practice uses calibration intervals based on calibration history and drift analysis. Instruments showing no drift can be extended; drifting instruments need more frequent calibration','Correct — annual calibration is the industry standard for all instruments'],
+    correct:2, explain:'Risk-based calibration (per ISA-18.1, EEMUA) adjusts intervals based on demonstrated drift history. Calibrating stable instruments unnecessarily wastes time and can introduce errors during the process. Drifting SIS instruments may need more frequent calibration than annual. Good techs track and analyze calibration data, not just follow a fixed calendar.' },
+  { id:'in11', cat:'scenario', diff:'hard', type:'open',
+    q:'You are installing a new vortex flowmeter on a 6-inch steam line. The installation instructions show a minimum of 20 pipe diameters upstream and 5 downstream clear of any fittings. The physical space only allows 8 diameters upstream before a 90-degree elbow. What do you do?',
+    hint:'Think about what upstream disturbance does to vortex shedding accuracy, options for relocation, flow conditioning, and engineering notification.' },
+  { id:'in12', cat:'leadership', diff:'mid', type:'open',
+    q:'You are the lead instrumentation tech and the operations manager wants you to sign off on the calibration of a safety-critical high-pressure shutdown transmitter that a junior tech calibrated. You review his documentation and notice the "as-found" readings were not recorded — only the "as-left" values. Why is this a problem and what do you do?',
+    hint:'Think about what as-found data tells you about instrument drift, SIS proof test requirements, and your personal sign-off liability.' }
+]
+
+}; // end QUESTIONS
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+var selectedTrade = null;
+var currentQ = 0;
+var answers = [];
+var questions = [];
+var candidateData = {};
+
+// ═══════════════════════════════════════════════════
+//  TRADE SELECT
+// ═══════════════════════════════════════════════════
+function selectTrade(trade) {
+  selectedTrade = trade;
+  document.querySelectorAll('.trade-card').forEach(function(c){ c.classList.remove('selected'); });
+  document.getElementById('t-' + trade).classList.add('selected');
+  document.getElementById('start-btn').disabled = false;
+}
+
+function startAssessment() {
+  if (!selectedTrade) return;
+  candidateData = {
+    firstName: document.getElementById('c-fname').value.trim() || 'Candidate',
+    lastName:  document.getElementById('c-lname').value.trim() || '',
+    yoe:       document.getElementById('c-yoe').value,
+    certs:     document.getElementById('c-certs').value.trim(),
+    recruiter: document.getElementById('c-recruiter').value.trim(),
+    trade:     selectedTrade,
+    date:      new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+  };
+  questions = QUESTIONS[selectedTrade];
+  answers = questions.map(function(){ return null; });
+  currentQ = 0;
+
+  document.getElementById('select-screen').style.display = 'none';
+  document.getElementById('assessment-screen').style.display = 'block';
+  document.getElementById('ph-trade').textContent = tradeLabel(selectedTrade);
+  document.getElementById('ph-name').textContent = candidateData.firstName + ' ' + candidateData.lastName;
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function tradeLabel(t) {
+  return TRADE_LABELS[t] || t;
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER QUESTION
+// ═══════════════════════════════════════════════════
+var CAT_LABELS = { technical:'Technical', safety:'Safety', scenario:'Scenario', math:'Math / Calculation', trap:'Knowledge Trap', leadership:'Leadership' };
+var CAT_CLASSES = { technical:'cat-technical', safety:'cat-safety', scenario:'cat-scenario', math:'cat-math', trap:'cat-trap', leadership:'cat-leadership' };
+
+function renderQuestion() {
+  var q = questions[currentQ];
+  var total = questions.length;
+  var pct = ((currentQ) / total) * 100;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = 'Question ' + (currentQ+1) + ' of ' + total;
+
+  var savedAnswer = answers[currentQ];
+  var html = '';
+
+  // Meta row
+  html += '<div class="q-meta">';
+  html += '<span class="q-num">Q' + (currentQ+1) + ' of ' + total + '</span>';
+  html += '<span class="q-category ' + CAT_CLASSES[q.cat] + '">' + CAT_LABELS[q.cat] + '</span>';
+  if (q.cat === 'trap') html += '<span style="font-size:.65rem;color:#c2410c;font-weight:700;">&#9888; Verify Real Knowledge</span>';
+  html += '<span class="q-difficulty">Difficulty: ' + (q.diff === 'mid' ? '&#9733;&#9733;&#9734;' : q.diff === 'hard' ? '&#9733;&#9733;&#9733;' : q.diff === 'expert' ? '&#9733;&#9733;&#9733;+' : '&#9733;&#9734;&#9734;') + '</span>';
+  html += '</div>';
+
+  html += '<div class="q-text">' + q.q + '</div>';
+
+  if (q.hint) {
+    html += '<div class="q-hint"><strong>&#128161; Guidance:</strong> ' + q.hint + '</div>';
+  }
+
+  if (q.type === 'mc') {
+    html += '<div class="choices">';
+    var letters = ['A','B','C','D'];
+    q.choices.forEach(function(c, i) {
+      var sel = (savedAnswer === i) ? ' selected' : '';
+      html += '<div class="choice' + sel + '" onclick="selectChoice(' + i + ')">';
+      html += '<div class="choice-letter">' + letters[i] + '</div>';
+      html += '<div class="choice-text">' + c + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  } else {
+    var savedText = (typeof savedAnswer === 'string') ? savedAnswer : '';
+    html += '<textarea class="answer-textarea" id="open-answer" placeholder="Write your answer here. Be specific — general answers score lower. Include steps, code references, measurements, and real-world details where applicable..." onInput="trackChar(this)">' + savedText + '</textarea>';
+    html += '<div class="char-count" id="char-count">' + savedText.length + ' characters</div>';
+  }
+
+  // Nav
+  html += '<div class="q-nav">';
+  if (currentQ > 0) {
+    html += '<button class="btn-prev" onclick="prevQ()">&#8592; Previous</button>';
+  } else {
+    html += '<div></div>';
+  }
+  if (currentQ < total - 1) {
+    html += '<button class="btn-next-q" id="next-btn" onclick="nextQ()">Next &#8594;</button>';
+  } else {
+    html += '<button class="btn-submit-test" onclick="submitAssessment()">Submit Assessment &#8594;</button>';
+  }
+  html += '</div>';
+
+  document.getElementById('q-card').innerHTML = html;
+}
+
+function selectChoice(i) {
+  answers[currentQ] = i;
+  document.querySelectorAll('.choice').forEach(function(c){ c.classList.remove('selected'); });
+  document.querySelectorAll('.choice')[i].classList.add('selected');
+  document.querySelectorAll('.choice')[i].querySelector('.choice-letter').style.background = 'var(--blue)';
+}
+
+function trackChar(ta) {
+  var n = ta.value.length;
+  var el = document.getElementById('char-count');
+  el.textContent = n + ' characters';
+  el.className = 'char-count' + (n < 50 ? ' warn' : '');
+  answers[currentQ] = ta.value;
+}
+
+function nextQ() {
+  var q = questions[currentQ];
+  if (q.type === 'open') {
+    var ta = document.getElementById('open-answer');
+    if (ta) answers[currentQ] = ta.value;
+  }
+  if (currentQ < questions.length - 1) {
+    currentQ++;
+    renderQuestion();
+    window.scrollTo({ top: document.getElementById('assessment-screen').offsetTop, behavior: 'smooth' });
+  }
+}
+
+function prevQ() {
+  var q = questions[currentQ];
+  if (q.type === 'open') {
+    var ta = document.getElementById('open-answer');
+    if (ta) answers[currentQ] = ta.value;
+  }
+  if (currentQ > 0) {
+    currentQ--;
+    renderQuestion();
+    window.scrollTo({ top: document.getElementById('assessment-screen').offsetTop, behavior: 'smooth' });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SUBMIT & SCORE
+// ═══════════════════════════════════════════════════
+function submitAssessment() {
+  // Save last open answer
+  var lastQ = questions[currentQ];
+  if (lastQ.type === 'open') {
+    var ta = document.getElementById('open-answer');
+    if (ta) answers[currentQ] = ta.value;
+  }
+
+  document.getElementById('prog-fill').style.width = '100%';
+  document.getElementById('prog-text').textContent = 'Analyzing...';
+
+  document.getElementById('assessment-screen').style.display = 'none';
+  document.getElementById('results-screen').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  document.getElementById('r-candidate-name').textContent = candidateData.firstName + ' ' + candidateData.lastName + ' — ' + tradeLabel(selectedTrade);
+  document.getElementById('r-trade-date').textContent = 'Assessed: ' + candidateData.date + ' · Recruiter: ' + (candidateData.recruiter || 'Not specified');
+
+  // Score MC questions locally
+  var mcScores = {};
+  var catCounts = {};
+  questions.forEach(function(q, i) {
+    var cat = q.cat;
+    if (!mcScores[cat]) { mcScores[cat] = 0; catCounts[cat] = { total: 0, score: 0, openCount: 0 }; }
+    catCounts[cat].total++;
+    if (q.type === 'mc') {
+      if (answers[i] === q.correct) catCounts[cat].score++;
+    } else {
+      catCounts[cat].openCount++;
+    }
+  });
+
+  // Build AI prompt
+  var promptParts = [];
+  promptParts.push('You are a skilled trades assessor for QLM (Quality Labor Management), a construction staffing company. You have just administered a ' + tradeLabel(selectedTrade) + ' skills assessment to a candidate.');
+  promptParts.push('\nCANDIDATE: ' + candidateData.firstName + ' ' + candidateData.lastName);
+  promptParts.push('CLAIMED EXPERIENCE: ' + (candidateData.yoe || 'Not specified'));
+  promptParts.push('CLAIMED CERTIFICATIONS: ' + (candidateData.certs || 'None listed'));
+  promptParts.push('TRADE ASSESSED: ' + tradeLabel(selectedTrade));
+  promptParts.push('\nQUESTION ANSWERS:');
+
+  questions.forEach(function(q, i) {
+    var ans = answers[i];
+    promptParts.push('\nQ' + (i+1) + ' [' + q.cat.toUpperCase() + ' / ' + q.diff + ']: ' + q.q);
+    if (q.type === 'mc') {
+      var answerText = (ans !== null && ans !== undefined) ? q.choices[ans] : 'NO ANSWER';
+      var correct = (ans === q.correct) ? 'CORRECT' : 'INCORRECT';
+      var correctAns = q.choices[q.correct];
+      promptParts.push('Candidate answered: ' + answerText + ' — ' + correct);
+      if (ans !== q.correct) promptParts.push('Correct answer was: ' + correctAns + '. Note: ' + q.explain);
+    } else {
+      var openAns = (ans && ans.length > 5) ? ans : '[NO ANSWER / BLANK]';
+      promptParts.push('Candidate wrote: ' + openAns);
+    }
+  });
+
+  promptParts.push('\nPlease provide your assessment in this EXACT format with these EXACT section headers:\n\nOVERALL SCORE: [0-100]\nVERDICT: [STRONG PASS / PASS / REVIEW / FAIL]\n\nCATEGORY SCORES:\nTechnical: [0-100]\nSafety: [0-100]\nScenario/Problem-Solving: [0-100]\nLeadership: [0-100]\n\nANALYSIS:\n[4-6 sentences. Compare claimed experience vs demonstrated knowledge. Be direct and specific. Mention specific questions where they excelled or struggled. Note any major knowledge gaps.]\n\nRED FLAGS:\n[List each red flag on its own line starting with FLAG: or CONCERN: or POSITIVE: — be specific about which questions revealed each issue. If no red flags, say NONE IDENTIFIED.]\n\nFOLLOW-UP QUESTIONS:\n[List 5-7 targeted follow-up interview questions based on their weak spots. Format: 1. Question text]\n\nQ-BY-Q SCORING:\n[For each question, one line: Q1: [CORRECT/PARTIAL/INCORRECT/BLANK] - [one sentence explanation of what the answer revealed]]\n\nBe direct and clinical. Recruiters need actionable information, not fluff. Flag inconsistencies between claimed experience and demonstrated knowledge.');
+
+  var fullPrompt = promptParts.join('\n');
+
+  var serverUrl = getServerUrl();
+  var apiUrl = serverUrl ? serverUrl + '/api/chat' : '/.netlify/functions/chat';
+
+  fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1800,
+      messages: [{ role: 'user', content: fullPrompt }]
+    })
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if (data.error) throw new Error(data.error.message);
+    var text = (data.content || []).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('');
+    parseAndRenderResults(text);
+  })
+  .catch(function(e){
+    document.getElementById('r-analysis').textContent = 'Error generating analysis: ' + e.message;
+    renderBasicScores();
+  });
+}
+
+function parseAndRenderResults(text) {
+  // Parse overall score
+  var scoreMatch = text.match(/OVERALL SCORE:\s*(\d+)/i);
+  var score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
+
+  var verdictMatch = text.match(/VERDICT:\s*([^\n]+)/i);
+  var verdict = verdictMatch ? verdictMatch[1].trim() : 'REVIEW';
+
+  // Category scores
+  var catScores = {};
+  var catMatches = text.match(/Technical:\s*(\d+)/i); if (catMatches) catScores.Technical = parseInt(catMatches[1]);
+  catMatches = text.match(/Safety:\s*(\d+)/i); if (catMatches) catScores.Safety = parseInt(catMatches[1]);
+  catMatches = text.match(/Scenario[^:]*:\s*(\d+)/i); if (catMatches) catScores['Scenario/Problem-Solving'] = parseInt(catMatches[1]);
+  catMatches = text.match(/Leadership:\s*(\d+)/i); if (catMatches) catScores.Leadership = parseInt(catMatches[1]);
+
+  // Render score ring
+  var scoreClass = score >= 75 ? 'high' : score >= 55 ? 'mid' : 'low';
+  var ring = document.getElementById('score-ring');
+  ring.className = 'score-ring ' + scoreClass;
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('score-num').className = 'score-num ' + scoreClass;
+
+  var verdictLower = verdict.toLowerCase();
+  var verdictClass = verdictLower.includes('strong') || verdictLower.includes('pass') ? 'pass' : verdictLower.includes('fail') ? 'fail' : 'review';
+  var vBadge = document.getElementById('verdict-badge');
+  vBadge.textContent = verdict;
+  vBadge.className = 'verdict ' + verdictClass;
+
+  // Category bars
+  var catColors = { Technical:'#0099d8', Safety:'#ef4444', 'Scenario/Problem-Solving':'#22c55e', Leadership:'#6d28d9' };
+  var catHtml = '';
+  Object.keys(catScores).forEach(function(cat) {
+    var pct = catScores[cat];
+    var color = catColors[cat] || '#0099d8';
+    catHtml += '<div class="cat-score-row">';
+    catHtml += '<span class="cat-score-label">' + cat + '</span>';
+    catHtml += '<div class="cat-bar-wrap"><div class="cat-bar" style="width:' + pct + '%;background:' + color + '"></div></div>';
+    catHtml += '<span class="cat-score-pct" style="color:' + color + '">' + pct + '</span>';
+    catHtml += '</div>';
+  });
+  document.getElementById('category-scores').innerHTML = catHtml || '<p style="color:#94a3b8;font-size:.85rem;">Score breakdown unavailable</p>';
+
+  // Analysis
+  var analysisMatch = text.match(/ANALYSIS:\n([\s\S]*?)(?=RED FLAGS:|$)/i);
+  document.getElementById('r-analysis').textContent = analysisMatch ? analysisMatch[1].trim() : text;
+
+  // Red flags
+  var flagsMatch = text.match(/RED FLAGS:\n([\s\S]*?)(?=FOLLOW-UP QUESTIONS:|$)/i);
+  var flagsText = flagsMatch ? flagsMatch[1].trim() : '';
+  var flagHtml = '';
+  if (flagsText) {
+    flagsText.split('\n').forEach(function(line) {
+      line = line.trim();
+      if (!line) return;
+      var cls = 'yellow', icon = '&#9888;';
+      if (line.toUpperCase().startsWith('FLAG:') || line.toUpperCase().startsWith('SERIOUS:')) { cls = 'red'; icon = '&#128721;'; }
+      else if (line.toUpperCase().startsWith('POSITIVE:')) { cls = 'green'; icon = '&#10003;'; }
+      else if (line.toUpperCase() === 'NONE IDENTIFIED') { cls = 'green'; icon = '&#10003;'; }
+      flagHtml += '<div class="flag-item ' + cls + '"><div class="flag-icon">' + icon + '</div><div class="flag-text">' + line + '</div></div>';
+    });
+  }
+  document.getElementById('r-flags').innerHTML = flagHtml || '<div class="flag-item green"><div class="flag-icon">&#10003;</div><div class="flag-text">No significant red flags identified.</div></div>';
+
+  // Follow-up questions
+  var fupMatch = text.match(/FOLLOW-UP QUESTIONS:\n([\s\S]*?)(?=Q-BY-Q SCORING:|$)/i);
+  document.getElementById('r-followup').textContent = fupMatch ? fupMatch[1].trim() : 'Not available.';
+
+  // Q-by-Q review
+  var qMatch = text.match(/Q-BY-Q SCORING:\n([\s\S]*?)$/i);
+  var qText = qMatch ? qMatch[1].trim() : '';
+  var qHtml = '';
+  if (qText) {
+    var qLines = qText.split('\n').filter(function(l){ return l.trim(); });
+    qLines.forEach(function(line, i) {
+      var scoreClass2 = 'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;';
+      if (line.toUpperCase().includes('INCORRECT') || line.toUpperCase().includes('BLANK')) scoreClass2 = 'background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;';
+      else if (line.toUpperCase().includes('PARTIAL')) scoreClass2 = 'background:#fefce8;color:#a16207;border:1px solid #fde68a;';
+      var qObj = questions[i];
+      qHtml += '<div class="q-review-item">';
+      if (qObj) qHtml += '<div class="q-review-q">' + (i+1) + '. ' + qObj.q.substring(0, 120) + (qObj.q.length > 120 ? '...' : '') + '</div>';
+      var ans = answers[i];
+      if (qObj && qObj.type === 'mc' && ans !== null) {
+        qHtml += '<div class="q-review-a">Answered: ' + qObj.choices[ans] + '</div>';
+      } else if (qObj && qObj.type === 'open' && ans) {
+        qHtml += '<div class="q-review-a">' + (ans.substring(0, 200)) + (ans.length > 200 ? '...' : '') + '</div>';
+      }
+      qHtml += '<span class="q-review-score" style="' + scoreClass2 + '">' + line + '</span>';
+      qHtml += '</div>';
+    });
+  }
+  document.getElementById('r-qreview').innerHTML = qHtml || '<p style="color:#94a3b8;">Detailed review not available.</p>';
+
+  // Store for copy
+  window._assessmentText = text;
+  window._assessmentScore = score;
+  window._assessmentVerdict = verdict;
+}
+
+function renderBasicScores() {
+  var mcCorrect = 0, mcTotal = 0;
+  questions.forEach(function(q, i) {
+    if (q.type === 'mc') { mcTotal++; if (answers[i] === q.correct) mcCorrect++; }
+  });
+  var score = mcTotal > 0 ? Math.round((mcCorrect / mcTotal) * 100) : 0;
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('score-ring').className = 'score-ring ' + (score >= 75 ? 'high' : score >= 55 ? 'mid' : 'low');
+}
+
+function copyResults() {
+  var name = candidateData.firstName + ' ' + candidateData.lastName;
+  var text = 'QLM SKILLS ASSESSMENT REPORT\n';
+  text += '==============================\n';
+  text += 'Candidate: ' + name + '\n';
+  text += 'Trade: ' + tradeLabel(selectedTrade) + '\n';
+  text += 'Date: ' + candidateData.date + '\n';
+  text += 'Recruiter: ' + (candidateData.recruiter || 'N/A') + '\n';
+  text += 'Claimed Experience: ' + (candidateData.yoe || 'N/A') + '\n';
+  text += 'Claimed Certifications: ' + (candidateData.certs || 'N/A') + '\n\n';
+  text += window._assessmentText || 'Assessment data not available.';
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.querySelector('.btn-cp');
+    var orig = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = orig; }, 2000);
+  });
+}
+
+function startOver() {
+  selectedTrade = null;
+  currentQ = 0;
+  answers = [];
+  questions = [];
+  document.querySelectorAll('.trade-card').forEach(function(c){ c.classList.remove('selected'); });
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('select-screen').style.display = 'block';
+  // Reset result areas
+  document.getElementById('r-analysis').innerHTML = '<div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:85%"></div><div class="shim" style="width:78%"></div><div class="shim" style="width:91%"></div><div class="shim" style="width:70%"></div></div>';
+  document.getElementById('r-flags').innerHTML = '<div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:75%"></div><div class="shim" style="width:88%"></div></div>';
+  document.getElementById('r-followup').innerHTML = '<div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:82%"></div><div class="shim" style="width:79%"></div><div class="shim" style="width:88%"></div></div>';
+  document.getElementById('r-qreview').innerHTML = '<div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:80%"></div></div>';
+  document.getElementById('category-scores').innerHTML = '<div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:80%"></div><div class="shim" style="width:90%"></div></div>';
+  document.getElementById('score-num').textContent = '--';
+  document.getElementById('score-ring').className = 'score-ring';
+  document.getElementById('verdict-badge').textContent = 'Analyzing...';
+  document.getElementById('verdict-badge').className = 'verdict';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+// ═══════════════════════════════════════════════════
+//  TRADE LABELS (updated with new trades)
+// ═══════════════════════════════════════════════════
+var TRADE_LABELS = {
+  electrician:'Electrician', plumber:'Plumber / Pipefitter', welder:'Welder',
+  hvac:'HVAC Technician', carpenter:'Carpenter / Framing', concrete:'Concrete / Formwork',
+  operator:'Heavy Equipment Operator', foreman:'Foreman / Superintendent',
+  solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)',
+  ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician'
+};
+
+// ═══════════════════════════════════════════════════
+//  SCREEN NAVIGATION
+// ═══════════════════════════════════════════════════
+function showScreen(screen) {
+  document.getElementById('select-screen').style.display = screen === 'select' ? 'block' : 'none';
+  document.getElementById('history-screen').style.display = screen === 'history' ? 'block' : 'none';
+  document.getElementById('assessment-screen').style.display = screen === 'assessment' ? 'block' : 'none';
+  document.getElementById('results-screen').style.display = screen === 'results' ? 'block' : 'none';
+  var na=document.getElementById('nav-assess'); if(na) na.className='tnav'+(screen==='select'||screen==='assessment'||screen==='results'?' active':'');
+  var nh=document.getElementById('nav-history'); if(nh) nh.className='tnav'+(screen==='history'?' active':'');
+  if (screen === 'history') renderHistory();
+}
+
+// ═══════════════════════════════════════════════════
+//  ASSESSMENT HISTORY (localStorage)
+// ═══════════════════════════════════════════════════
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('qlm_assessment_history') || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveToHistory(record) {
+  var history = getHistory();
+  history.unshift(record);
+  if (history.length > 200) history = history.slice(0, 200);
+  localStorage.setItem('qlm_assessment_history', JSON.stringify(history));
+  updateHistCount();
+}
+
+function updateHistCount() {
+  var n = getHistory().length;
+  var el = document.getElementById('hist-count');
+  if (el) el.textContent = n > 0 ? '(' + n + ')' : '';
+}
+
+function renderHistory() {
+  var history = getHistory();
+  var tbody = document.getElementById('hist-tbody');
+  if (!history.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="hist-empty">No assessments on record yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = history.map(function(r, i) {
+    var vc = r.verdict && r.verdict.toLowerCase().includes('fail') ? 'fail' : r.verdict && r.verdict.toLowerCase().includes('pass') ? 'pass' : 'review';
+    return '<tr>' +
+      '<td style="font-weight:600;">' + (r.firstName||'') + ' ' + (r.lastName||'') + '</td>' +
+      '<td>' + (TRADE_LABELS[r.trade] || r.trade) + '</td>' +
+      '<td style="font-weight:700;color:' + (r.score >= 75 ? '#15803d' : r.score >= 55 ? '#a16207' : '#b91c1c') + '">' + (r.score || '--') + '</td>' +
+      '<td><span class="hist-verdict ' + vc + '">' + (r.verdict || '—') + '</span></td>' +
+      '<td style="color:#64748b;font-size:.82rem;">' + (r.date || '') + '</td>' +
+      '<td style="font-size:.82rem;">' + (r.recruiter || '—') + '</td>' +
+      '<td style="display:flex;gap:6px;">' +
+        '<button class="btn-hist-view" onclick="viewHistoryRecord(' + i + ')">View</button>' +
+        '<button class="btn-hist-del" onclick="deleteHistoryRecord(' + i + ')">Del</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function viewHistoryRecord(idx) {
+  var history = getHistory();
+  var r = history[idx];
+  if (!r) return;
+  // Restore state from record
+  candidateData = r.candidateData || r;
+  selectedTrade = r.trade;
+  window._assessmentText = r.fullText || '';
+  window._assessmentScore = r.score;
+  window._assessmentVerdict = r.verdict;
+
+  document.getElementById('r-candidate-name').textContent = (r.firstName||'') + ' ' + (r.lastName||'') + ' — ' + (TRADE_LABELS[r.trade] || r.trade);
+  document.getElementById('r-trade-date').textContent = 'Assessed: ' + (r.date||'') + ' · Recruiter: ' + (r.recruiter||'Not specified');
+
+  if (r.parsedResults) {
+    restoreResults(r.parsedResults, r.score, r.verdict);
+  } else if (r.fullText) {
+    parseAndRenderResults(r.fullText);
+  } else {
+    document.getElementById('r-analysis').textContent = 'Full report not available for this record.';
+  }
+
+  showScreen('results');
+}
+
+function restoreResults(parsed, score, verdict) {
+  var scoreClass = score >= 75 ? 'high' : score >= 55 ? 'mid' : 'low';
+  document.getElementById('score-ring').className = 'score-ring ' + scoreClass;
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('score-num').className = 'score-num ' + scoreClass;
+  var vc = verdict && verdict.toLowerCase().includes('fail') ? 'fail' : verdict && verdict.toLowerCase().includes('pass') ? 'pass' : 'review';
+  document.getElementById('verdict-badge').textContent = verdict;
+  document.getElementById('verdict-badge').className = 'verdict ' + vc;
+  if (parsed.catHtml) document.getElementById('category-scores').innerHTML = parsed.catHtml;
+  if (parsed.analysis) document.getElementById('r-analysis').textContent = parsed.analysis;
+  if (parsed.flagHtml) document.getElementById('r-flags').innerHTML = parsed.flagHtml;
+  if (parsed.followup) document.getElementById('r-followup').textContent = parsed.followup;
+  if (parsed.qHtml) document.getElementById('r-qreview').innerHTML = parsed.qHtml;
+}
+
+function deleteHistoryRecord(idx) {
+  if (!confirm('Delete this assessment record?')) return;
+  var history = getHistory();
+  history.splice(idx, 1);
+  localStorage.setItem('qlm_assessment_history', JSON.stringify(history));
+  updateHistCount();
+  renderHistory();
+}
+
+function clearAllHistory() {
+  if (!confirm('Delete ALL assessment history? This cannot be undone.')) return;
+  localStorage.removeItem('qlm_assessment_history');
+  updateHistCount();
+  renderHistory();
+}
+
+// ═══════════════════════════════════════════════════
+//  PRINT / PDF
+// ═══════════════════════════════════════════════════
+function printReport() {
+  // Fill print header
+  var meta = document.getElementById('print-meta-block');
+  if (meta) {
+    meta.innerHTML = 'Candidate: <strong>' + (candidateData.firstName||'') + ' ' + (candidateData.lastName||'') + '</strong><br>' +
+      'Trade: ' + (TRADE_LABELS[selectedTrade] || selectedTrade) + '<br>' +
+      'Score: ' + (window._assessmentScore || '--') + ' · ' + (window._assessmentVerdict || '') + '<br>' +
+      'Date: ' + (candidateData.date || new Date().toLocaleDateString()) + '<br>' +
+      'Recruiter: ' + (candidateData.recruiter || 'N/A');
+  }
+  window.print();
+}
+
+// ═══════════════════════════════════════════════════
+//  EMAIL REPORT
+// ═══════════════════════════════════════════════════
+function emailReport(btn) {
+  var name = (candidateData.firstName||'') + ' ' + (candidateData.lastName||'');
+  var subject = encodeURIComponent('QLM Assessment Report - ' + name + ' - ' + (TRADE_LABELS[selectedTrade]||selectedTrade));
+  var lines = [
+    'QLM SKILLS ASSESSMENT REPORT',
+    '==============================',
+    'Candidate: ' + name,
+    'Trade: ' + (TRADE_LABELS[selectedTrade]||selectedTrade),
+    'Score: ' + (window._assessmentScore||'--'),
+    'Verdict: ' + (window._assessmentVerdict||'--'),
+    'Date: ' + (candidateData.date||''),
+    'Recruiter: ' + (candidateData.recruiter||'N/A'),
+    'Experience Claimed: ' + (candidateData.yoe||'N/A'),
+    'Certifications: ' + (candidateData.certs||'N/A'),
+    '',
+    (window._assessmentText || 'Full report not available.')
+  ];
+  var body = encodeURIComponent(lines.join('\n'));
+  window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+  var orig = btn.textContent; btn.textContent = '\u2713 Opening Mail...';
+  setTimeout(function(){ btn.textContent = orig; }, 3000);
+}
+
+// ═══════════════════════════════════════════════════
+//  SHARE LINK (candidate-facing URL)
+// ═══════════════════════════════════════════════════
+function showShareModal() {
+  if (!selectedTrade) return;
+  var base = window.location.href.split('?')[0];
+  var url = base + '?trade=' + selectedTrade;
+  if (candidateData.recruiter) url += '&recruiter=' + encodeURIComponent(candidateData.recruiter);
+  document.getElementById('share-url-display').textContent = url;
+  document.getElementById('share-modal').classList.remove('hidden');
+}
+
+function closeShareModal() { document.getElementById('share-modal').classList.add('hidden'); }
+
+function copyShareLink() {
+  var url = document.getElementById('share-url-display').textContent;
+  navigator.clipboard.writeText(url).then(function() {
+    var btn = document.querySelector('.btn-modal-copy');
+    var orig = btn.textContent; btn.textContent = '✓ Copied!';
+    setTimeout(function(){ btn.textContent = orig; }, 2000);
+  });
+}
+
+function emailShareLink() {
+  var url = document.getElementById('share-url-display').textContent;
+  var trade = TRADE_LABELS[selectedTrade] || selectedTrade;
+  var subject = encodeURIComponent('QLM Skills Assessment — ' + trade);
+  var body = encodeURIComponent(
+    'Please complete your QLM skills assessment using the link below.\n\n' +
+    'This is a knowledge-based assessment for the ' + trade + ' position.\n' +
+    'It takes approximately 15-20 minutes.\n\n' +
+    'Assessment Link:\n' + url + '\n\n' +
+    'Answer all questions to the best of your ability. Scenario questions require detailed answers — the more specific, the better.\n\n' +
+    'Quality Labor Management\ninfo@myqlm.com | 855-756-9675 | myqlm.com'
+  );
+  window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+}
+
+// ═══════════════════════════════════════════════════
+//  CANDIDATE MODE (URL param ?trade=xxx)
+// ═══════════════════════════════════════════════════
+function checkUrlParams() {
+  var params = new URLSearchParams(window.location.search);
+  var trade = params.get('trade');
+  var recruiter = params.get('recruiter');
+  if (trade && QUESTIONS[trade]) {
+    document.getElementById('cand-mode-banner').classList.remove('hidden');
+    // Pre-select the trade
+    selectTrade(trade);
+    // Pre-fill recruiter if provided
+    if (recruiter) document.getElementById('c-recruiter').value = decodeURIComponent(recruiter);
+    // Scroll to candidate info
+    setTimeout(function() {
+      var el = document.getElementById('c-fname');
+      if (el) el.focus();
+    }, 300);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SAVE AFTER ASSESSMENT + UPDATED FLOW
+// ═══════════════════════════════════════════════════
+function saveAndNew() {
+  startOver();
+}
+
+// Override parseAndRenderResults to also save to history + send email
+var _origParse = parseAndRenderResults;
+parseAndRenderResults = function(text) {
+  _origParse(text);
+  // Save to history + fire email after a short delay so score vars are set
+  setTimeout(function() {
+    var record = {
+      firstName: candidateData.firstName,
+      lastName: candidateData.lastName,
+      trade: selectedTrade,
+      score: window._assessmentScore || 0,
+      verdict: window._assessmentVerdict || '',
+      date: candidateData.date,
+      recruiter: candidateData.recruiter,
+      yoe: candidateData.yoe,
+      certs: candidateData.certs,
+      fullText: text,
+      candidateData: candidateData,
+      parsedResults: {
+        catHtml: document.getElementById('category-scores').innerHTML,
+        analysis: document.getElementById('r-analysis').textContent,
+        flagHtml: document.getElementById('r-flags').innerHTML,
+        followup: document.getElementById('r-followup').textContent,
+        qHtml: document.getElementById('r-qreview').innerHTML
+      }
+    };
+    saveToHistory(record);
+    updatePrintMeta();
+    sendAssessmentEmail(text);
+  }, 500);
+};
+
+// ═══════════════════════════════════════════════════
+//  AUTO EMAIL VIA RAILWAY
+// ═══════════════════════════════════════════════════
+function sendAssessmentEmail(reportText) {
+  var serverUrl = getServerUrl();
+  if (!serverUrl) {
+    console.log('No server URL set — skipping auto email.');
+    return;
+  }
+
+  var name = (candidateData.firstName || '') + ' ' + (candidateData.lastName || '');
+  var payload = {
+    candidate: name.trim(),
+    trade: TRADE_LABELS[selectedTrade] || selectedTrade,
+    score: window._assessmentScore || 0,
+    verdict: window._assessmentVerdict || '',
+    recruiter: candidateData.recruiter || '',
+    yoe: candidateData.yoe || '',
+    certs: candidateData.certs || '',
+    date: candidateData.date || new Date().toLocaleDateString(),
+    fullReport: reportText
+  };
+
+  fetch(serverUrl + '/api/send-assessment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.success) {
+      // Show a subtle success indicator in the results footer
+      var foot = document.querySelector('.rc-foot');
+      if (foot) {
+        var badge = document.createElement('div');
+        badge.style.cssText = 'width:100%;text-align:center;font-size:.72rem;color:#15803d;font-weight:600;padding:4px 0;';
+        badge.textContent = '\u2713 Report emailed to recruiter';
+        foot.insertBefore(badge, foot.firstChild);
+      }
+    } else {
+      console.warn('Email send failed:', data.error);
+    }
+  })
+  .catch(function(err) {
+    console.warn('Email route error:', err.message);
+  });
+}
+
+function updatePrintMeta() {
+  var meta = document.getElementById('print-meta-block');
+  if (!meta) return;
+  meta.innerHTML = 'Candidate: <strong>' + (candidateData.firstName||'') + ' ' + (candidateData.lastName||'') + '</strong><br>' +
+    'Trade: ' + (TRADE_LABELS[selectedTrade]||selectedTrade) + '<br>' +
+    'Score: ' + (window._assessmentScore||'--') + ' · ' + (window._assessmentVerdict||'') + '<br>' +
+    'Date: ' + (candidateData.date||new Date().toLocaleDateString()) + '<br>' +
+    'Recruiter: ' + (candidateData.recruiter||'N/A');
+}
+
+// Init server URL
+window.addEventListener('DOMContentLoaded', function() {
+  var saved = localStorage.getItem('qlm_server_url');
+  if (saved) { document.getElementById('serverUrl').value = saved; saveServerUrl(); }
+  updateHistCount();
+  checkUrlParams();
+});
+
+function toggleSettings() {
+  var p = document.getElementById('settings-panel');
+  p.classList.toggle('open');
+}
+// Auto-close settings panel after URL is saved successfully
+var _origSave = saveServerUrl;
+saveServerUrl = function() {
+  _origSave();
+  var url = document.getElementById('serverUrl').value.trim();
+  if (url.startsWith('https://') && url.includes('.')) {
+    setTimeout(function() {
+      var p = document.getElementById('settings-panel');
+      if (p) p.classList.remove('open');
+    }, 1200);
+  }
+};
+
+</script>
+</body>
+</html>
