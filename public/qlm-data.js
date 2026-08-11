@@ -45,6 +45,11 @@
     } catch (e) { return null; }
   }
 
+  async function isAdmin() {
+    var p = await getProfile();
+    return !!(p && p.is_admin);
+  }
+
   async function signIn(email, password) {
     if (!init()) throw new Error('Auth unavailable');
     var res = await sb.auth.signInWithPassword({ email: email, password: password });
@@ -162,7 +167,7 @@
       if (u) {
         getProfile().then(function (p) {
           var name = (p && p.full_name) || u.email;
-          var role = (p && p.role) || 'recruiter';
+          var role = (p && p.is_admin) ? 'admin' : 'recruiter';
           el.innerHTML =
             '<span style="font-size:.7rem;color:#b8dff0;">' + name +
             ' <span style="opacity:.6;">\u00b7 ' + role + '</span></span>' +
@@ -188,6 +193,7 @@
     client: function () { return sb; },
     getUser: getUser,
     getProfile: getProfile,
+    isAdmin: isAdmin,
     signIn: signIn,
     signUp: signUp,
     signOut: signOut,
