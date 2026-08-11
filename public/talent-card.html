@@ -172,7 +172,7 @@
   .drop-zone .dz-icon { font-size: 1.8rem; margin-bottom: 6px; }
   .drop-zone p { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
   .drop-zone p.success { color: var(--blue-md); font-weight: 600; }
-  #resumeFile { display: none; }
+  #resumeFile { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; clip:rect(0,0,0,0); border:0; padding:0; margin:-1px; }
 
   .divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: #94a3b8; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; }
   .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
@@ -253,10 +253,10 @@
     <!-- Resume upload -->
     <div class="field">
       <label>Resume <span class="ai-badge">✦ AI Extract</span></label>
-      <div class="drop-zone" id="dropZone" onclick="document.getElementById('resumeFile').click()">
+      <label class="drop-zone" id="dropZone" for="resumeFile" style="cursor:pointer;display:block;">
         <div class="dz-icon">📄</div>
         <p id="dropLabel">Drop resume here or click to upload<br><small>PDF, DOCX, or TXT</small></p>
-      </div>
+      </label>
       <input type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt">
       <div class="divider">or paste text</div>
       <textarea id="resumeText" placeholder="Paste resume text here…" rows="4" style="font-size:0.82rem"></textarea>
@@ -499,7 +499,7 @@ const dz = document.getElementById('dropZone');
 dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag');});
 dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'));
 dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0]);});
-document.getElementById('resumeFile').addEventListener('change', e=>{if(e.target.files[0])readFile(e.target.files[0]);});
+document.getElementById('resumeFile').addEventListener('change', function(e){ if(e.target.files && e.target.files[0]) readFile(e.target.files[0]); e.target.value=''; });
 
 async function readFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
@@ -545,7 +545,7 @@ function hideStatus(id) { document.getElementById(id+'Status').classList.add('hi
 // ══════════════════════════════════════
 async function extractResume() {
   const serverUrl = '/.netlify/functions/chat';
-  if (!serverUrl) { showStatus('extract','error','⚠ Paste your Railway server URL in the bar at the top first.'); return; }
+  
 
   const text = document.getElementById('resumeText').value.trim();
   if (!text && !pdfBase64) { showStatus('extract','error','Upload a resume or paste text first.'); return; }
@@ -840,18 +840,6 @@ function resetAll() {
 
 function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
-var _origSave = saveServerUrl;
-saveServerUrl = function() {
-  _origSave();
-  var url = document.getElementById('serverUrl').value.trim();
-  if (url.startsWith('https://') && url.includes('.')) {
-    setTimeout(function() {
-      var p = document.getElementById('settings-panel');
-      if (p) p.classList.remove('open');
-    }, 1200);
-  }
-};
-
 </script>
 </body>
 </html>
