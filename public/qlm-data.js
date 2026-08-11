@@ -167,16 +167,18 @@
       if (u) {
         getProfile().then(function (p) {
           var name = (p && p.full_name) || u.email;
-          var role = (p && p.is_admin) ? 'admin' : 'recruiter';
+          var admin = !!(p && p.is_admin);
+          var initials = name.split(/[\s@.]+/).filter(Boolean).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
           el.innerHTML =
-            '<span style="font-size:.7rem;color:#b8dff0;">' + name +
-            ' <span style="opacity:.6;">\u00b7 ' + role + '</span></span>' +
-            '<button onclick="QLM.signOutAndReload()" style="background:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;padding:3px 9px;border-radius:6px;cursor:pointer;font-size:.66rem;font-family:inherit;margin-left:8px;">Sign out</button>';
+            '<span title="' + name + (admin ? ' \u00b7 Admin' : '') + '" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:2px 8px 2px 3px;border-radius:20px;">' +
+              '<span style="width:20px;height:20px;border-radius:50%;background:' + (admin ? '#0099d8' : '#4a7a95') + ';color:#fff;font-size:.58rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">' + initials + '</span>' +
+              '<span style="font-size:.62rem;color:#b8dff0;letter-spacing:.3px;">' + (admin ? 'ADMIN' : 'RECRUITER') + '</span>' +
+              '<button onclick="QLM.signOutAndReload()" title="Sign out" style="background:none;border:none;color:#7ba8bd;cursor:pointer;font-size:.7rem;padding:0 2px;line-height:1;">\u23FB</button>' +
+            '</span>';
         });
       } else {
         el.innerHTML =
-          '<a href="/login.html" style="background:#0099d8;color:#fff;padding:4px 12px;border-radius:6px;text-decoration:none;font-size:.68rem;font-weight:600;letter-spacing:.5px;">Sign in</a>' +
-          '<span style="font-size:.64rem;color:#7ba8bd;margin-left:8px;">Local mode</span>';
+          '<a href="/login.html" style="display:inline-flex;align-items:center;gap:5px;background:#0099d8;color:#fff;padding:4px 11px;border-radius:20px;text-decoration:none;font-size:.64rem;font-weight:700;letter-spacing:.5px;">SIGN IN</a>';
       }
     });
   }
