@@ -257,6 +257,10 @@ header{gap:12px;}
   .logo-text{display:none;}
   .tnav{padding:4px 8px;font-size:.62rem;}
 }
+
+.btn-secondary{background:#fff;border:1.5px solid #b8dff0;color:#0077a8;border-radius:8px;padding:8px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+.btn-secondary:hover{border-color:#0099d8;background:#e0f4fc;}
+#invite-screen .status-box{margin:10px 0;}
 </style>
 </head>
 <body>
@@ -266,12 +270,70 @@ header{gap:12px;}
     <div class="logo-badge">QLM</div>
     <div class="logo-text">Quality Labor Management</div>
   </div>
-  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Assessment</a><a class="tnav" id="nav-invite" onclick="showScreen('invite')" style="cursor:pointer;">&#128279; Send Link</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
 </header>
 <div id="cand-mode-banner" class="cand-mode-banner hidden">&#128100; Candidate Mode — Complete all questions and submit when finished.</div>
 
 
 <!-- TRADE SELECT SCREEN -->
+
+<!-- ═══ SEND INVITE SCREEN ═══ -->
+<div id="invite-screen" style="display:none;">
+  <div class="page-title">Send Assessment Link</div>
+  <div class="page-sub">Fill in the candidate's details and the trade to test. They get a unique link with everything pre-filled — no login required. Results are emailed to you the moment they finish.</div>
+
+  <div class="candidate-info">
+    <div class="section-label" style="margin-bottom:14px;">Candidate Details</div>
+    <div class="field-row">
+      <div class="field"><label>Candidate Name *</label><input type="text" id="inv-name" placeholder="John Doe"></div>
+      <div class="field"><label>Candidate Email</label><input type="email" id="inv-email" placeholder="john@email.com"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Candidate Phone</label><input type="tel" id="inv-phone" placeholder="(555) 123-4567"></div>
+      <div class="field"><label>Experience Level</label>
+        <select id="inv-level">
+          <option value="">Any level</option>
+          <option>Entry / Helper</option><option>Journeyman</option>
+          <option>Senior / Master</option><option>Foreman</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Trade to Test *</label>
+        <select id="inv-trade"></select>
+      </div>
+      <div class="field"><label>Email Results To *</label><input type="email" id="inv-recruiter-email" placeholder="you@myqlm.com"></div>
+    </div>
+    <div class="field"><label>Notes (internal only)</label><input type="text" id="inv-notes" placeholder="e.g. Referred by Mike, needs to start Monday"></div>
+  </div>
+
+  <div id="inviteStatus"></div>
+
+  <button class="btn-primary" id="inv-btn" onclick="createInvite()" style="width:100%;margin-top:6px;">&#128279; Generate Assessment Link</button>
+
+  <!-- Generated link result -->
+  <div id="invite-result" style="display:none;margin-top:20px;">
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#15803d;margin-bottom:10px;">&#10003; Link Ready</div>
+      <div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:12px;font-family:monospace;font-size:.8rem;word-break:break-all;color:#003a52;" id="invite-url"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn-secondary" onclick="copyInviteLink(this)">&#128203; Copy Link</button>
+        <button class="btn-secondary" onclick="smsInviteLink()">&#128241; Text It</button>
+        <button class="btn-secondary" onclick="emailInviteLink()">&#128140; Email It</button>
+      </div>
+      <p style="font-size:.76rem;color:#64748b;margin-top:12px;line-height:1.6;">
+        Link expires in 14 days and can only be used once. You will receive the full report by email as soon as they submit.
+      </p>
+    </div>
+  </div>
+
+  <!-- Sent invites list -->
+  <div style="margin-top:26px;">
+    <div class="section-label" style="margin-bottom:12px;">Sent Assessments</div>
+    <div id="invite-list"></div>
+  </div>
+</div>
+
 <div id="select-screen" class="screen">
   <div class="page-title">Skilled Trades Knowledge Assessment</div>
   <div class="page-sub">Select a trade below and enter the candidate's information to begin their skills screening. Questions are scenario-based and designed to verify real hands-on knowledge.</div>
@@ -1518,6 +1580,10 @@ var TRADE_LABELS = {
 //  SCREEN NAVIGATION
 // ═══════════════════════════════════════════════════
 function showScreen(screen) {
+  var inv = document.getElementById('invite-screen');
+  if(inv){ inv.style.display = screen === 'invite' ? 'block' : 'none'; }
+  var ni = document.getElementById('nav-invite'); if(ni) ni.className='tnav'+(screen==='invite'?' active':'');
+  if(screen === 'invite'){ populateInviteTrades(); loadInvites(); }
   document.getElementById('select-screen').style.display = screen === 'select' ? 'block' : 'none';
   document.getElementById('history-screen').style.display = screen === 'history' ? 'block' : 'none';
   document.getElementById('assessment-screen').style.display = screen === 'assessment' ? 'block' : 'none';
@@ -1724,11 +1790,303 @@ function emailShareLink() {
   window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
 }
 
+
+function showInviteThanks(){
+  // Candidates should not see recruiter tooling on the results screen
+  var foot = document.querySelector('.rc-foot');
+  if(foot) foot.style.display = 'none';
+  var rs = document.getElementById('results-screen');
+  if(!rs) return;
+  var banner = document.createElement('div');
+  banner.style.cssText = 'background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:22px;text-align:center;margin-bottom:18px;';
+  banner.innerHTML =
+    '<div style="font-size:2rem;margin-bottom:8px;">\u2705</div>'+
+    '<div style="font-size:1.05rem;font-weight:700;color:#15803d;margin-bottom:6px;">Assessment Submitted</div>'+
+    '<p style="font-size:.88rem;color:#166534;line-height:1.7;margin:0;">Thank you. Your results have been sent to your QLM recruiter, who will follow up with you shortly.</p>';
+  rs.insertBefore(banner, rs.firstChild);
+}
+
+// ═══════════════════════════════════════════════════
+//  ASSESSMENT INVITES (recruiter side)
+// ═══════════════════════════════════════════════════
+var _lastInviteUrl = '', _lastInvitePhone = '', _lastInviteEmail = '', _lastInviteName = '';
+
+function populateInviteTrades(){
+  var sel = document.getElementById('inv-trade');
+  if(!sel || sel.options.length) return;
+  Object.keys(QUESTIONS).forEach(function(k){
+    var o = document.createElement('option');
+    o.value = k; o.textContent = TRADE_LABELS[k] || k;
+    sel.appendChild(o);
+  });
+  // Prefill recruiter email from signed-in user
+  if(window.QLM && QLM.getUser){
+    QLM.getUser().then(function(u){
+      var el = document.getElementById('inv-recruiter-email');
+      if(u && el && !el.value) el.value = u.email;
+    });
+  }
+}
+
+function invSt(type, msg){
+  document.getElementById('inviteStatus').innerHTML =
+    '<div class="status-box '+type+'" style="display:block;">'+msg+'</div>';
+}
+function invClear(){ document.getElementById('inviteStatus').innerHTML = ''; }
+
+async function createInvite(){
+  invClear();
+  var name = document.getElementById('inv-name').value.trim();
+  var trade = document.getElementById('inv-trade').value;
+  var recEmail = document.getElementById('inv-recruiter-email').value.trim();
+
+  if(!name){ invSt('error','Enter the candidate name.'); return; }
+  if(!trade){ invSt('error','Select a trade to test.'); return; }
+  if(!recEmail){ invSt('error','Enter the email address that should receive results.'); return; }
+
+  if(!window.QLM || !QLM.client()){
+    invSt('error','Sign in to create assessment links.'); return;
+  }
+  var user = await QLM.getUser();
+  if(!user){ invSt('error','You must be signed in to send assessment links. <a href="/login.html" style="color:#0099d8;font-weight:600;">Sign in</a>'); return; }
+
+  var btn = document.getElementById('inv-btn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+
+  try{
+    var profile = await QLM.getProfile();
+    var res = await QLM.client().from('assessment_invites').insert({
+      recruiter_id: user.id,
+      recruiter_name: (profile && profile.full_name) || user.email,
+      recruiter_email: recEmail,
+      candidate_name: name,
+      candidate_email: document.getElementById('inv-email').value.trim() || null,
+      candidate_phone: document.getElementById('inv-phone').value.trim() || null,
+      trade: trade,
+      level: document.getElementById('inv-level').value || null,
+      notes: document.getElementById('inv-notes').value.trim() || null
+    }).select().single();
+
+    if(res.error) throw new Error(res.error.message);
+
+    var url = location.origin + '/qlm-trades-assessment.html?invite=' + res.data.token;
+    _lastInviteUrl = url;
+    _lastInvitePhone = res.data.candidate_phone || '';
+    _lastInviteEmail = res.data.candidate_email || '';
+    _lastInviteName = name;
+
+    document.getElementById('invite-url').textContent = url;
+    document.getElementById('invite-result').style.display = 'block';
+    invClear();
+    loadInvites();
+    document.getElementById('invite-result').scrollIntoView({behavior:'smooth', block:'nearest'});
+  }catch(e){
+    invSt('error','Could not create link: ' + e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '\u{1F517} Generate Assessment Link';
+  }
+}
+
+function copyInviteLink(btn){
+  navigator.clipboard.writeText(_lastInviteUrl).then(function(){
+    var o = btn.textContent; btn.textContent = '\u2713 Copied!';
+    setTimeout(function(){ btn.textContent = o; }, 2000);
+  });
+}
+
+function smsInviteLink(){
+  var body = 'Hi ' + _lastInviteName + ', please complete your QLM skills assessment here: ' + _lastInviteUrl;
+  window.location.href = 'sms:' + _lastInvitePhone + '?&body=' + encodeURIComponent(body);
+}
+
+function emailInviteLink(){
+  var subject = 'Your QLM Skills Assessment';
+  var body = 'Hi ' + _lastInviteName + ',\n\nPlease complete your QLM skills assessment using the link below. It takes about 15-20 minutes and should be done in one sitting.\n\n' + _lastInviteUrl + '\n\nThis link is unique to you and expires in 14 days.\n\nThank you,\nQuality Labor Management\nmyqlm.com';
+  window.location.href = 'mailto:' + _lastInviteEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+}
+
+async function loadInvites(){
+  var el = document.getElementById('invite-list');
+  if(!el) return;
+  if(!window.QLM || !QLM.client()){ el.innerHTML = '<p style="color:#94a3b8;font-size:.84rem;">Sign in to see sent assessments.</p>'; return; }
+  var u = await QLM.getUser();
+  if(!u){ el.innerHTML = '<p style="color:#94a3b8;font-size:.84rem;">Sign in to see sent assessments.</p>'; return; }
+
+  try{
+    var res = await QLM.client().from('assessment_invites')
+      .select('*').order('created_at',{ascending:false}).limit(25);
+    if(res.error) throw new Error(res.error.message);
+    var rows = res.data || [];
+    if(!rows.length){ el.innerHTML = '<p style="color:#94a3b8;font-size:.84rem;padding:10px 0;">No assessments sent yet.</p>'; return; }
+
+    var badge = {
+      sent:      ['#eff6ff','#1d4ed8','#bfdbfe','Sent'],
+      opened:    ['#fefce8','#a16207','#fde68a','Opened'],
+      completed: ['#f0fdf4','#15803d','#bbf7d0','Completed'],
+      expired:   ['#f1f5f9','#94a3b8','#e2e8f0','Expired']
+    };
+    el.innerHTML = rows.map(function(r){
+      var b = badge[r.status] || badge.sent;
+      var when = new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      var scoreBit = r.status==='completed'
+        ? '<span style="font-weight:700;color:#003a52;">'+(r.score!=null?r.score:'—')+'</span> <span style="color:#64748b;">'+(r.verdict||'')+'</span>'
+        : '<button onclick="reCopy(\''+r.token+'\',this)" style="background:none;border:1px solid #b8dff0;border-radius:5px;padding:2px 8px;font-size:.66rem;cursor:pointer;color:#0077a8;font-family:inherit;">Copy link</button>';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f1f5f9;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:.86rem;font-weight:600;color:#003a52;">'+(r.candidate_name||'')+'</div>'+
+          '<div style="font-size:.72rem;color:#94a3b8;">'+(TRADE_LABELS[r.trade]||r.trade)+(r.level?' \u00b7 '+r.level:'')+' \u00b7 '+when+'</div>'+
+        '</div>'+
+        '<div style="font-size:.78rem;text-align:right;min-width:90px;">'+scoreBit+'</div>'+
+        '<span style="font-size:.62rem;font-weight:700;padding:3px 9px;border-radius:20px;background:'+b[0]+';color:'+b[1]+';border:1px solid '+b[2]+';text-transform:uppercase;letter-spacing:.4px;">'+b[3]+'</span>'+
+      '</div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML = '<p style="color:#b91c1c;font-size:.82rem;">Could not load: '+e.message+'</p>';
+  }
+}
+
+function reCopy(token, btn){
+  var url = location.origin + '/qlm-trades-assessment.html?invite=' + token;
+  navigator.clipboard.writeText(url).then(function(){
+    var o = btn.textContent; btn.textContent = '\u2713';
+    setTimeout(function(){ btn.textContent = o; }, 1500);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  CANDIDATE INVITE MODE (?invite=token)
+// ═══════════════════════════════════════════════════
+var INVITE_TOKEN = null;
+var INVITE_DATA = null;
+
+async function checkInviteToken(){
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('invite');
+  if(!token) return false;
+
+  INVITE_TOKEN = token;
+
+  // Wait briefly for the Supabase client
+  for(var i=0;i<20 && (!window.QLM || !QLM.client());i++){ await new Promise(function(r){setTimeout(r,100);}); }
+  if(!window.QLM || !QLM.client()){ showInviteError('Could not connect. Please refresh the page.'); return true; }
+
+  try{
+    var res = await QLM.client().rpc('get_invite', { p_token: token });
+    if(res.error) throw new Error(res.error.message);
+    var inv = (res.data && res.data[0]) || null;
+
+    if(!inv){ showInviteError('This assessment link is not valid. Please contact your recruiter for a new one.'); return true; }
+    if(inv.expired){
+      showInviteError(inv.status === 'completed'
+        ? 'This assessment has already been completed. Contact your recruiter if you need to retake it.'
+        : 'This assessment link has expired. Please contact your recruiter for a new one.');
+      return true;
+    }
+
+    INVITE_DATA = inv;
+    QLM.client().rpc('mark_invite_opened', { p_token: token });
+
+    // Lock the UI into candidate mode
+    document.getElementById('cand-mode-banner').classList.remove('hidden');
+    document.getElementById('cand-mode-banner').innerHTML =
+      '\u{1F464} Welcome ' + inv.candidate_name + ' \u2014 ' + (TRADE_LABELS[inv.trade]||inv.trade) + ' Assessment';
+
+    // Hide recruiter-only navigation
+    document.querySelectorAll('.tool-nav a, #nav-invite, #nav-history, #qlm-auth').forEach(function(el){
+      el.style.display = 'none';
+    });
+
+    // Prefill and lock candidate fields
+    var parts = (inv.candidate_name||'').split(' ');
+    document.getElementById('c-fname').value = parts[0] || '';
+    document.getElementById('c-lname').value = parts.slice(1).join(' ');
+    document.getElementById('c-recruiter').value = inv.recruiter_name || '';
+    ['c-fname','c-lname','c-recruiter'].forEach(function(id){
+      var el = document.getElementById(id); if(el){ el.readOnly = true; el.style.background = '#f1f5f9'; }
+    });
+
+    selectTrade(inv.trade);
+
+    // Hide trade picker — it's already decided
+    var grid = document.getElementById('trade-grid');
+    if(grid){
+      grid.style.display = 'none';
+      var lbl = grid.previousElementSibling;
+      if(lbl && lbl.classList.contains('section-label')) lbl.style.display = 'none';
+      var note = document.createElement('div');
+      note.style.cssText = 'background:#e0f4fc;border:1px solid #b8dff0;border-radius:10px;padding:14px;margin-bottom:16px;font-size:.86rem;color:#003a52;';
+      note.innerHTML = '<strong>Assessment:</strong> ' + (TRADE_LABELS[inv.trade]||inv.trade) +
+        (inv.level ? ' \u00b7 ' + inv.level : '') +
+        '<br><span style="font-size:.78rem;color:#64748b;">Answer each question honestly. Set aside 15-20 minutes and finish in one sitting.</span>';
+      grid.parentNode.insertBefore(note, grid);
+    }
+
+    var st = document.getElementById('start-btn');
+    if(st) st.textContent = 'Begin My Assessment';
+
+    return true;
+  }catch(e){
+    showInviteError('Could not load this assessment: ' + e.message);
+    return true;
+  }
+}
+
+function showInviteError(msg){
+  var sel = document.getElementById('select-screen');
+  if(!sel) return;
+  sel.innerHTML =
+    '<div style="max-width:520px;margin:60px auto;text-align:center;background:#fff;border:1px solid #b8dff0;border-radius:14px;padding:40px 30px;box-shadow:0 8px 30px rgba(0,0,0,.06);">'+
+      '<div style="font-size:2.6rem;margin-bottom:14px;">\u26A0\uFE0F</div>'+
+      '<div style="font-size:1.05rem;font-weight:700;color:#003a52;margin-bottom:10px;">Assessment Unavailable</div>'+
+      '<p style="font-size:.9rem;color:#64748b;line-height:1.7;">'+msg+'</p>'+
+      '<p style="font-size:.8rem;color:#94a3b8;margin-top:18px;">Quality Labor Management &middot; 855-756-9675</p>'+
+    '</div>';
+  document.querySelectorAll('.tool-nav a, #nav-invite, #nav-history, #qlm-auth').forEach(function(el){ el.style.display='none'; });
+}
+
+// ═══════════════════════════════════════════════════
+//  SUBMIT RESULTS (invite flow)
+// ═══════════════════════════════════════════════════
+async function submitInviteResults(reportText){
+  if(!INVITE_TOKEN || !window.QLM || !QLM.client()) return;
+  try{
+    await QLM.client().rpc('complete_invite', {
+      p_token: INVITE_TOKEN,
+      p_score: window._assessmentScore || 0,
+      p_verdict: window._assessmentVerdict || '',
+      p_category_scores: null,
+      p_red_flags: null,
+      p_answers: null,
+      p_ai_analysis: reportText || null
+    });
+  }catch(e){ console.warn('complete_invite failed', e); }
+
+  // Email the recruiter
+  try{
+    var r = await QLM.client().rpc('get_invite', { p_token: INVITE_TOKEN });
+    var inv = (r.data && r.data[0]) || {};
+    await fetch('/.netlify/functions/send-assessment', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        to: (INVITE_DATA && INVITE_DATA.recruiter_email) || '',
+        candidate: (INVITE_DATA && INVITE_DATA.candidate_name) || inv.candidate_name,
+        trade: TRADE_LABELS[(INVITE_DATA&&INVITE_DATA.trade)] || (INVITE_DATA&&INVITE_DATA.trade),
+        level: (INVITE_DATA && INVITE_DATA.level) || '',
+        score: window._assessmentScore || 0,
+        verdict: window._assessmentVerdict || '',
+        date: new Date().toLocaleDateString(),
+        fullReport: reportText || ''
+      })
+    });
+  }catch(e){ console.warn('email failed', e); }
+}
+
 // ═══════════════════════════════════════════════════
 //  CANDIDATE MODE (URL param ?trade=xxx)
 // ═══════════════════════════════════════════════════
 function checkUrlParams() {
   var params = new URLSearchParams(window.location.search);
+  if (params.get('invite')) { checkInviteToken(); return; }
   var trade = params.get('trade');
   var recruiter = params.get('recruiter');
   if (trade && QUESTIONS[trade]) {
@@ -1780,7 +2138,12 @@ parseAndRenderResults = function(text) {
     };
     saveToHistory(record);
     updatePrintMeta();
-    sendAssessmentEmail(text);
+    if (INVITE_TOKEN) {
+      submitInviteResults(text);
+      showInviteThanks();
+    } else {
+      sendAssessmentEmail(text);
+    }
   }, 500);
 };
 
