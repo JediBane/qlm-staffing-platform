@@ -255,7 +255,7 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     <div class="logo-badge">QLM</div>
     <div class="logo-text">Quality Labor Management</div>
   </div>
-  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
 </header>
 <div id="cand-mode-banner" class="cand-mode-banner hidden">&#128100; Candidate Mode — Complete all questions and submit when finished.</div>
 
@@ -490,6 +490,8 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 
 <footer>&#169; 2025 Quality Labor Management, LLC &middot; SPQ Assessment Tool &middot; Confidential &middot; myqlm.com</footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
 <script>
 // ═══════════════════════════════════════════════════
 //  SERVER URL
@@ -1527,6 +1529,21 @@ function saveToHistory(record) {
   history.unshift(record);
   if (history.length > 200) history = history.slice(0, 200);
   localStorage.setItem('qlm_assessment_history', JSON.stringify(history));
+  if(window.QLM && QLM.save){
+    try{
+      var _last = (JSON.parse(localStorage.getItem('qlm_assessment_history')||'[]')||[])[0];
+      if(_last) QLM.save('assessments', {
+        candidate_name: _last.candidate || _last.name || null,
+        trade: _last.trade || 'Unknown',
+        score: parseInt(_last.score)||null,
+        verdict: _last.verdict || null,
+        recruiter: _last.recruiter || null,
+        category_scores: _last.categories || null,
+        red_flags: _last.redFlags || null,
+        ai_analysis: _last.analysis || null
+      });
+    }catch(e){}
+  }
   updateHistCount();
 }
 
@@ -1837,5 +1854,6 @@ saveServerUrl = function() {
 };
 
 </script>
+<script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
 </body>
 </html>
