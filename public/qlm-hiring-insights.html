@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Hiring Insights</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0099d8;--blue-dk:#005a7e;--blue-md:#0077a8;--blue-lt:#e0f4fc;--blue-mid2:#b8dff0;
+  --navy:#003a52;--navy-lt:#004d6b;--gray:#f4f7fb;--text:#2a4a5a;--border:#b8dff0;
+  --danger:#ef4444;--success:#22c55e;--warn:#f59e0b;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+header{background:var(--navy);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:.9rem;letter-spacing:2px;padding:5px 12px;border-radius:4px;}
+.logo-text{color:var(--blue-mid2);font-size:.82rem;letter-spacing:1px;}
+.tool-nav{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:4px 11px;border-radius:6px;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.22);color:#b8dff0;transition:all .2s;background:none;}
+.tnav:hover{border-color:var(--blue);color:var(--blue);}
+.tnav.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-settings{background:none;border:1px solid rgba(255,255,255,.2);color:#b8dff0;padding:4px 9px;border-radius:6px;cursor:pointer;font-size:.76rem;font-family:inherit;}
+.settings-panel{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:0;max-height:0;overflow:hidden;transition:max-height .3s,padding .3s;}
+.settings-panel.open{max-height:80px;padding:10px 32px;}
+.settings-panel .ci{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.settings-panel label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);}
+.settings-panel input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:.8rem;font-family:monospace;outline:none;background:#fff;}
+#srvStatus{font-size:.7rem;color:#94a3b8;}#srvStatus.ok{color:var(--success);font-weight:600;}
+
+.hero{background:var(--navy);border-bottom:4px solid var(--blue);padding:1.6rem 32px;}
+.hero-inner{max-width:1100px;margin:0 auto;}
+.hero h1{font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:.25rem;}
+.hero h1 span{color:var(--blue);}
+.hero p{font-size:.85rem;color:var(--blue-mid2);max-width:560px;line-height:1.55;}
+
+.main{max-width:1100px;margin:0 auto;padding:20px 20px 80px;display:grid;grid-template-columns:260px 1fr;gap:18px;}
+@media(max-width:860px){.main{grid-template-columns:1fr;}}
+
+/* LEFT */
+.left{display:flex;flex-direction:column;gap:12px;}
+.pcard{background:#fff;border:1px solid var(--border);border-radius:10px;border-top:4px solid var(--blue);padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.05);}
+.pcard-title{font-size:.63rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;}
+.fl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.fl label{font-size:.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;}
+.fl input,.fl select{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:.83rem;font-family:inherit;outline:none;transition:border-color .2s;background:#fff;}
+.fl input:focus,.fl select:focus{border-color:var(--blue);}
+.fl select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230099d8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:1.8rem;}
+.ttags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;}
+.ttag{padding:3px 8px;border-radius:20px;font-size:.65rem;font-weight:600;border:1.5px solid var(--border);color:#64748b;cursor:pointer;transition:all .2s;background:#fff;}
+.ttag:hover{border-color:var(--blue);color:var(--blue);}
+.ttag.sel{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-g{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s;font-family:inherit;margin-top:4px;}
+.btn-g:hover{background:var(--blue-md);}
+.btn-g:disabled{opacity:.5;cursor:not-allowed;}
+.btn-g.navy{background:var(--navy);}
+.btn-g.navy:hover{background:var(--blue-dk);}
+.mode-toggle{display:flex;background:#f1f5f9;border-radius:8px;overflow:hidden;margin-bottom:12px;}
+.mode-btn{flex:1;padding:7px;font-size:.7rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:#64748b;font-family:inherit;transition:all .2s;}
+.mode-btn.active{background:var(--navy);color:#fff;}
+
+/* RIGHT */
+.report-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.report-title-el{font-size:.95rem;font-weight:700;color:var(--navy);}
+.report-meta-el{font-size:.72rem;color:#64748b;}
+.output-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.btn-out{padding:6px 14px;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);color:var(--blue-md);background:#fff;transition:all .2s;text-transform:uppercase;letter-spacing:.4px;}
+.btn-out:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+.btn-out.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* DRILL DOWN TABS */
+.drill-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;flex-wrap:wrap;}
+.dtab{padding:7px 14px;font-size:.7rem;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
+.dtab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.dtab-pane{display:none;}
+.dtab-pane.active{display:block;}
+
+/* REPORT SECTIONS */
+.rs{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:14px;}
+.rs-hd{padding:12px 18px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.rs-hd-icon{font-size:1rem;}
+.rs-hd-title{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;}
+.rs-hd-badge{margin-left:auto;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;}
+.rs-bd{padding:18px;}
+
+/* BILL RATE CALCULATOR */
+.bill-rate-card{background:linear-gradient(135deg,var(--navy),var(--blue-dk));border-radius:10px;padding:20px;color:#fff;margin-bottom:14px;}
+.brc-label{font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-mid2);margin-bottom:4px;}
+.brc-rate{font-size:2.2rem;font-weight:700;line-height:1;margin-bottom:2px;}
+.brc-range{font-size:.8rem;color:var(--blue-mid2);}
+.brc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:16px;}
+.brc-stat{background:rgba(255,255,255,.1);border-radius:8px;padding:12px;}
+.brc-stat-n{font-size:1.2rem;font-weight:700;color:#fff;}
+.brc-stat-l{font-size:.62rem;color:var(--blue-mid2);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+
+/* COMPARISON TABLE */
+.comp-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.comp-table th{background:#f8fafc;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.comp-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.comp-table tr:last-child td{border-bottom:none;}
+.comp-table tr:hover td{background:#f8fafc;}
+.qlm-col{background:rgba(0,153,216,.05)!important;font-weight:600;color:var(--blue-dk);}
+.qlm-hdr{background:var(--blue)!important;color:#fff!important;}
+
+/* DIFFICULTY METER */
+.diff-meter-wrap{display:flex;align-items:center;gap:16px;margin-bottom:16px;}
+.diff-score-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;}
+.diff-score-num{font-size:1.5rem;font-weight:700;line-height:1;}
+.diff-score-lbl{font-size:.55rem;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;}
+.diff-factors{flex:1;}
+.diff-factor-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.diff-factor-label{font-size:.75rem;color:var(--text);min-width:160px;}
+.diff-factor-bar-wrap{flex:1;background:#f1f5f9;border-radius:10px;height:8px;}
+.diff-factor-bar{height:100%;border-radius:10px;}
+
+/* TALKING POINTS */
+.tp-box{background:#f8fafc;border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:0 8px 8px 0;padding:14px;margin-bottom:10px;position:relative;}
+.tp-box.green{border-left-color:var(--success);background:#f0fdf4;}
+.tp-box.warn{border-left-color:var(--warn);background:#fefce8;}
+.tp-label{font-size:.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-md);margin-bottom:5px;}
+.tp-label.green{color:#15803d;}
+.tp-label.warn{color:#a16207;}
+.tp-text{font-size:.83rem;color:var(--text);line-height:1.65;}
+.tp-copy{position:absolute;top:10px;right:10px;background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:.65rem;cursor:pointer;color:#64748b;font-family:inherit;transition:all .2s;}
+.tp-copy:hover{border-color:var(--blue);color:var(--blue);}
+
+/* PROPOSAL BLOCK */
+.proposal-block{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:10px;}
+.pb-label{font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-md);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.pb-text{font-size:.85rem;line-height:1.75;color:var(--text);}
+.pb-copy-btn{background:var(--blue);color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:.65rem;font-weight:600;cursor:pointer;font-family:inherit;}
+
+/* DEMAND BARS */
+.dem-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.dem-trade{font-size:.8rem;font-weight:600;min-width:130px;}
+.dem-bar-wrap{flex:1;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden;}
+.dem-bar{height:100%;border-radius:20px;}
+.dem-hot{background:linear-gradient(90deg,#ef4444,#f59e0b);}
+.dem-warm{background:linear-gradient(90deg,#f59e0b,#0099d8);}
+.dem-cool{background:var(--blue);}
+.dem-pct{font-size:.72rem;font-weight:700;min-width:28px;text-align:right;}
+.badge{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.b-hot{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.b-warm{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.b-cool{background:#e0f4fc;color:#005a7e;border:1px solid #b8dff0;}
+.b-green{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+
+/* SALARY TABLE */
+.sal-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.sal-table th{background:#f8fafc;font-size:.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.sal-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.sal-table tr:last-child td{border-bottom:none;}
+.sal-bold{font-weight:700;color:var(--navy);}
+.trend-up{color:#15803d;font-weight:700;}
+.trend-dn{color:#b91c1c;font-weight:700;}
+.trend-flat{color:#64748b;}
+
+/* INSIGHT CARDS */
+.ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:4px;}
+.ins-card{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px;}
+.ins-num{font-size:1.4rem;font-weight:700;color:var(--navy);line-height:1;}
+.ins-label{font-size:.65rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.7px;margin-top:2px;}
+.ins-sub{font-size:.68rem;color:#94a3b8;margin-top:2px;line-height:1.4;}
+
+/* SHIMMER */
+.shim{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shim 1.4s infinite;height:11px;margin-bottom:7px;border-radius:4px;}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.shim-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px;}
+.sbox{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:7px;font-size:.8rem;font-weight:600;margin:7px 0;}
+.sbox.loading{background:rgba(0,153,216,.08);color:var(--blue-md);}
+.sbox.error{background:rgba(239,68,68,.08);color:#ef4444;}
+.spin{width:13px;height:13px;border:2px solid rgba(0,153,216,.3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:50px 20px;color:#94a3b8;}
+.empty-icon{font-size:2.2rem;margin-bottom:10px;}
+
+/* PRINT */
+@media print{
+  header,.tool-nav,.left,.settings-panel,.output-btns,footer,.btn-out,.tp-copy,.pb-copy-btn{display:none!important;}
+  body{background:#fff;}
+  .main{grid-template-columns:1fr;padding:0;}
+  .rs{box-shadow:none;break-inside:avoid;}
+  .print-hdr{display:flex!important;}
+}
+.print-hdr{display:none;align-items:center;justify-content:space-between;padding:0 0 16px;border-bottom:3px solid var(--blue);margin-bottom:20px;}
+.ph-logo{font-weight:700;color:var(--navy);font-size:1rem;}
+.ph-meta{font-size:.74rem;color:#64748b;text-align:right;line-height:1.6;}
+
+footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgba(255,255,255,.35);text-align:center;padding:12px;font-size:.7rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
+  <div class="tool-nav">
+    <button class="btn-settings" onclick="toggleSettings()">&#9881;</button>
+    <a href="/index.html" class="tnav">&#127968; Home</a>
+    <a href="/talent-card.html" class="tnav">&#128196; Talent Card</a>
+    <a href="/qlm-intake.html" class="tnav">&#128203; Intake</a>
+    <a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a>
+    <a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a>
+    <a href="/qlm-hiring-insights.html" class="tnav active">&#128202; Insights</a>
+    <a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a>
+  </div>
+</header>
+<div class="settings-panel" id="settings-panel">
+  <div class="ci">
+    <label>&#128279; Server URL</label>
+    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
+    <span id="srvStatus">Paste your Railway server URL</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>&#128202; Construction <span>Hiring Insights</span></h1>
+    <p>Live market intelligence for QLM — bill rate justification, pay rate benchmarks, candidate difficulty scores, and client-ready talking points. Generated fresh from the web.</p>
+  </div>
+</div>
+
+<div class="main">
+  <!-- LEFT CONFIG -->
+  <div class="left">
+    <div class="pcard">
+      <div class="pcard-title">&#127757; Report Mode</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-market" onclick="setMode('market',this)">Full Market</button>
+        <button class="mode-btn" id="mode-drill" onclick="setMode('drill',this)">Single Trade</button>
+      </div>
+
+      <div class="fl">
+        <label>Market / City</label>
+        <input type="text" id="r-market" placeholder="e.g. Tampa, FL" value="Tampa, FL">
+      </div>
+
+      <!-- Market mode fields -->
+      <div id="market-fields">
+        <div class="fl">
+          <label>Trades to Cover</label>
+          <div class="ttags">
+            <span class="ttag sel" onclick="toggleTrade(this,'Electrician')">Electrician</span>
+            <span class="ttag sel" onclick="toggleTrade(this,'Plumber')">Plumber</span>
+            <span class="ttag sel" onclick="toggleTrade(this,'Welder')">Welder</span>
+            <span class="ttag sel" onclick="toggleTrade(this,'HVAC Tech')">HVAC</span>
+            <span class="ttag sel" onclick="toggleTrade(this,'Carpenter')">Carpenter</span>
+            <span class="ttag" onclick="toggleTrade(this,'Concrete Worker')">Concrete</span>
+            <span class="ttag" onclick="toggleTrade(this,'Equipment Operator')">Equip Op.</span>
+            <span class="ttag" onclick="toggleTrade(this,'Pipefitter')">Pipefitter</span>
+            <span class="ttag" onclick="toggleTrade(this,'Ironworker')">Ironworker</span>
+            <span class="ttag" onclick="toggleTrade(this,'Foreman')">Foreman</span>
+          </div>
+        </div>
+        <div class="fl">
+          <label>QLM Typical Markup %</label>
+          <select id="r-markup">
+            <option value="45">45%</option>
+            <option value="50" selected>50%</option>
+            <option value="55">55%</option>
+            <option value="60">60%</option>
+            <option value="65">65%</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Drill mode fields -->
+      <div id="drill-fields" style="display:none;">
+        <div class="fl">
+          <label>Specific Trade</label>
+          <select id="r-drill-trade">
+            <option>Electrician</option><option>Plumber</option><option>Welder</option>
+            <option>HVAC Tech</option><option>Carpenter</option><option>Concrete Worker</option>
+            <option>Equipment Operator</option><option>Pipefitter</option><option>Ironworker</option>
+            <option>Foreman / Superintendent</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>Experience Level</label>
+          <select id="r-drill-level">
+            <option>Any level</option><option>Entry / Helper</option>
+            <option>Journeyman</option><option>Senior / Master</option><option>Foreman</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>Your Pay Rate ($/hr)</label>
+          <input type="number" id="r-drill-pay" placeholder="e.g. 34" min="10" max="100">
+        </div>
+        <div class="fl">
+          <label>Your Bill Rate ($/hr)</label>
+          <input type="number" id="r-drill-bill" placeholder="e.g. 55" min="10" max="150">
+        </div>
+        <div class="fl">
+          <label>Client Industry</label>
+          <select id="r-drill-sector">
+            <option value="">Any</option>
+            <option>Commercial Construction</option>
+            <option>Industrial / Manufacturing</option>
+            <option>Infrastructure / Civil</option>
+            <option>Oil and Gas</option>
+            <option>Data Center / Tech</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="genStatus"></div>
+      <button class="btn-g" id="gen-btn" onclick="generateReport()">&#128202; Generate Report</button>
+    </div>
+
+    <div class="pcard">
+      <div class="pcard-title">&#128336; History</div>
+      <div id="rpt-history" style="font-size:.74rem;color:#94a3b8;">No reports yet.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT REPORT -->
+  <div>
+    <div class="print-hdr">
+      <div class="ph-logo">QLM — Quality Labor Management<br><span style="font-weight:400;font-size:.82rem;color:#64748b;">Hiring Insights Report</span></div>
+      <div class="ph-meta" id="print-meta"></div>
+    </div>
+
+    <div class="report-toolbar" id="report-toolbar" style="display:none;">
+      <div>
+        <div class="report-title-el" id="rpt-title"></div>
+        <div class="report-meta-el" id="rpt-meta"></div>
+      </div>
+      <div class="output-btns">
+        <button class="btn-out" onclick="window.print()">&#128438; Print / PDF</button>
+        <button class="btn-out" onclick="copyTalkingPoints()">&#128203; Copy Talking Points</button>
+        <button class="btn-out primary" onclick="copyProposal()">&#128140; Copy Proposal</button>
+      </div>
+    </div>
+
+    <div id="report-container">
+      <div class="empty">
+        <div class="empty-icon">&#128202;</div>
+        <p style="font-size:.88rem;line-height:1.7;">Choose <strong>Full Market</strong> for an overview of all your active trades,<br>or <strong>Single Trade</strong> for deep bill rate, pay rate, and client talking points.<br><br>Each report takes 20-40 seconds — AI searches live web data.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>&#169; 2025 Quality Labor Management, LLC &middot; Hiring Insights &middot; myqlm.com</footer>
+
+<script>
+var selectedTrades = ['Electrician','Plumber','Welder','HVAC Tech','Carpenter'];
+var currentMode = 'market';
+var reportRaw = null;
+
+// ── SETTINGS ──
+function getServerUrl(){ return (document.getElementById('serverUrl').value||'').trim(); }
+function toggleSettings(){ document.getElementById('settings-panel').classList.toggle('open'); }
+function saveServerUrl(){
+  var url=getServerUrl(), s=document.getElementById('srvStatus');
+  localStorage.setItem('qlm_server_url',url);
+  if(!url){s.textContent='Paste your Railway server URL';s.className='';}
+  else if(url.startsWith('https://')&&url.includes('.')){s.textContent='\u2713 Saved';s.className='ok';
+    setTimeout(function(){document.getElementById('settings-panel').classList.remove('open');},1200);}
+}
+function toggleTrade(el,t){
+  el.classList.toggle('sel');
+  selectedTrades=el.classList.contains('sel')?[...selectedTrades,t]:selectedTrades.filter(function(x){return x!==t;});
+}
+function setMode(mode,el){
+  currentMode=mode;
+  document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('market-fields').style.display=mode==='market'?'block':'none';
+  document.getElementById('drill-fields').style.display=mode==='drill'?'block':'none';
+}
+
+// ── API CALL WITH WEB SEARCH ──
+function rawWebCall(prompt){
+  return fetch('/.netlify/functions/lead-search', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:prompt})
+  }).then(function(r){
+    var status=r.status;
+    return r.text().then(function(txt){
+      if(status===404) throw new Error('Netlify function not found — check deployment.');
+      if(status>=500) throw new Error('Server error ('+status+') — try again.');
+      try{
+        var d=JSON.parse(txt);
+        if(d.error) throw new Error(d.error.message||JSON.stringify(d.error));
+        return (d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('').trim();
+      }catch(e){
+        if(e.message.indexOf('Function')!==-1||e.message.indexOf('error')!==-1) throw e;
+        throw new Error('Invalid response: '+txt.substring(0,120));
+      }
+    });
+  });
+}
+
+function webCall(prompt){
+  return rawWebCall(prompt).then(function(text){
+    if(text.match(/\{[\s\S]*\}/)) return text;
+    var retryPrompt = prompt +
+      '\n\nCRITICAL: Your previous response was narrative text. You MUST output ONLY a raw JSON object now. ' +
+      'Do NOT explain. Do NOT say you will search. ' +
+      'Output ONLY the JSON object starting with { and ending with }. Nothing else.';
+    return rawWebCall(retryPrompt);
+  });
+}
+function safeJSON(text){
+  // Step 1: strip markdown fences
+  var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  // Step 2: normalize unicode punctuation
+  clean = clean
+    .replace(/[\u2018\u2019\u2032\u02BC]/g, '')   // smart single quotes / apostrophes — remove entirely
+    .replace(/[\u201C\u201D\u00AB\u00BB]/g, '"')   // smart double quotes → straight
+    .replace(/[\u2013\u2014\u2015]/g, '-')          // em/en dash → hyphen
+    .replace(/\\\'/g, '');                           // escaped apostrophes
+  // Step 3: extract JSON object
+  var m = clean.match(/\{[\s\S]*\}/);
+  if(!m) throw new Error('No JSON in response. Got: ' + clean.substring(0,200));
+  var jsonStr = m[0];
+  // Step 4: aggressive apostrophe removal — scan char by char inside strings
+  // This handles nested arrays, objects, any depth
+  var result = '';
+  var inStr = false;
+  var escape = false;
+  for(var i = 0; i < jsonStr.length; i++){
+    var ch = jsonStr[i];
+    if(escape){ result += ch; escape = false; continue; }
+    if(ch === '\\'){ result += ch; escape = true; continue; }
+    if(ch === '"'){ inStr = !inStr; result += ch; continue; }
+    if(inStr && ch === "'"){ continue; } // strip apostrophes inside strings
+    result += ch;
+  }
+  // Step 5: parse
+  try{ return JSON.parse(result); }
+  catch(e){
+    // Step 6: last resort — strip any remaining problematic chars and retry
+    var cleaned2 = result.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'');
+    try{ return JSON.parse(cleaned2); }
+    catch(e2){ throw new Error('JSON parse error: ' + e2.message + ' — Try generating the report again.'); }
+  }
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── GENERATE ──
+function generateReport(){
+  var market=document.getElementById('r-market').value.trim()||'Tampa, FL';
+  var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('gen-btn').disabled=true;
+  document.getElementById('report-toolbar').style.display='none';
+  showSt('genStatus','loading','Searching live market data — 20-40 seconds...');
+  document.getElementById('report-container').innerHTML=shimCards();
+
+  if(currentMode==='market'){
+    generateMarketReport(market,today);
+  } else {
+    generateDrillReport(market,today);
+  }
+}
+
+// ── MARKET REPORT ──
+function generateMarketReport(market,today){
+  var trades=selectedTrades.join(', ');
+  var markup=document.getElementById('r-markup').value;
+
+  var prompt='You are a construction staffing industry analyst helping QLM (Quality Labor Management) understand the '+market+' labor market.\n\n'+
+    'Search the web for current '+market+' construction labor data: job postings, wages, staffing agency rates, and hiring trends for '+today+'.\n\n'+
+    'Return ONLY a raw JSON object (no markdown). Structure:\n'+
+    '{\n'+
+    '  "market":"'+market+'","date":"'+today+'",\n'+
+    '  "summary":"3-4 sentence market overview focused on staffing opportunities and current conditions",\n'+
+    '  "marketMetrics":{"totalOpenPositions":"number+","avgDaysToFillDirect":"X weeks","avgDaysToFillStaffing":"X weeks","workerShortfall":"X%","wageInflation":"X% YoY","constructionSpend":"$XB active projects"},\n'+
+    '  "tradeData":[\n'+
+    '    {\n'+
+    '      "trade":"Electrician",\n'+
+    '      "demandScore":85,\n'+
+    '      "difficultyScore":8,\n'+
+    '      "payRange":{"entry":"$20-24/hr","journeyman":"$30-38/hr","senior":"$42-52/hr"},\n'+
+    '      "billRateRange":{"entry":"$36-42/hr","journeyman":"$52-64/hr","senior":"$72-84/hr"},\n'+
+    '      "recommendedBillRate":"$58/hr",\n'+
+    '      "marketMarkup":"52%",\n'+
+    '      "supplyLevel":"tight",\n'+
+    '      "avgTimeToFillDirect":"6-8 weeks",\n'+
+    '      "avgTimeToFillStaffing":"1-2 weeks",\n'+
+    '      "openPositions":"400+",\n'+
+    '      "trendDir":"up",\n'+
+    '      "yoyWageChange":"+7%",\n'+
+    '      "topCerts":"OSHA 30, Journeyman License"\n'+
+    '    }\n'+
+    '  ],\n'+
+    '  "qlmAdvantages":["Specific advantage 1 for QLM in this market","Advantage 2","Advantage 3"],\n'+
+    '  "marketRisks":["Risk or challenge 1","Risk 2"]\n'+
+    '}\n\n'+
+    'Include ALL of these trades in tradeData array: '+trades+'\n'+
+    'Use '+markup+'% as the typical QLM markup when calculating bill rates from pay rates.\n'+
+    'Use REAL current data from your web search for '+market+'. All numbers must be realistic for this specific market.\n'+
+    'No apostrophes in string values. Return raw JSON only.';
+
+  webCall(prompt)
+  .then(function(text){
+    var data=safeJSON(text);
+    reportRaw=data;
+    renderMarketReport(data,market,trades,today);
+    setToolbar('Market Insights: '+market, trades+' \u00b7 '+today, market, today);
+    saveHistory('Market: '+market,today);
+    clearSt('genStatus');
+  })
+  .catch(function(e){
+    showSt('genStatus','error',e.message);
+    document.getElementById('report-container').innerHTML='<div class="empty"><div class="empty-icon">\u26a0\ufe0f</div><p>'+esc(e.message)+'<br><br>Try again.</p></div>';
+  })
+  .finally(function(){document.getElementById('gen-btn').disabled=false;});
+}
+
+// ── DRILL REPORT ──
+function generateDrillReport(market,today){
+  var trade=document.getElementById('r-drill-trade').value;
+  var level=document.getElementById('r-drill-level').value;
+  var payRate=document.getElementById('r-drill-pay').value;
+  var billRate=document.getElementById('r-drill-bill').value;
+  var sector=document.getElementById('r-drill-sector').value||'commercial construction';
+
+  var levelStr = level && level !== 'Any level' ? level : 'Journeyman';
+  var prompt='You are a construction staffing industry analyst helping QLM (Quality Labor Management) sell temp and temp-to-hire staffing services to clients in '+market+'.\n\n'+
+    'QLM is a W2 staffing company. Workers are on QLM payroll. QLM covers ALL employer costs: FICA, FUTA, SUTA, workers comp insurance, general liability, benefits admin, and HR. Clients pay one all-inclusive bill rate with zero employer liability.\n\n'+
+    'MARKUP RULES — THESE ARE ABSOLUTE CONSTRAINTS:\n'+
+    '- Construction staffing standard markup range: 40-55% above pay rate\n'+
+    '- Maximum realistic markup: 58-60% for hard-to-fill trades only\n'+
+    '- DO NOT recommend any markup above 60% under any circumstances\n'+
+    '- If current bill rate implies markup under 40%, flag as too low and leaving money on the table\n'+
+    '- If current bill rate implies markup over 60%, flag as above market and client retention risk\n'+
+    '- Markup must cover: FICA 7.65%, FUTA 0.6%, SUTA ~2.7% (Florida), workers comp (construction $8-14 per $100 wages), GL insurance ~1-2%, admin/overhead ~5%, and QLM margin\n\n'+
+    'PAY RATE GUIDELINES BY EXPERIENCE (adjust for '+market+' market from web search):\n'+
+    '- Entry/Helper: $16-22/hr\n'+
+    '- Journeyman: $26-40/hr (trade dependent)\n'+
+    '- Senior/Master: $38-55/hr (trade dependent)\n'+
+    '- Foreman: $30-50/hr (trade dependent)\n\n'+
+    'Trade: '+trade+'\nExperience Level: '+levelStr+'\nMarket: '+market+'\nSector: '+sector+'\n'+
+    'QLM pay rate: '+(payRate?'$'+payRate+'/hr':'not specified')+'\n'+
+    'QLM bill rate: '+(billRate?'$'+billRate+'/hr':'not specified')+'\n'+
+    'Date: '+today+'\n\n'+
+    'Search web for: "'+trade+' '+levelStr+' wages '+market+' 2025", "construction staffing markup rates", "Florida workers comp construction rates 2025"\n\n'+
+    'Return ONLY raw JSON (no markdown):\n'+
+    '{\n'+
+    '  "trade":"'+trade+'","level":"'+levelStr+'","market":"'+market+'","date":"'+today+'",\n'+
+    '  "billRateAnalysis":{\n'+
+    '    "marketBillRateRange":"$X-$Y/hr for '+levelStr+' '+trade+' in '+market+'",\n'+
+    '    "recommendedBillRate":"$X/hr",\n'+
+    '    "impliedMarkup":"XX% (must be 40-60%)",\n'+
+    '    "justification":"Why this specific rate for '+levelStr+' '+trade+' in '+market+' — reference actual market pay rates and the 40-55% standard range",\n'+
+    '    "markupContext":"Construction staffing standard is 40-55%. This rate is X% markup which is [within/at the top of/below] the standard range because [reason]",\n'+
+    '    "qlmValueDollarAmount":"Specific dollar value QLM delivers by covering all employer costs",\n'+
+    '    "rateDefensePoints":[\n'+
+    '      "Workers comp: Florida construction WC runs $8-14 per $100 wages. For a $Xhr pay rate that is $X/hr QLM absorbs — client pays none of it",\n'+
+    '      "Payroll taxes: QLM covers FICA ($X/hr), FUTA ($X/hr), SUTA ($X/hr) — all based on the actual pay rate",\n'+
+    '      "Temp-to-hire: evaluate the worker on your job site for 60-90 days before committing — eliminate bad hire risk entirely",\n'+
+    '      "Turnover cost: when a '+levelStr+' '+trade+' leaves after 60-90 days it costs $X to replace — include recruiting time, lost productivity, and rework",\n'+
+    '      "Fill speed: QLM fills in 1-2 weeks. In '+market+' right now a company trying to find a '+levelStr+' '+trade+' on their own takes X weeks average"\n'+
+    '    ]\n'+
+    '  },\n'+
+    '  "employerCostBreakdown":{\n'+
+    '    "workerPayRate":"$'+(payRate||'X')+'/hr",\n'+
+    '    "ficaTaxes":"$X/hr (7.65% = $'+( payRate?Math.round(parseFloat(payRate)*0.0765*100)/100:'X' )+'/hr based on pay rate)",\n'+
+    '    "federalUnemployment":"$X/hr (FUTA 0.6%)",\n'+
+    '    "stateUnemployment":"$X/hr (Florida SUTA ~2.7%)",\n'+
+    '    "workersCompInsurance":"$X/hr — Florida construction WC for '+trade+' is approximately $X per $100 wages",\n'+
+    '    "generalLiability":"$X/hr",\n'+
+    '    "adminAndMargin":"$X/hr",\n'+
+    '    "totalBillRate":"$X/hr",\n'+
+    '    "clientSavingsNote":"If the client carried this '+levelStr+' '+trade+' on their own payroll they would pay all of the above costs — here is what that totals per hour and per year"\n'+
+    '  },\n'+
+    '  "turnoverCostData":{\n'+
+    '    "industryAvgTurnoverRate":"X% — construction trades annual average nationally and in '+market+'",\n'+
+    '    "costToReplaceWorker":"$X — breakdown: $X recruiting/job board fees, $X lost productivity during vacancy, $X onboarding and ramp time",\n'+
+    '    "tempToHireBenefit":"Specific value of evaluating a '+levelStr+' '+trade+' on site for 60-90 days before committing",\n'+
+    '    "qlmScreeningValue":"QLM runs skills assessments and reference checks — what percentage of bad hires this prevents and dollar value"\n'+
+    '  },\n'+
+    '  "payRateAnalysis":{\n'+
+    '    "marketPayRange":"$X-$Y/hr for '+levelStr+' '+trade+' in '+market+' based on current Indeed and LinkedIn postings",\n'+
+    '    "competingOffers":"Specific offers being posted right now on Indeed/LinkedIn for '+levelStr+' '+trade+' in '+market+'",\n'+
+    '    "minimumCompetitiveRate":"$X/hr — if QLM pays below this workers will leave for better offers within 30-60 days",\n'+
+    '    "whyPayMatters":"How underpaying '+levelStr+' '+trade+' workers causes turnover and what the downstream cost is for the client project"\n'+
+    '  },\n'+
+    '  "difficultyScore":7,\n'+
+    '  "difficultyLabel":"Hard",\n'+
+    '  "difficultyFactors":{"shortage":75,"certRequirements":65,"competition":70,"experience":65,"geography":55},\n'+
+    '  "fillTimeData":{\n'+
+    '    "clientSelfManagedAvg":"X weeks — based on '+market+' market data for '+levelStr+' '+trade+'",\n'+
+    '    "qlmAvg":"1-2 weeks",\n'+
+    '    "timeSaved":"X weeks",\n'+
+    '    "costOfVacancy":"$X per week — based on average '+trade+' daily output value"\n'+
+    '  },\n'+
+    '  "marketSnapshot":{\n'+
+    '    "activeJobPostings":"X+ postings for '+trade+' in '+market+' right now",\n'+
+    '    "estimatedActiveCandidates":"X workers actively seeking '+levelStr+' '+trade+' work in '+market+'",\n'+
+    '    "demandTrend":"Rising / Flat / Declining",\n'+
+    '    "wageGrowthYoY":"+X% based on '+new Date().getFullYear()+' vs prior year",\n'+
+    '    "topHiringCompanies":"3-4 real companies actively posting '+trade+' jobs in '+market+' right now"\n'+
+    '  },\n'+
+    '  "talkingPoints":[\n'+
+    '    {"type":"bill_rate","label":"Bill Rate Justification","text":"Sentence: our $X/hr rate is a XX% markup — within the 40-55% construction staffing standard — and covers every employer cost so you pay nothing else"},\n'+
+    '    {"type":"workers_comp","label":"Workers Comp Covered","text":"Sentence: Florida construction WC for '+trade+' runs $X-$X per $100 wages — at $X/hr pay that is $X/hr we absorb so you have zero WC exposure"},\n'+
+    '    {"type":"turnover","label":"Turnover Cost Reality","text":"Sentence: when a '+levelStr+' '+trade+' you hired yourself leaves after 60-90 days it costs you $X to replace — QLM temp-to-hire eliminates that risk entirely"},\n'+
+    '    {"type":"temp_to_hire","label":"Temp-to-Hire Advantage","text":"Sentence: with temp-to-hire you evaluate the worker on your actual job site for 60-90 days before making any permanent commitment"},\n'+
+    '    {"type":"fill_time","label":"Speed to Productivity","text":"Sentence: QLM can have a qualified '+levelStr+' '+trade+' on your site in 1-2 weeks — companies trying to hire on their own in '+market+' are averaging X weeks right now"},\n'+
+    '    {"type":"shortage","label":"Market Shortage Reality","text":"Sentence: there are X+ '+trade+' job postings in '+market+' competing for a pool of roughly X active candidates — this market is tight and getting tighter"},\n'+
+    '    {"type":"no_liability","label":"Zero Employer Liability","text":"Sentence: worker is on QLM payroll — you have no unemployment exposure, no WC premium impact, no payroll tax admin, and no HR liability"},\n'+
+    '    {"type":"flexibility","label":"Scale Up and Down","text":"Sentence: when the project phase ends you simply stop the assignment — no layoffs, no UI claims hitting your account, no HR process"}\n'+
+    '  ],\n'+
+    '  "proposalParagraphs":{\n'+
+    '    "opening":"2-3 sentences opening a proposal email to a '+sector+' company in '+market+' about placing temp or temp-to-hire '+levelStr+' '+trade+' workers with QLM",\n'+
+    '    "marketContext":"2-3 sentences about the current '+market+' '+trade+' market conditions — shortage, wage pressure, fill time — that make self-managing this hire risky right now",\n'+
+    '    "qlmDifferentiator":"2-3 sentences about QLM absorbing workers comp, all payroll taxes, and all employer risk — with a specific dollar example based on the pay and bill rates",\n'+
+    '    "callToAction":"1-2 sentences asking for a 15-minute call to talk through current '+trade+' openings and how QLM can fill them this week"\n'+
+    '  }\n'+
+    '}\n\n'+
+    'ABSOLUTE FINAL RULES:\n'+
+    '1. Recommended markup must be 40-60%. Period.\n'+
+    '2. Pay ranges must match '+levelStr+' experience level\n'+
+    '3. Never say direct hire — say self-managed hiring\n'+
+    '4. Use real '+market+' data from your web search\n'+
+    '5. No apostrophes in string values. Return raw JSON only.';
+
+  webCall(prompt)
+  .then(function(text){
+    var data=safeJSON(text);
+    reportRaw=data;
+    renderDrillReport(data,market,today,payRate,billRate);
+    setToolbar(trade+' Deep Dive: '+market,level+' \u00b7 '+today,market,today);
+    saveHistory(trade+' Drill: '+market,today);
+    clearSt('genStatus');
+  })
+  .catch(function(e){
+    showSt('genStatus','error',e.message);
+    document.getElementById('report-container').innerHTML='<div class="empty"><div class="empty-icon">\u26a0\ufe0f</div><p>'+esc(e.message)+'</p></div>';
+  })
+  .finally(function(){document.getElementById('gen-btn').disabled=false;});
+}
+
+// ── RENDER MARKET REPORT ──
+function renderMarketReport(d,market,trades,today){
+  var html='';
+
+  // Summary + metrics
+  html+=sec('&#128203;','Market Overview',
+    '<div style="font-size:.86rem;line-height:1.75;color:var(--text);margin-bottom:14px;">'+esc(d.summary||'')+'</div>'+
+    insGrid(d.marketMetrics)
+  );
+
+  // Trade table
+  if(d.tradeData&&d.tradeData.length){
+    var thead='<thead><tr><th>Trade</th><th>Demand</th><th>Fill Difficulty</th><th>Journeyman Pay</th><th>Bill Rate Range</th><th>Rec. Bill Rate</th><th>Markup</th><th>Avg Fill (Direct)</th></tr></thead>';
+    var tbody=d.tradeData.map(function(t){
+      var ds=t.demandScore||50;
+      var barCol=ds>=80?'#ef4444':ds>=60?'#f59e0b':'#0099d8';
+      var diff=t.difficultyScore||5;
+      var diffCol=diff>=8?'#b91c1c':diff>=6?'#a16207':'#15803d';
+      var tr=t.trendDir==='up'?'trend-up \u2191':t.trendDir==='down'?'trend-dn \u2193':'trend-flat \u2194';
+      return '<tr>'+
+        '<td style="font-weight:600;color:var(--navy)">'+esc(t.trade||'')+'</td>'+
+        '<td><div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;background:#f1f5f9;border-radius:10px;height:7px;overflow:hidden;min-width:50px;"><div style="height:100%;border-radius:10px;width:'+ds+'%;background:'+barCol+'"></div></div><span style="font-size:.72rem;font-weight:700;color:'+barCol+'">'+ds+'</span></div></td>'+
+        '<td><span style="font-weight:700;color:'+diffCol+'">'+(diff)+'/10</span></td>'+
+        '<td>'+esc((t.payRange||{}).journeyman||'—')+'</td>'+
+        '<td>'+esc((t.billRateRange||{}).journeyman||'—')+'</td>'+
+        '<td style="font-weight:700;color:var(--navy)">'+esc(t.recommendedBillRate||'—')+'</td>'+
+        '<td><span class="badge b-green">'+esc(t.marketMarkup||'—')+'</span></td>'+
+        '<td style="color:#64748b;font-size:.78rem;">'+esc(t.avgTimeToFillDirect||'—')+'</td>'+
+      '</tr>';
+    }).join('');
+    html+=sec('&#128181;','Bill Rate & Pay Rate Overview — '+market,
+      '<div style="overflow-x:auto;"><table class="sal-table">'+thead+'<tbody>'+tbody+'</tbody></table></div>'+
+      '<div style="font-size:.7rem;color:#94a3b8;margin-top:8px;">Bill rates based on '+document.getElementById('r-markup').value+'% markup. Demand score 0-100. Difficulty 0-10 (higher = harder to fill).</div>'
+    );
+  }
+
+  // Per-trade pay ranges
+  if(d.tradeData&&d.tradeData.length){
+    var rows2=d.tradeData.map(function(t){
+      var pr=t.payRange||{};
+      var yr=t.trendDir==='up'?'<span class="trend-up">\u2191 '+esc(t.yoyWageChange||'')+'</span>':t.trendDir==='down'?'<span class="trend-dn">\u2193 '+esc(t.yoyWageChange||'')+'</span>':'<span class="trend-flat">\u2194 Flat</span>';
+      return '<tr>'+
+        '<td style="font-weight:600;color:var(--navy)">'+esc(t.trade)+'</td>'+
+        '<td>'+esc(pr.entry||'—')+'</td>'+
+        '<td class="sal-bold">'+esc(pr.journeyman||'—')+'</td>'+
+        '<td>'+esc(pr.senior||'—')+'</td>'+
+        '<td>'+yr+'</td>'+
+        '<td style="font-size:.75rem;color:#64748b;">'+esc(t.topCerts||'—')+'</td>'+
+      '</tr>';
+    }).join('');
+    html+=sec('&#128181;','Pay Rate Benchmarks — Use to Defend Worker Pay',
+      '<table class="sal-table"><thead><tr><th>Trade</th><th>Entry Level</th><th>Journeyman</th><th>Senior/Master</th><th>Wage Trend</th><th>Key Certs Required</th></tr></thead><tbody>'+rows2+'</tbody></table>'+
+      '<div style="font-size:.7rem;color:#94a3b8;margin-top:8px;">These are market pay rates workers are earning or being offered. Paying below market = turnover risk. Use to justify pay rates to workers and explain cost to clients.</div>'
+    );
+  }
+
+  // Fill time comparison
+  if(d.tradeData&&d.tradeData.length){
+    var ftrows=d.tradeData.map(function(t){
+      return '<tr>'+
+        '<td style="font-weight:600;color:var(--navy)">'+esc(t.trade)+'</td>'+
+        '<td style="color:#b91c1c;font-weight:600;">'+esc(t.avgTimeToFillDirect||'—')+'</td>'+
+        '<td style="color:#15803d;font-weight:600;">'+esc(t.avgTimeToFillStaffing||'1-2 weeks')+'</td>'+
+        '<td>'+esc(t.openPositions||'—')+'</td>'+
+        '<td><span class="badge '+(t.supplyLevel==='tight'?'b-hot':t.supplyLevel==='moderate'?'b-warm':'b-cool')+'">'+esc(t.supplyLevel||'—')+'</span></td>'+
+      '</tr>';
+    }).join('');
+    html+=sec('&#128336;','Time-to-Fill: QLM vs. Client Direct Hire',
+      '<table class="sal-table"><thead><tr><th>Trade</th><th>Client Hires Direct</th><th>Using QLM</th><th>Active Openings</th><th>Candidate Supply</th></tr></thead><tbody>'+ftrows+'</tbody></table>'+
+      '<div style="font-size:.7rem;color:#94a3b8;margin-top:8px;">Use this table in client conversations to show the cost of trying to hire direct in a tight market.</div>'
+    );
+  }
+
+  // QLM Advantages
+  if(d.qlmAdvantages&&d.qlmAdvantages.length){
+    var adv=d.qlmAdvantages.map(function(a,i){
+      return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9;">'+
+        '<div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(i+1)+'</div>'+
+        '<span style="font-size:.84rem;color:var(--text);line-height:1.6;">'+esc(a)+'</span></div>';
+    }).join('');
+    html+=sec('&#127919;','QLM Competitive Advantages in '+market,adv);
+  }
+
+  document.getElementById('report-container').innerHTML=html;
+}
+
+// ── RENDER DRILL REPORT ──
+function renderDrillReport(d,market,today,myPay,myBill){
+  var html='';
+  var bra=d.billRateAnalysis||{};
+  var pra=d.payRateAnalysis||{};
+  var ftd=d.fillTimeData||{};
+  var ms=d.marketSnapshot||{};
+  var ecb=d.employerCostBreakdown||{};
+  var tcd=d.turnoverCostData||{};
+
+  // Bill Rate Card
+  var billHtml='<div class="bill-rate-card">'+
+    '<div class="brc-label">Recommended Bill Rate — All-Inclusive (W2 Temp)</div>'+
+    '<div class="brc-rate">'+esc(bra.recommendedBillRate||'—')+'</div>'+
+    '<div class="brc-range">Market range: '+esc(bra.marketBillRateRange||'—')+'</div>'+
+    (myBill?'<div style="font-size:.75rem;color:var(--blue-mid2);margin-top:4px;">Your current rate: $'+esc(myBill)+'/hr &nbsp;&middot;&nbsp; '+(parseInt(myBill)>parseInt((bra.recommendedBillRate||'0').replace(/\D/g,''))?'<span style="color:#22c55e;">Above market</span>':'<span style="color:#f59e0b;">Below market</span>')+'</div>':'')+
+    '<div class="brc-grid">'+
+      '<div class="brc-stat"><div class="brc-stat-n">WC Included</div><div class="brc-stat-l">Workers Comp Covered</div></div>'+
+      '<div class="brc-stat"><div class="brc-stat-n">'+esc(ftd.timeSaved||'4-6 wks')+'</div><div class="brc-stat-l">Faster Than Self-Managed</div></div>'+
+      '<div class="brc-stat"><div class="brc-stat-n">'+esc(bra.qlmValueDollarAmount||'Significant')+'</div><div class="brc-stat-l">Client Value Delivered</div></div>'+
+    '</div>'+
+  '</div>';
+
+  // Employer cost breakdown — calculated from actual inputs, not AI-generated numbers
+  var ecbHtml='';
+  var pay = parseFloat(myPay) || parseFloat((ecb.workerPayRate||'0').replace(/[^0-9.]/g,'')) || 0;
+  var bill = parseFloat(myBill) || parseFloat((bra.recommendedBillRate||'0').replace(/[^0-9.]/g,'')) || 0;
+  if(pay > 0){
+    var fica   = Math.round(pay * 0.0765 * 100) / 100;
+    var futa   = Math.round(pay * 0.006  * 100) / 100;
+    var suta   = Math.round(pay * 0.027  * 100) / 100;
+    // WC: Florida construction average ~$1.40-2.50 per $100 wages depending on classification
+    // Electrician ~$1.40, Welder/Ironworker ~$2.50+, general laborer ~$1.80
+    var trade = (d.trade||'').toLowerCase();
+    var wcRate = trade.includes('iron') || trade.includes('weld') || trade.includes('concrete') ? 0.025
+               : trade.includes('electrician') || trade.includes('hvac') || trade.includes('plumb') ? 0.014
+               : 0.018;
+    var wc     = Math.round(pay * wcRate * 100) / 100;
+    var gl     = Math.round(pay * 0.015 * 100) / 100;
+    var hardCosts = pay + fica + futa + suta + wc + gl;
+    var margin = bill > 0 ? Math.round((bill - hardCosts) * 100) / 100 : null;
+    var impliedMarkup = bill > 0 ? Math.round((bill / pay - 1) * 100) : null;
+    var markupColor = impliedMarkup > 60 ? '#b91c1c' : impliedMarkup < 40 ? '#a16207' : '#15803d';
+    var markupNote = impliedMarkup > 60 ? 'Above market — consider if client is price sensitive'
+                   : impliedMarkup < 40 ? 'Below market standard — may be leaving margin on the table'
+                   : 'Within industry standard range (40-60%)';
+
+    ecbHtml='<div style="font-size:.82rem;color:#64748b;margin-bottom:12px;line-height:1.6;">'+
+      'Every dollar of the bill rate is accounted for below. These numbers are calculated from your actual pay rate of <strong>$'+pay.toFixed(2)+'/hr</strong>'+
+      (bill>0?' against your bill rate of <strong>$'+bill.toFixed(2)+'/hr</strong>.':'.')+
+    '</div>'+
+    '<table class="comp-table"><thead><tr><th>Cost Component</th><th>Calculation</th><th class="qlm-hdr">Per Hour</th></tr></thead><tbody>'+
+      '<tr><td style="font-weight:600;color:var(--navy);">Worker Pay</td>'+
+        '<td style="font-size:.78rem;color:#64748b;">What the '+esc(d.trade||'worker')+' takes home</td>'+
+        '<td class="qlm-col" style="font-weight:700;">$'+pay.toFixed(2)+'</td></tr>'+
+      '<tr><td style="font-weight:600">FICA Taxes</td>'+
+        '<td style="font-size:.78rem;color:#64748b;">7.65% employer share — Social Security + Medicare</td>'+
+        '<td class="qlm-col">$'+fica.toFixed(2)+'</td></tr>'+
+      '<tr><td style="font-weight:600">Federal Unemployment (FUTA)</td>'+
+        '<td style="font-size:.78rem;color:#64748b;">0.6% — QLM pays, client pays nothing</td>'+
+        '<td class="qlm-col">$'+futa.toFixed(2)+'</td></tr>'+
+      '<tr><td style="font-weight:600">State Unemployment (SUTA)</td>'+
+        '<td style="font-size:.78rem;color:#64748b;">2.7% Florida rate — QLM pays, client pays nothing</td>'+
+        '<td class="qlm-col">$'+suta.toFixed(2)+'</td></tr>'+
+      '<tr><td style="font-weight:600;color:#b91c1c;">Workers Comp Insurance</td>'+
+        '<td style="font-size:.78rem;color:#64748b;">FL construction WC ~'+(wcRate*100).toFixed(1)+'% of wages for '+esc(d.trade||'this trade')+' — QLM absorbs all claims risk</td>'+
+        '<td class="qlm-col" style="color:#b91c1c;font-weight:700;">$'+wc.toFixed(2)+'</td></tr>'+
+      '<tr><td style="font-weight:600">General Liability Insurance</td>'+
+        '<td style="font-size:.78rem;color:#64748b;">~1.5% of wages — QLM carries GL on all workers</td>'+
+        '<td class="qlm-col">$'+gl.toFixed(2)+'</td></tr>'+
+      '<tr style="background:#fef9e7;"><td style="font-weight:700;color:#a16207;">Total Hard Costs</td>'+
+        '<td style="font-size:.78rem;color:#a16207;">Pay + all employer taxes and insurance</td>'+
+        '<td class="qlm-col" style="font-weight:700;color:#a16207;">$'+hardCosts.toFixed(2)+'</td></tr>'+
+      (bill>0 && margin!==null ?
+        '<tr><td style="font-weight:600">Admin + QLM Margin</td>'+
+          '<td style="font-size:.78rem;color:#64748b;">Recruiting, HR, payroll admin, overhead, and QLM profit</td>'+
+          '<td class="qlm-col">$'+margin.toFixed(2)+'</td></tr>' : '')+
+      (bill>0 ?
+        '<tr style="background:#f0fdf4;"><td style="font-weight:700;color:#15803d;">Your Bill Rate</td>'+
+          '<td style="font-size:.78rem;color:#64748b;">All-inclusive — client has zero employer liability</td>'+
+          '<td class="qlm-col" style="font-weight:700;color:#15803d;">$'+bill.toFixed(2)+'/hr</td></tr>' :
+        '<tr style="background:#f0fdf4;"><td style="font-weight:700;color:#15803d;">Minimum Bill Rate</td>'+
+          '<td style="font-size:.78rem;color:#64748b;">Hard costs only — add margin for viable rate</td>'+
+          '<td class="qlm-col" style="font-weight:700;color:#15803d;">$'+hardCosts.toFixed(2)+'+/hr</td></tr>')+
+    '</tbody></table>'+
+    (impliedMarkup!==null ?
+      '<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;display:flex;align-items:center;gap:12px;">'+
+        '<div style="font-size:1.4rem;font-weight:700;color:'+markupColor+';">'+impliedMarkup+'%</div>'+
+        '<div><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;">Your Implied Markup</div>'+
+        '<div style="font-size:.8rem;color:'+markupColor+';margin-top:2px;">'+markupNote+'. Industry standard for construction staffing: 40-60%.</div></div>'+
+      '</div>' : '')+
+    '<div style="background:#e0f4fc;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-size:.82rem;line-height:1.6;color:var(--navy);">'+
+      '<strong>&#128737; Client Liability Eliminated:</strong> If this '+esc(d.trade||'worker')+' were on the client payroll at $'+pay.toFixed(2)+'/hr, '+
+      'the client would also owe $'+fica.toFixed(2)+' FICA + $'+futa.toFixed(2)+' FUTA + $'+suta.toFixed(2)+' SUTA + $'+wc.toFixed(2)+' WC + $'+gl.toFixed(2)+' GL = '+
+      '<strong>$'+(fica+futa+suta+wc+gl).toFixed(2)+'/hr in mandatory employer costs</strong> on top of the pay rate — '+
+      'plus recruiting fees, HR admin, and unemployment risk. QLM absorbs all of it for one predictable bill rate.'+
+    '</div>';
+  } else {
+    ecbHtml='<div style="color:#94a3b8;font-size:.84rem;padding:20px 0;">Enter your pay rate in the left panel to see the calculated cost breakdown.</div>';
+  }
+
+  // Turnover cost section
+  var turnoverHtml='<div class="ins-grid" style="margin-bottom:14px;">'+
+    mkIns(tcd.industryAvgTurnoverRate||'40-60%','Annual Turnover Rate','Construction industry average for this trade')+
+    mkIns(tcd.costToReplaceWorker||'$8,000-15,000','Cost to Replace One Worker','Recruiting, onboarding, lost productivity')+
+    mkIns(tcd.qlmScreeningValue||'Significant','QLM Screening Value','Pre-screened workers reduce bad hire risk')+
+  '</div>'+
+  '<div class="tp-box green">'+
+    '<div class="tp-label green">Temp-to-Hire Advantage</div>'+
+    '<div class="tp-text">'+esc(tcd.tempToHireBenefit||'Temp-to-hire lets you evaluate the worker on the job for 60-90 days before making a permanent commitment — eliminating the cost and disruption of a bad hire.')+'</div>'+
+  '</div>'+
+  '<div class="tp-box warn">'+
+    '<div class="tp-label warn">Turnover Cost Reality</div>'+
+    '<div class="tp-text">'+esc(tcd.qlmScreeningValue||'Every worker QLM places goes through skills assessment, safety screening, and reference checks — dramatically reducing the turnover that costs clients thousands per replacement.')+'</div>'+
+  '</div>';
+
+  // Fill time table — self-managed vs QLM (no "direct hire" language)
+  var ftHtml='<table class="comp-table"><thead><tr>'+
+    '<th>Metric</th><th>Client Self-Manages Hiring</th><th class="qlm-hdr">Using QLM Temp Staffing</th>'+
+  '</tr></thead><tbody>'+
+    '<tr><td style="font-weight:600">Time to Fill</td><td style="color:#b91c1c;font-weight:600;">'+esc(ftd.clientSelfManagedAvg||'4-8 weeks')+'</td><td class="qlm-col">'+esc(ftd.qlmAvg||'1-2 weeks')+'</td></tr>'+
+    '<tr><td style="font-weight:600">Time Saved</td><td>—</td><td class="qlm-col" style="color:#15803d;font-weight:700;">'+esc(ftd.timeSaved||'3-6 weeks faster')+'</td></tr>'+
+    '<tr><td style="font-weight:600">Cost of Open Position/Week</td><td colspan="2" style="color:#b91c1c;">'+esc(ftd.costOfVacancy||'Varies by project impact')+'</td></tr>'+
+    '<tr><td style="font-weight:600">Workers Comp Exposure</td><td style="color:#b91c1c;">Client carries full WC risk and premium impact</td><td class="qlm-col">QLM absorbs all WC — zero exposure to client</td></tr>'+
+    '<tr><td style="font-weight:600">Payroll Taxes</td><td style="color:#b91c1c;">Client pays FICA, FUTA, SUTA</td><td class="qlm-col">100% covered by QLM</td></tr>'+
+    '<tr><td style="font-weight:600">Bad Hire Risk</td><td style="color:#b91c1c;">Full replacement cost if worker does not work out</td><td class="qlm-col">Temp-to-hire: evaluate before committing</td></tr>'+
+    '<tr><td style="font-weight:600">Unemployment Claims</td><td style="color:#b91c1c;">Client experience rate affected by layoffs</td><td class="qlm-col">QLM handles all UI — not on client account</td></tr>'+
+  '</tbody></table>';
+
+  // Pay rate comparison
+  var payHtml='';
+  if(myPay){
+    var myPayInt = parseInt(myPay) || 0;
+    // Extract low and high from market range e.g. "$20-$26/hr" or "$20-26/hr"
+    var rangeNums = (pra.marketPayRange||'').match(/\d+/g) || [];
+    var marketLow  = rangeNums.length >= 1 ? parseInt(rangeNums[0]) : 0;
+    var marketHigh = rangeNums.length >= 2 ? parseInt(rangeNums[1]) : marketLow;
+    var mpMin = parseInt((pra.minimumCompetitiveRate||'0').replace(/\D/g,'')) || marketLow;
+
+    var payStatus, payStatusNote;
+    if(marketHigh > 0 && myPayInt > marketHigh) {
+      payStatus = '<span style="color:#15803d;font-weight:700;">&#10003; Above Market — Strong retention</span>';
+      payStatusNote = 'You are paying above the market range — good for retention and attracting quality workers.';
+    } else if(myPayInt >= mpMin) {
+      payStatus = '<span style="color:#15803d;font-weight:700;">&#10003; Competitive — Within market range</span>';
+      payStatusNote = 'Your pay rate is within the competitive market range for this trade and level.';
+    } else {
+      payStatus = '<span style="color:#b91c1c;font-weight:700;">&#9888; Below Market — Turnover risk</span>';
+      payStatusNote = 'Your pay rate is below the market minimum. Workers may leave for competing offers within 30-60 days.';
+    }
+
+    payHtml='<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;">'+
+      '<div style="font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Your Pay Rate vs Market</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">'+
+        '<div><div style="font-size:1.2rem;font-weight:700;color:var(--navy);">$'+esc(myPay)+'/hr</div><div style="font-size:.62rem;color:#94a3b8;text-transform:uppercase;margin-top:2px;">Your Pay Rate</div></div>'+
+        '<div><div style="font-size:.95rem;font-weight:700;color:var(--blue-dk);line-height:1.3;">'+esc(pra.marketPayRange||'—')+'</div><div style="font-size:.62rem;color:#94a3b8;text-transform:uppercase;margin-top:2px;">Market Range</div></div>'+
+        '<div style="display:flex;align-items:center;justify-content:center;"><div>'+payStatus+'<div style="font-size:.67rem;color:#64748b;margin-top:3px;">'+payStatusNote+'</div></div></div>'+
+      '</div>'+
+    '</div>';
+  }
+  payHtml+='<div style="font-size:.84rem;line-height:1.7;color:var(--text);margin-bottom:10px;">'+
+    '<strong>Market Pay Range:</strong> '+esc(pra.marketPayRange||'—')+'<br>'+
+    '<strong>Competing Offers:</strong> '+esc(pra.competingOffers||'—')+'<br>'+
+    '<strong>Minimum to Attract Quality Workers:</strong> '+esc(pra.minimumCompetitiveRate||'—')+'<br>'+
+    '<strong>Loaded Cost (your actual cost/hr):</strong> '+esc(pra.loadedCostBreakdown||'—')+
+  '</div>';
+
+  // Market snapshot
+  var snapHtml='<div class="ins-grid">'+
+    mkIns(ms.activeJobPostings||'—','Active Job Postings','Current openings in '+market)+
+    mkIns(ms.estimatedActiveCandidates||'—','Active Candidates','Estimated workers looking')+
+    mkIns(ms.demandTrend||'—','Demand Trend','Direction of hiring demand')+
+    mkIns(ms.wageGrowthYoY||'—','Wage Growth YoY','Year-over-year wage increase')+
+  '</div>'+
+  (ms.topHiringCompanies?'<div style="font-size:.78rem;color:#64748b;margin-top:10px;">&#128101; <strong>Companies competing for the same workers:</strong> '+esc(ms.topHiringCompanies)+'</div>':'');
+
+  // Talking points — color-coded by type
+  var talkHtml='';
+  (d.talkingPoints||[]).forEach(function(tp){
+    var color = (tp.type==='temp_to_hire'||tp.type==='fill_time'||tp.type==='no_liability'||tp.type==='flexibility') ? 'green'
+              : (tp.type==='turnover'||tp.type==='shortage'||tp.type==='workers_comp') ? 'warn' : '';
+    talkHtml+='<div class="tp-box '+color+'">'+
+      '<div class="tp-label '+color+'">'+esc(tp.label||tp.type||'')+'</div>'+
+      '<div class="tp-text" id="tp-'+esc(tp.type||'')+'">'+esc(tp.text||'')+'</div>'+
+      '<button class="tp-copy" onclick="copyText(\'tp-'+esc(tp.type||'')+'\',this)">Copy</button>'+
+    '</div>';
+  });
+
+  // Proposal paragraphs
+  var pp=d.proposalParagraphs||{};
+  var propHtml=['opening','marketContext','qlmDifferentiator','callToAction'].map(function(key){
+    var labels={opening:'Opening Paragraph',marketContext:'Market Reality',qlmDifferentiator:'Why QLM — The Value Proposition',callToAction:'Call to Action'};
+    if(!pp[key]) return '';
+    return '<div class="proposal-block">'+
+      '<div class="pb-label">'+labels[key]+'<button class="pb-copy-btn" onclick="copyText(\'prop-'+key+'\',this)">Copy</button></div>'+
+      '<div class="pb-text" id="prop-'+key+'">'+esc(pp[key])+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Bill rate defense points
+  var defHtml=(bra.rateDefensePoints||[]).map(function(p,i){
+    return '<div style="display:flex;gap:9px;padding:9px 0;border-bottom:1px solid #f1f5f9;">'+
+      '<div style="width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(i+1)+'</div>'+
+      '<span style="font-size:.84rem;line-height:1.65;">'+esc(p)+'</span></div>';
+  }).join('');
+
+  // Pay rate section
+  var payHtml2='';
+  if(myPay){
+    var myPayInt2 = parseInt(myPay) || 0;
+    var rangeNums2 = (pra.marketPayRange||'').match(/\d+/g) || [];
+    var mktLow  = rangeNums2.length >= 1 ? parseInt(rangeNums2[0]) : 0;
+    var mktHigh = rangeNums2.length >= 2 ? parseInt(rangeNums2[1]) : mktLow;
+    var mktMin2 = parseInt((pra.minimumCompetitiveRate||'0').replace(/\D/g,'')) || mktLow;
+
+    var payStatus2, payNote2;
+    if(mktHigh > 0 && myPayInt2 > mktHigh){
+      payStatus2 = '<span style="color:#15803d;font-weight:700;">&#10003; Above Market — Strong retention</span>';
+      payNote2 = 'Paying above market range — low turnover risk, workers are unlikely to leave for competing offers.';
+    } else if(myPayInt2 >= mktMin2){
+      payStatus2 = '<span style="color:#15803d;font-weight:700;">&#10003; Competitive — Within market range</span>';
+      payNote2 = 'Pay rate is within the competitive range for this trade and experience level.';
+    } else {
+      payStatus2 = '<span style="color:#b91c1c;font-weight:700;">&#9888; Below Market — Turnover risk</span>';
+      payNote2 = 'Pay rate is below market minimum. Workers may leave for competing offers within 30-60 days.';
+    }
+    payHtml2='<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;">'+
+      '<div style="font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Your Pay Rate vs Market</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">'+
+        '<div><div style="font-size:1.2rem;font-weight:700;color:var(--navy);">$'+esc(myPay)+'/hr</div><div style="font-size:.62rem;color:#94a3b8;text-transform:uppercase;margin-top:2px;">Your Pay Rate</div></div>'+
+        '<div><div style="font-size:1.1rem;font-weight:700;color:var(--blue-dk);">'+esc(pra.marketPayRange||'—')+'</div><div style="font-size:.62rem;color:#94a3b8;text-transform:uppercase;margin-top:2px;">Market Range</div></div>'+
+        '<div><div style="font-size:.9rem;font-weight:700;margin-top:2px;">'+payStatus2+'</div><div style="font-size:.65rem;color:#64748b;margin-top:3px;">'+payNote2+'</div></div>'+
+      '</div></div>';
+  }
+  payHtml2+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'+
+    '<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px;">'+
+      '<div style="font-size:.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Market Pay Range</div>'+
+      '<div style="font-size:1.1rem;font-weight:700;color:var(--navy);">'+esc(pra.marketPayRange||'—')+'</div>'+
+    '</div>'+
+    '<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px;">'+
+      '<div style="font-size:.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Minimum to Attract Quality Workers</div>'+
+      '<div style="font-size:1.1rem;font-weight:700;color:var(--navy);">'+esc(pra.minimumCompetitiveRate||'—')+'</div>'+
+    '</div>'+
+  '</div>'+
+  '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:10px;font-size:.83rem;line-height:1.65;color:var(--text);">'+
+    '<strong>&#9888; Competing Offers Right Now:</strong> '+esc(pra.competingOffers||'—')+
+  '</div>'+
+  '<div style="font-size:.83rem;line-height:1.7;color:var(--text);">'+
+    '<strong>Why Pay Rate Matters for Your Client:</strong> '+esc(pra.whyPayMatters||'Paying below market drives turnover — and every replacement costs the client project time and QLM time to re-fill the position.')+
+  '</div>';
+
+  // Difficulty meter
+  var df=d.difficultyFactors||{shortage:70,certRequirements:60,competition:65,experience:55,geography:50};
+  var ds=d.difficultyScore||7;
+  var diffCol=ds>=8?'#b91c1c':ds>=6?'#a16207':'#15803d';
+  var diffFactors=[
+    {label:'Worker Shortage',val:df.shortage||70},
+    {label:'Cert Requirements',val:df.certRequirements||60},
+    {label:'Competition for Workers',val:df.competition||65},
+    {label:'Experience Required',val:df.experience||55},
+    {label:'Geography / Travel',val:df.geography||50}
+  ];
+  var diffHtml='<div class="diff-meter-wrap">'+
+    '<div class="diff-score-ring" style="border:6px solid '+diffCol+';">'+
+      '<div class="diff-score-num" style="color:'+diffCol+'">'+ds+'/10</div>'+
+      '<div class="diff-score-lbl">'+esc(d.difficultyLabel||'Difficulty')+'</div>'+
+    '</div>'+
+    '<div class="diff-factors">'+
+      diffFactors.map(function(f){
+        var fc=f.val>=80?'#ef4444':f.val>=60?'#f59e0b':'#0099d8';
+        return '<div class="diff-factor-row">'+
+          '<span class="diff-factor-label">'+f.label+'</span>'+
+          '<div class="diff-factor-bar-wrap"><div class="diff-factor-bar" style="width:'+f.val+'%;background:'+fc+'"></div></div>'+
+          '<span style="font-size:.7rem;font-weight:700;color:'+fc+';min-width:28px;text-align:right;">'+f.val+'</span>'+
+        '</div>';
+      }).join('')+
+    '</div></div>'+
+    '<div style="font-size:.8rem;color:#64748b;margin-top:10px;line-height:1.6;">Use this score in client conversations: a '+ds+'/10 difficulty means finding a qualified '+esc(d.trade||'worker')+' in '+esc(market)+' is '+esc(d.difficultyLabel||'challenging')+'. Every week you wait, the pool gets smaller.</div>';
+
+  // Assemble with tabs
+  html='<div class="drill-tabs">'+
+    '<div class="dtab active" onclick="switchDTab(\'bill\',this)">&#128181; Bill Rate</div>'+
+    '<div class="dtab" onclick="switchDTab(\'costs\',this)">&#128737; Cost Breakdown</div>'+
+    '<div class="dtab" onclick="switchDTab(\'turnover\',this)">&#128260; Turnover & Temp</div>'+
+    '<div class="dtab" onclick="switchDTab(\'pay\',this)">&#128100; Pay Rate</div>'+
+    '<div class="dtab" onclick="switchDTab(\'difficulty\',this)">&#128308; Fill Difficulty</div>'+
+    '<div class="dtab" onclick="switchDTab(\'talking\',this)">&#128172; Talking Points</div>'+
+    '<div class="dtab" onclick="switchDTab(\'proposal\',this)">&#128140; Proposal Copy</div>'+
+  '</div>'+
+
+  '<div class="dtab-pane active" id="dtab-bill">'+
+    billHtml+
+    sec('&#128736;','Bill Rate Defense Points — Use These With Clients',defHtml||'<p style="color:#94a3b8;font-size:.84rem;">No defense points generated.</p>')+
+    sec('&#128336;','Time-to-Fill: Self-Managed Hiring vs QLM Temp Staffing',ftHtml)+
+  '</div>'+
+
+  '<div class="dtab-pane" id="dtab-costs">'+
+    sec('&#128737;','Where Every Dollar of the Bill Rate Goes',ecbHtml||'<p style="color:#94a3b8;">Cost breakdown not available — regenerate report.</p>')+
+  '</div>'+
+
+  '<div class="dtab-pane" id="dtab-turnover">'+
+    sec('&#128260;','Turnover Cost & Temp-to-Hire Value',turnoverHtml)+
+  '</div>'+
+
+  '<div class="dtab-pane" id="dtab-pay">'+
+    sec('&#128100;','Pay Rate Analysis — Defend What You Pay Workers',payHtml2)+
+  '</div>'+
+
+  '<div class="dtab-pane" id="dtab-difficulty">'+
+    sec('&#128308;','Fill Difficulty Score',diffHtml)+
+    sec('&#128200;','Market Snapshot — '+market,snapHtml)+
+  '</div>'+
+
+  '<div class="dtab-pane" id="dtab-talking">'+
+    sec('&#128172;','Client Talking Points — Click Any to Copy',talkHtml||'<p style="color:#94a3b8;">No talking points generated.</p>')+
+  '</div>'+
+
+  '<div class="dtab-pane" id="dtab-proposal">'+
+    sec('&#128140;','Proposal & Email Copy — Ready to Send',propHtml||'<p style="color:#94a3b8;">No proposal copy generated.</p>')+
+  '</div>';
+
+  document.getElementById('report-container').innerHTML=html;
+}
+
+function switchDTab(id,el){
+  document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.dtab-pane').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('dtab-'+id).classList.add('active');
+}
+
+// ── HELPERS ──
+function sec(icon,title,body){
+  return '<div class="rs"><div class="rs-hd"><span class="rs-hd-icon">'+icon+'</span><span class="rs-hd-title">'+title+'</span></div><div class="rs-bd">'+body+'</div></div>';
+}
+function insGrid(m){
+  if(!m) return '';
+  var pairs=[['totalOpenPositions','Open Positions','Active postings'],['avgDaysToFillDirect','Days to Fill (Direct)','Client hiring alone'],['avgDaysToFillStaffing','Days to Fill (QLM)','Using a staffing firm'],['workerShortfall','Worker Shortfall','Supply vs demand gap'],['wageInflation','Wage Inflation','YoY pay increase'],['constructionSpend','Active Projects','Construction activity']];
+  return '<div class="ins-grid">'+pairs.map(function(p){return mkIns(m[p[0]]||'—',p[1],p[2]);}).join('')+'</div>';
+}
+function mkIns(n,l,s){
+  return '<div class="ins-card"><div class="ins-num">'+esc(String(n))+'</div><div class="ins-label">'+l+'</div><div class="ins-sub">'+s+'</div></div>';
+}
+function shimCards(){
+  var o='';
+  for(var i=0;i<4;i++) o+='<div class="shim-card"><div class="shim" style="width:35%"></div><div class="shim"></div><div class="shim" style="width:70%"></div><div class="shim" style="width:85%"></div></div>';
+  return o;
+}
+function setToolbar(title,meta,market,date){
+  document.getElementById('report-toolbar').style.display='flex';
+  document.getElementById('rpt-title').textContent=title;
+  document.getElementById('rpt-meta').textContent=meta;
+  document.getElementById('print-meta').innerHTML='Report: '+esc(title)+'<br>'+esc(meta)+'<br>QLM &mdash; myqlm.com &mdash; Confidential';
+}
+function showSt(id,type,msg){document.getElementById(id).innerHTML='<div class="sbox '+type+'">'+(type==='loading'?'<div class="spin"></div>':'')+'<span>'+msg+'</span></div>';}
+function clearSt(id){document.getElementById(id).innerHTML='';}
+
+function copyText(id,btn){
+  var el=document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.textContent||el.innerText).then(function(){
+    var o=btn.textContent; btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent=o;},2000);
+  });
+}
+
+function copyTalkingPoints(){
+  if(!reportRaw) return;
+  var tps=reportRaw.talkingPoints||[];
+  var text=tps.map(function(tp){return (tp.label||tp.type)+': '+tp.text;}).join('\n\n');
+  if(!text) text=document.getElementById('report-container').innerText;
+  navigator.clipboard.writeText(text).then(function(){alert('Talking points copied to clipboard!');});
+}
+
+function copyProposal(){
+  if(!reportRaw) return;
+  var pp=reportRaw.proposalParagraphs||{};
+  var text=[pp.opening,pp.marketContext,pp.qlmDifferentiator,pp.callToAction].filter(Boolean).join('\n\n');
+  if(!text) text=document.getElementById('report-container').innerText;
+  navigator.clipboard.writeText(text).then(function(){alert('Proposal copy copied to clipboard!');});
+}
+
+function saveHistory(label,date){
+  var h=JSON.parse(localStorage.getItem('qlm_insight_history')||'[]');
+  h.unshift({label:label,date:date});
+  localStorage.setItem('qlm_insight_history',JSON.stringify(h.slice(0,8)));
+  renderHistory();
+}
+function renderHistory(){
+  var h=JSON.parse(localStorage.getItem('qlm_insight_history')||'[]');
+  var el=document.getElementById('rpt-history');
+  if(!h.length){el.innerHTML='<span style="font-size:.73rem;color:#94a3b8;">No reports yet.</span>';return;}
+  el.innerHTML=h.map(function(r){
+    return '<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:.76rem;">'+
+      '<div style="font-weight:600;color:var(--navy);">'+esc(r.label)+'</div>'+
+      '<div style="color:#94a3b8;font-size:.68rem;">'+esc(r.date)+'</div></div>';
+  }).join('');
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  var s=localStorage.getItem('qlm_server_url');
+  if(s){document.getElementById('serverUrl').value=s;saveServerUrl();}
+  renderHistory();
+});
+</script>
+</body>
+</html>
