@@ -255,18 +255,9 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     <div class="logo-badge">QLM</div>
     <div class="logo-text">Quality Labor Management</div>
   </div>
-  <div class="tool-nav"><button class="btn-settings" onclick="toggleSettings()" title="Server Settings">&#9881;</button><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Trades Test</a><button class="tnav" id="nav-history" onclick="showScreen('history')">History <span id="hist-count"></span></button></div>
+  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Trades Test</a><button class="tnav" id="nav-history" onclick="showScreen('history')">History <span id="hist-count"></span></button></div>
 </header>
 <div id="cand-mode-banner" class="cand-mode-banner hidden">&#128100; Candidate Mode — Complete all questions and submit when finished.</div>
-
-
-<div class="settings-panel" id="settings-panel">
-  <div class="config-inner">
-    <label>&#128279; Server URL</label>
-    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
-    <span id="serverStatus">Paste your Railway server URL</span>
-  </div>
-</div>
 
 
 <!-- TRADE SELECT SCREEN -->
@@ -503,15 +494,8 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 // ═══════════════════════════════════════════════════
 //  SERVER URL
 // ═══════════════════════════════════════════════════
-function saveServerUrl() {
-  var url = document.getElementById('serverUrl').value.trim();
-  localStorage.setItem('qlm_server_url', url);
-  var s = document.getElementById('serverStatus');
-  if (!url) { s.textContent = 'Paste your Railway server URL to enable AI scoring'; s.className = ''; }
-  else if (url.startsWith('https://') && url.includes('.')) { s.textContent = '\u2713 Server URL saved'; s.className = 'ok'; }
-  else { s.textContent = '\u26a0 Should start with https://'; s.className = 'err'; }
-}
-function getServerUrl() { return document.getElementById('serverUrl').value.trim(); }
+function saveServerUrl(){}
+function getServerUrl(){ return ''; }
 
 // ═══════════════════════════════════════════════════
 //  QUESTION BANK
@@ -1838,10 +1822,7 @@ window.addEventListener('DOMContentLoaded', function() {
   checkUrlParams();
 });
 
-function toggleSettings() {
-  var p = document.getElementById('settings-panel');
-  p.classList.toggle('open');
-}
+function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 var _origSave = saveServerUrl;
 saveServerUrl = function() {
