@@ -246,6 +246,17 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 .btn-settings{background:none;border:1px solid rgba(255,255,255,.2);color:#b8dff0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;}
 .btn-settings:hover{border-color:var(--blue);color:var(--blue);}
 
+
+/* --- compact nav (auth badge fits inline) --- */
+header{gap:12px;}
+.logo-text{white-space:nowrap;}
+.tool-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+.tool-nav::-webkit-scrollbar{display:none;}
+.tnav{white-space:nowrap;flex-shrink:0;}
+@media(max-width:900px){
+  .logo-text{display:none;}
+  .tnav{padding:4px 8px;font-size:.62rem;}
+}
 </style>
 </head>
 <body>
