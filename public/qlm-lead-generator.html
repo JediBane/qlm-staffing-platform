@@ -228,7 +228,7 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 <body>
 <header>
   <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
-  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav active">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav active">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
 </header>
 <div class="hero">
   <div class="hero-inner">
@@ -459,6 +459,8 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 
 <footer>&#169; 2025 Quality Labor Management, LLC &middot; Lead Generator v2 &middot; myqlm.com</footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
 <script>
 // ═══════ STATE ═══════
 var currentLeads = [];
@@ -776,6 +778,7 @@ function runSearch(){
 
 // ─── QLM ACTIVITY LOG (feeds Admin Dashboard) ───────────────────────────
 function qlmLog(type, payload){
+  if(window.QLM && QLM.logActivity){ QLM.logActivity(type, payload||{}); return; }
   try{
     var log = JSON.parse(localStorage.getItem('qlm_activity')||'[]');
     log.unshift(Object.assign({ type:type, date:new Date().toISOString() }, payload||{}));
@@ -996,6 +999,19 @@ function saveLead(id){
   var lead = findLead(id);
   if(!lead) return;
   lead.savedAt = new Date().toISOString();
+  // Cloud sync
+  if(window.QLM && QLM.save){
+    QLM.save('leads', {
+      company: lead.company, location: lead.location, trades: lead.trades||[],
+      job_count: parseInt(lead.jobCount)||null, source: lead.source,
+      posting_date: lead.postingDate, contact_signal: lead.contactSignal,
+      project_type: lead.projectType, company_size: lead.companySize,
+      urgency: lead.urgency, qlm_fit_score: parseInt(lead.qlmFitScore)||null,
+      fit_reason: lead.fitReason, summary: lead.summary,
+      competitor_signal: lead.competitorSignal, job_url: lead.jobUrl,
+      status: lead.status||'new', notes: lead.notes||null
+    });
+  }
   var store = getStore();
   if(!store.find(function(l){ return l.id===id; })) store.unshift(lead);
   else store = store.map(function(l){ return l.id===id ? lead : l; });
@@ -1190,5 +1206,6 @@ window.addEventListener('DOMContentLoaded', function(){
   updatePersLabel();
 });
 </script>
+<script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
 </body>
 </html>
