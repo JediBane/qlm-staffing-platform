@@ -98,7 +98,7 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     <div class="logo-badge">QLM</div>
     <div class="logo-text">Quality Labor Management</div>
   </div>
-  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav active">&#128207; Dashboard</a></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav active">&#128207; Dashboard</a></div>
 </header>
 
 <div class="main">
@@ -187,6 +187,8 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 
 <footer>&#169; 2025 Quality Labor Management, LLC &middot; Internal Dashboard &middot; myqlm.com</footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
 <script>
 var currentView = 'admin';
 var dateFilter = 30;
@@ -250,10 +252,47 @@ function selectRecruiter(r, el){
 }
 
 // ─── MAIN RENDER ─────────────────────────────────────────────────────────
-function render(){
-  var assessments = filterByDate(getAssessments(), dateFilter);
-  var leads = filterByDate(getLeads(), dateFilter);
-  var activity = filterByDate(getActivity(), dateFilter);
+async function render(){
+  var assessments, leads, activity, candidates = [];
+
+  // Cloud-first when signed in, otherwise localStorage
+  if(window.QLM && QLM.getUser){
+    var u = await QLM.getUser();
+    if(u){
+      try{
+        var results = await Promise.all([
+          QLM.list('assessments'), QLM.list('leads'),
+          QLM.list('activity', null, {limit:100}), QLM.list('candidates')
+        ]);
+        assessments = results[0].map(function(a){
+          return { candidate:a.candidate_name, trade:a.trade, score:a.score,
+                   verdict:a.verdict, recruiter:a.recruiter, date:a.created_at };
+        });
+        leads = results[1].map(function(l){
+          return { company:l.company, trades:l.trades, location:l.location,
+                   qlmFitScore:l.qlm_fit_score, status:l.status, source:l.source,
+                   converted:l.converted, savedAt:l.created_at, reminderDate:l.reminder_date };
+        });
+        activity = results[2].map(function(x){
+          return { type:x.type, name:x.label, trade:x.trade, city:x.city, date:x.created_at };
+        });
+        candidates = results[3];
+        document.getElementById('data-source-note').textContent = '\u2601 Team data \u00b7 live from cloud';
+      }catch(e){ console.warn('cloud read failed', e); }
+    }
+  }
+
+  if(!assessments){
+    assessments = getAssessments();
+    leads = getLeads();
+    activity = getActivity();
+    var n = document.getElementById('data-source-note');
+    if(n) n.textContent = '\uD83D\uDCBB This device only \u00b7 sign in to see team data';
+  }
+
+  assessments = filterByDate(assessments, dateFilter);
+  leads = filterByDate(leads, dateFilter);
+  activity = filterByDate(activity, dateFilter);
 
   if(currentView==='recruiter' && selectedRecruiter!=='all'){
     assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
@@ -476,5 +515,6 @@ window.addEventListener('DOMContentLoaded', function(){
   setInterval(render, 30000);
 });
 </script>
+<script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
 </body>
 </html>
