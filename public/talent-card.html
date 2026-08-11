@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | SPQ Marketing Card</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+  :root {
+    --blue:    #0099d8;
+    --blue-dk: #005a7e;
+    --blue-lt: #e0f4fc;
+    --blue-md: #0077a8;
+    --navy:    #003a52;
+    --white:   #ffffff;
+    --gray:    #f4f7fb;
+    --text:    #2a4a5a;
+    --border:  #b8dff0;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--gray); min-height: 100vh; color: var(--text); }
+
+  header { background: var(--navy); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 64px; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-badge { background: var(--blue); color: white; font-weight: 700; font-size: 1rem; letter-spacing: 2px; padding: 6px 14px; border-radius: 4px; }
+  .logo-text { color: var(--border); font-size: 0.85rem; letter-spacing: 1px; }
+  .header-tag { color: var(--border); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
+  .version-badge { background: rgba(0,153,216,0.3); color: var(--blue-lt); font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 20px; margin-left: 8px; }
+
+  .config-bar { background: rgba(0,153,216,0.08); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .config-bar label { font-size: 0.72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--blue-md); white-space: nowrap; }
+  .config-bar input { flex: 1; max-width: 480px; border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-size: 0.82rem; font-family: monospace; outline: none; background: white; }
+  .config-bar input:focus { border-color: var(--blue); }
+  #serverStatus { font-size: 0.72rem; color: #94a3b8; }
+  #serverStatus.ok  { color: #22c55e; font-weight: 600; }
+  #serverStatus.err { color: #ef4444; font-weight: 600; }
+
+  .app { max-width: 1100px; margin: 32px auto; padding: 0 24px; display: grid; grid-template-columns: 380px 1fr; gap: 28px; align-items: start; }
+
+  .panel { background: white; border-radius: 12px; border: 1px solid var(--border); border-top: 4px solid var(--blue); padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+  .panel-title { font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 20px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #64748b; margin-bottom: 5px; }
+  .field input, .field select, .field textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s; background: white; color: var(--text); }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,153,216,0.1); }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── INTERVIEW NOTES ── */
+  .notes-section {
+    background: #f0f8fd;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .notes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .notes-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--blue-md);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .notes-badge {
+    font-size: 0.6rem;
+    background: rgba(0,153,216,0.15);
+    color: var(--blue-md);
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .notes-toggle-icon { color: var(--blue); font-size: 0.8rem; transition: transform 0.2s; }
+  .notes-toggle-icon.open { transform: rotate(180deg); }
+  #notesBody { display: none; }
+  #notesBody.open { display: block; }
+  #interviewNotes {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    background: white;
+    color: var(--text);
+    resize: vertical;
+    min-height: 90px;
+    transition: border-color 0.2s;
+  }
+  #interviewNotes:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,153,216,0.1); }
+  .notes-hint { font-size: 0.72rem; color: #64748b; margin-top: 6px; line-height: 1.5; }
+
+  /* ── PRIVACY TOGGLE ── */
+  .privacy-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+  .privacy-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .privacy-label .lock-icon { font-size: 0.9rem; }
+  .privacy-sub { font-size: 0.68rem; color: #94a3b8; margin-top: 1px; }
+
+  /* Toggle switch */
+  .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+  .toggle-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; }
+  .toggle-label.active { color: var(--blue-md); }
+  .toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 22px;
+    transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked + .toggle-slider { background: var(--blue); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* Tag inputs */
+  .tag-wrap { border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px; display: flex; flex-wrap: wrap; gap: 5px; min-height: 42px; cursor: text; background: white; transition: border-color 0.2s; }
+  .tag-wrap:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,153,216,0.1); }
+  .tag { background: var(--blue-lt); color: var(--blue-dk); font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+  .tag-x { cursor: pointer; opacity: 0.6; font-size: 0.9rem; }
+  .tag-x:hover { opacity: 1; }
+  .tag-inp { border: none !important; outline: none !important; background: transparent !important; font-size: 0.85rem; flex: 1; min-width: 80px; padding: 2px 4px !important; box-shadow: none !important; color: var(--text); }
+
+  .drop-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray); margin-bottom: 12px; }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--blue); background: var(--blue-lt); }
+  .drop-zone .dz-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .drop-zone p { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+  .drop-zone p.success { color: var(--blue-md); font-weight: 600; }
+  #resumeFile { display: none; }
+
+  .divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: #94a3b8; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+  .btn-primary { width: 100%; background: var(--blue); color: white; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; padding: 12px; cursor: pointer; transition: background 0.2s, transform 0.1s; margin-top: 6px; text-transform: uppercase; }
+  .btn-primary:hover { background: var(--blue-md); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-outline { width: 100%; background: transparent; color: var(--blue); border: 2px solid var(--blue); border-radius: 8px; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; padding: 11px; cursor: pointer; transition: all 0.2s; margin-top: 8px; text-transform: uppercase; }
+  .btn-outline:hover { background: var(--blue-lt); }
+
+  .ai-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; background: rgba(0,153,216,0.12); color: var(--blue-md); padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border); margin-left: 6px; }
+
+  .status-box { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; margin-top: 10px; }
+  .status-box.loading { background: rgba(0,153,216,0.08); color: var(--blue-md); }
+  .status-box.error   { background: rgba(239,68,68,0.08); color: #ef4444; }
+  .status-box.success { background: rgba(34,197,94,0.08); color: #15803d; }
+  .spinner { width: 15px; height: 15px; border: 2px solid rgba(0,153,216,0.3); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+
+  .preview-panel { position: sticky; top: 24px; }
+  .preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .preview-title { font-size: 1rem; font-weight: 700; color: var(--navy); }
+  .preview-wrap { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.1); min-height: 320px; display: flex; align-items: center; justify-content: center; }
+  .empty-state { text-align: center; color: #94a3b8; padding: 40px; }
+  .empty-state .big-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 0.88rem; line-height: 1.7; }
+  .card-ready-msg { background: var(--blue-lt); border: 1px solid var(--border); border-radius: 10px; padding: 24px; text-align: center; width: 100%; }
+  .card-ready-msg h3 { color: var(--navy); margin-bottom: 8px; font-size: 1.1rem; }
+  .card-ready-msg p  { color: #64748b; font-size: 0.85rem; margin-bottom: 16px; }
+  .btn-download { background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; padding: 9px 16px; cursor: pointer; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-download:hover { background: var(--blue-dk); }
+
+  @media (max-width: 768px) { .app { grid-template-columns: 1fr; } .preview-panel { position: static; } }
+
+/* ── TOOL NAV ── */
+.tool-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:5px 13px;border-radius:6px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;transition:all .2s;cursor:pointer;font-family:inherit;background:none;}
+.tnav:hover{border-color:#0099d8;color:#0099d8;background:rgba(0,153,216,.08);}
+.tnav.active{background:#0099d8;border-color:#0099d8;color:#fff;}
+
+
+/* SETTINGS PANEL */
+.settings-panel{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:0;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
+.settings-panel.open{max-height:80px;padding:10px 32px;}
+.settings-panel .config-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.settings-panel label{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);white-space:nowrap;}
+.settings-panel input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:.82rem;font-family:monospace;outline:none;background:#fff;color:var(--text);}
+.settings-panel input:focus{border-color:var(--blue);}
+.settings-panel input::placeholder{color:#94a3b8;}
+#serverStatus{font-size:.72rem;color:#94a3b8;}
+#serverStatus.ok{color:var(--success);font-weight:600;}
+#serverStatus.err{color:var(--danger);font-weight:600;}
+.btn-settings{background:none;border:1px solid rgba(255,255,255,.2);color:#b8dff0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;}
+.btn-settings:hover{border-color:var(--blue);color:var(--blue);}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-badge">QLM</div>
+    <div class="logo-text">Quality Labor Management</div>
+    <span class="version-badge">v1.01</span>
+  </div>
+  <div class="tool-nav"><button class="btn-settings" onclick="toggleSettings()" title="Server Settings">&#9881;</button><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav active">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a></div>
+</header>
+
+
+<div class="settings-panel" id="settings-panel">
+  <div class="config-inner">
+    <label>&#128279; Server URL</label>
+    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
+    <span id="serverStatus">Paste your Railway server URL</span>
+  </div>
+</div>
+
+
+<div class="app">
+
+  <!-- ── FORM ── -->
+  <div class="panel">
+    <div class="panel-title">🪪 Build Talent Card</div>
+
+    <!-- Resume upload -->
+    <div class="field">
+      <label>Resume <span class="ai-badge">✦ AI Extract</span></label>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('resumeFile').click()">
+        <div class="dz-icon">📄</div>
+        <p id="dropLabel">Drop resume here or click to upload<br><small>PDF, DOCX, or TXT</small></p>
+      </div>
+      <input type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt">
+      <div class="divider">or paste text</div>
+      <textarea id="resumeText" placeholder="Paste resume text here…" rows="4" style="font-size:0.82rem"></textarea>
+      <button class="btn-primary" id="extractBtn" onclick="extractResume()">✦ AI Extract Info</button>
+      <div id="extractStatus" class="status-box hidden"></div>
+    </div>
+
+    <!-- ── INTERVIEW NOTES (NEW v1.01) ── -->
+    <div class="notes-section">
+      <div class="notes-header" onclick="toggleNotes()">
+        <div class="notes-label">
+          📋 Recruiter Interview Notes
+          <span class="notes-badge">OPTIONAL</span>
+        </div>
+        <span class="notes-toggle-icon" id="notesIcon">▼</span>
+      </div>
+      <div id="notesBody">
+        <textarea id="interviewNotes"
+          placeholder="Add notes from your interview here…&#10;&#10;e.g. Great communicator, very punctual, has own tools, comfortable with overtime, prefers day shifts, bilingual English/Spanish…&#10;&#10;AI will incorporate these notes into the card summary."></textarea>
+        <div class="notes-hint">💡 These notes are used by AI to enhance the summary — they do not appear on the card directly.</div>
+      </div>
+    </div>
+
+    <div class="divider">or enter manually</div>
+
+    <!-- Manual fields -->
+    <div class="field"><label>Worker Name</label>
+      <input id="f_name" placeholder="e.g. John Smith"></div>
+
+    <div class="field"><label>Job Title / Trade</label>
+      <input id="f_title" placeholder="e.g. Journeyman Electrician"></div>
+
+    <div class="field-row">
+      <div class="field"><label>Experience</label>
+        <input id="f_exp" placeholder="e.g. 8+ yrs"></div>
+      <div class="field"><label>Location</label>
+        <input id="f_city" placeholder="e.g. Orlando, FL"></div>
+    </div>
+
+    <div class="field"><label>Phone</label>
+      <input id="f_phone" placeholder="e.g. 321-555-0100"></div>
+
+    <div class="field">
+      <label>Availability</label>
+      <select id="f_avail">
+        <option value="Available Immediately">Available Immediately</option>
+        <option value="Available in 2 Weeks">Available in 2 Weeks</option>
+        <option value="Limited Availability">Limited Availability</option>
+        <option value="Currently Placed">Currently Placed</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Skills <small style="color:#94a3b8;text-transform:none;letter-spacing:0;font-weight:400">(Enter to add)</small></label>
+      <div class="tag-wrap" id="skillsWrap" onclick="document.getElementById('skillInp').focus()">
+        <input class="tag-inp" id="skillInp" placeholder="Type skill + Enter…">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Previous Companies <small style="color:#94a3b8;text-transform:none;letter-spacing:0;font-weight:400">(Enter to add, max 3)</small></label>
+      <div class="tag-wrap" id="companiesWrap" onclick="document.getElementById('compInp').focus()">
+        <input class="tag-inp" id="compInp" placeholder="Company name + Enter…">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Certifications & Education <small style="color:#94a3b8;text-transform:none;letter-spacing:0;font-weight:400">(Enter to add, max 3)</small></label>
+      <div class="tag-wrap" id="certsWrap" onclick="document.getElementById('certInp').focus()">
+        <input class="tag-inp" id="certInp" placeholder="Cert or degree + Enter…">
+      </div>
+    </div>
+
+    <!-- ── PRIVACY TOGGLE (NEW v1.01) ── -->
+    <div class="privacy-bar">
+      <div>
+        <div class="privacy-label">
+          <span class="lock-icon">🔒</span>
+          Privacy Mode
+        </div>
+        <div class="privacy-sub">Masks last name and phone number on the card</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="privacyLabel">Off</span>
+        <label class="toggle">
+          <input type="checkbox" id="privacyToggle" onchange="updatePrivacyLabel()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="generateCard()">⚡ Generate Talent Card</button>
+    <button class="btn-outline" onclick="resetAll()">↺ Reset</button>
+  </div>
+
+  <!-- ── PREVIEW ── -->
+  <div class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-title">Preview</div>
+    </div>
+    <div class="preview-wrap" id="previewWrap">
+      <div class="empty-state">
+        <div class="big-icon">🗂️</div>
+        <p>Upload a resume and click<br>
+        <strong style="color:var(--blue)">✦ AI Extract Info</strong><br>
+        then click <strong style="color:var(--navy)">⚡ Generate Talent Card</strong></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  SERVER URL
+// ══════════════════════════════════════
+function saveServerUrl() {
+  const url = document.getElementById('serverUrl').value.trim();
+  localStorage.setItem('qlm_server_url', url);
+  const s = document.getElementById('serverStatus');
+  if (!url) { s.textContent = 'Paste your Railway server URL to enable AI extract'; s.className = ''; }
+  else if (url.startsWith('https://') && url.includes('.')) { s.textContent = '✓ Server URL saved'; s.className = 'ok'; }
+  else { s.textContent = '⚠ Should start with https://'; s.className = 'err'; }
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('qlm_server_url');
+  if (saved) { document.getElementById('serverUrl').value = saved; saveServerUrl(); }
+});
+function getServerUrl() { return '/.netlify/functions/chat'; }
+
+// ══════════════════════════════════════
+//  INTERVIEW NOTES TOGGLE (v1.01)
+// ══════════════════════════════════════
+function toggleNotes() {
+  const body = document.getElementById('notesBody');
+  const icon = document.getElementById('notesIcon');
+  body.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+
+// ══════════════════════════════════════
+//  PRIVACY TOGGLE (v1.01)
+// ══════════════════════════════════════
+function updatePrivacyLabel() {
+  const on = document.getElementById('privacyToggle').checked;
+  const lbl = document.getElementById('privacyLabel');
+  lbl.textContent = on ? 'On' : 'Off';
+  lbl.className = 'toggle-label' + (on ? ' active' : '');
+}
+function isPrivacyOn() { return document.getElementById('privacyToggle').checked; }
+
+function maskLastName(fullName) {
+  const parts = fullName.trim().split(' ');
+  if (parts.length <= 1) return fullName;
+  const last = parts[parts.length - 1];
+  return parts.slice(0, -1).join(' ') + ' ' + last[0] + '.';
+}
+function maskPhone(phone) {
+  if (!phone) return '';
+  return phone.replace(/\d(?=\d{4})/g, '●');
+}
+
+// ══════════════════════════════════════
+//  PURE-JS DOCX EXTRACTOR
+// ══════════════════════════════════════
+async function extractDocxText(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer);
+  const r16=(b,o)=>b[o]|(b[o+1]<<8);
+  const r32=(b,o)=>(b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]<<24))>>>0;
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=0;i--){if(bytes[i]===0x50&&bytes[i+1]===0x4B&&bytes[i+2]===0x05&&bytes[i+3]===0x06){eocd=i;break;}}
+  if(eocd===-1)throw new Error('Not a valid DOCX');
+  const cdOff=r32(bytes,eocd+16),ne=r16(bytes,eocd+10);
+  let pos=cdOff,lo=-1,cm=-1,cs=-1;
+  for(let i=0;i<ne;i++){
+    if(r32(bytes,pos)!==0x02014B50)break;
+    const m=r16(bytes,pos+10),s=r32(bytes,pos+20),fnl=r16(bytes,pos+28),el=r16(bytes,pos+30),cl=r16(bytes,pos+32),l=r32(bytes,pos+42);
+    const fn=new TextDecoder().decode(bytes.slice(pos+46,pos+46+fnl));
+    if(fn==='word/document.xml'){lo=l;cm=m;cs=s;}
+    pos+=46+fnl+el+cl;
+  }
+  if(lo===-1)throw new Error('word/document.xml not found');
+  const lfnl=r16(bytes,lo+26),lel=r16(bytes,lo+28),ds=lo+30+lfnl+lel;
+  const cd=bytes.slice(ds,ds+cs);
+  let xb;
+  if(cm===0){xb=cd;}
+  else if(cm===8){
+    const s=new DecompressionStream('deflate-raw'),w=s.writable.getWriter();
+    w.write(cd);w.close();
+    const chunks=[],rd=s.readable.getReader();
+    for(;;){const{done,value}=await rd.read();if(done)break;chunks.push(value);}
+    const tot=chunks.reduce((n,c)=>n+c.length,0);xb=new Uint8Array(tot);let o=0;
+    for(const c of chunks){xb.set(c,o);o+=c.length;}
+  } else throw new Error('Unsupported compression: '+cm);
+  const xml=new TextDecoder('utf-8').decode(xb);
+  let text='',inT=false,i=0;
+  while(i<xml.length){
+    if(xml[i]==='<'){const end=xml.indexOf('>',i);if(end===-1)break;
+      const tn=xml.slice(i+1,end).trim().split(/[\s/]/)[0];
+      if(tn==='w:t')inT=true;else if(tn==='/w:t')inT=false;
+      else if(tn==='w:p'||tn==='/w:p')text+='\n';
+      else if(tn==='w:br'||tn==='w:tab')text+=' ';i=end+1;
+    } else {if(inT)text+=xml[i];i++;}
+  }
+  return text.replace(/\n{3,}/g,'\n\n').trim();
+}
+
+// ══════════════════════════════════════
+//  TAG INPUTS
+// ══════════════════════════════════════
+function setupTag(inputId, wrapId, maxTags) {
+  const inp = document.getElementById(inputId);
+  inp.addEventListener('keydown', e => {
+    if ((e.key==='Enter'||e.key===',') && inp.value.trim()) {
+      e.preventDefault();
+      const tags = document.querySelectorAll('#'+wrapId+' .tag');
+      if (maxTags && tags.length >= maxTags) return;
+      addTag(inp.value.trim().replace(/,$/,''), wrapId, inputId);
+      inp.value = '';
+    }
+    if (e.key==='Backspace' && !inp.value) {
+      const tags = document.querySelectorAll('#'+wrapId+' .tag');
+      if (tags.length) tags[tags.length-1].remove();
+    }
+  });
+}
+function addTag(text, wrapId, inputId) {
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.innerHTML = `${text}<span class="tag-x" onclick="this.parentElement.remove()">×</span>`;
+  document.getElementById(wrapId).insertBefore(tag, document.getElementById(inputId));
+}
+function getTags(wrapId) {
+  return [...document.querySelectorAll('#'+wrapId+' .tag')].map(t=>t.textContent.replace('×','').trim());
+}
+function setTags(wrapId, inputId, tags, max) {
+  document.querySelectorAll('#'+wrapId+' .tag').forEach(t=>t.remove());
+  (max ? tags.slice(0,max) : tags).forEach(t=>addTag(t,wrapId,inputId));
+}
+setupTag('skillInp',   'skillsWrap',    8);
+setupTag('compInp',    'companiesWrap', 3);
+setupTag('certInp',    'certsWrap',     3);
+
+// ══════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════
+let pdfBase64 = null, uploadedFileName = null;
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'));
+dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0]);});
+document.getElementById('resumeFile').addEventListener('change', e=>{if(e.target.files[0])readFile(e.target.files[0]);});
+
+async function readFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  uploadedFileName = file.name; pdfBase64 = null;
+  document.getElementById('dropLabel').innerHTML = `⏳ Reading <strong>${file.name}</strong>…`;
+  try {
+    if (ext==='pdf') {
+      const b64 = await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+      pdfBase64 = b64;
+      document.getElementById('resumeText').value = '';
+      document.getElementById('dropLabel').className = 'success';
+      document.getElementById('dropLabel').textContent = `✅ ${file.name} (PDF ready)`;
+    } else if (ext==='docx'||ext==='doc') {
+      const text = await extractDocxText(await file.arrayBuffer());
+      document.getElementById('resumeText').value = text;
+      document.getElementById('dropLabel').className = 'success';
+      document.getElementById('dropLabel').textContent = `✅ ${file.name} (text extracted)`;
+    } else {
+      document.getElementById('resumeText').value = await file.text();
+      document.getElementById('dropLabel').className = 'success';
+      document.getElementById('dropLabel').textContent = `✅ ${file.name}`;
+    }
+  } catch(err) {
+    showStatus('extract', 'error', '❌ Could not read file: ' + err.message);
+    document.getElementById('dropLabel').textContent = 'Drop resume here or click to upload';
+    document.getElementById('dropLabel').className = '';
+  }
+}
+
+// ══════════════════════════════════════
+//  STATUS HELPERS
+// ══════════════════════════════════════
+function showStatus(id, type, msg) {
+  const box = document.getElementById(id+'Status');
+  box.className = 'status-box '+type;
+  box.innerHTML = type==='loading' ? `<div class="spinner"></div><span>${msg}</span>` : msg;
+  box.classList.remove('hidden');
+}
+function hideStatus(id) { document.getElementById(id+'Status').classList.add('hidden'); }
+
+// ══════════════════════════════════════
+//  AI EXTRACT — includes interview notes in prompt (v1.01)
+// ══════════════════════════════════════
+async function extractResume() {
+  const serverUrl = '/.netlify/functions/chat';
+  if (!serverUrl) { showStatus('extract','error','⚠ Paste your Railway server URL in the bar at the top first.'); return; }
+
+  const text = document.getElementById('resumeText').value.trim();
+  if (!text && !pdfBase64) { showStatus('extract','error','Upload a resume or paste text first.'); return; }
+
+  const notes = document.getElementById('interviewNotes').value.trim();
+
+  const basePrompt = `You are a resume parser for a skilled trades staffing company.
+Return ONLY a raw JSON object. No markdown. No explanation. Just JSON.
+
+{"name":"","title":"","exp":"","city":"","phone":"","initials":"","summary":"","skills":[],"companies":[],"certs":[]}
+
+Rules:
+- name: full name
+- title: primary job title
+- exp: total years as string like "8+ yrs"
+- city: city and state only
+- phone: if listed, else empty string
+- initials: first letter of first + last name
+- summary: 3 sentences, third-person, professional, highlight top achievement. Never include gaps or negatives.${notes ? ' Incorporate the recruiter interview notes below into the summary to add personal insight and strengthen the candidate profile.' : ''}
+- skills: up to 8 specific trade/professional skills, short phrases
+- companies: top 3 EMPLOYERS by longest tenure — company names only, NO job sites, schools, stadiums or projects
+- certs: up to 3 certifications, licenses, or education highlights${notes ? `\n\nRECRUITER INTERVIEW NOTES (incorporate into summary):\n${notes}` : ''}`;
+
+  showStatus('extract','loading','Sending to AI…');
+  document.getElementById('extractBtn').disabled = true;
+
+  try {
+    const content = pdfBase64
+      ? [{type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfBase64}},{type:'text',text:basePrompt}]
+      : [{type:'text',text:basePrompt+'\n\nResume:\n'+text}];
+
+    const res = await fetch(serverUrl, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content}]})
+    });
+
+    const raw = await res.text();
+    if (!res.ok) throw new Error(`Server error ${res.status}: ${raw.slice(0,200)}`);
+
+    const data = JSON.parse(raw);
+    if (data.error) throw new Error(data.error.message);
+
+    const aiText = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    const match = aiText.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON found in AI response.');
+
+    const info = JSON.parse(match[0]);
+    if(info.name)     document.getElementById('f_name').value  = info.name;
+    if(info.title)    document.getElementById('f_title').value = info.title;
+    if(info.exp)      document.getElementById('f_exp').value   = info.exp;
+    if(info.city)     document.getElementById('f_city').value  = info.city;
+    if(info.phone)    document.getElementById('f_phone').value = info.phone;
+    if(info.skills?.length)    setTags('skillsWrap',    'skillInp', info.skills, 8);
+    if(info.companies?.length) setTags('companiesWrap', 'compInp',  info.companies, 3);
+    if(info.certs?.length)     setTags('certsWrap',     'certInp',  info.certs, 3);
+
+    window._extractedSummary = info.summary || '';
+
+    document.getElementById('dropLabel').textContent = `✅ Extracted — review fields then Generate!`;
+    document.getElementById('dropLabel').className = 'success';
+    showStatus('extract','success','✅ Info extracted! Review the fields below then click Generate.');
+
+  } catch(err) {
+    showStatus('extract','error','❌ '+err.message);
+  }
+  document.getElementById('extractBtn').disabled = false;
+}
+
+// ══════════════════════════════════════
+//  GENERATE CARD — privacy masking applied (v1.01)
+// ══════════════════════════════════════
+function generateCard() {
+  const rawName  = document.getElementById('f_name').value.trim();
+  const rawPhone = document.getElementById('f_phone').value.trim();
+  const privacy  = isPrivacyOn();
+
+  const name     = rawName ? (privacy ? maskLastName(rawName) : rawName) : 'Worker Name';
+  const phone    = rawPhone ? (privacy ? maskPhone(rawPhone) : rawPhone) : '';
+  const title    = document.getElementById('f_title').value.trim();
+  const exp      = document.getElementById('f_exp').value.trim();
+  const city     = document.getElementById('f_city').value.trim();
+  const avail    = document.getElementById('f_avail').value;
+  const skills   = getTags('skillsWrap');
+  const companies= getTags('companiesWrap');
+  const certs    = getTags('certsWrap');
+  const summary  = window._extractedSummary || '';
+  const initials = rawName.split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+  if (!rawName) { showStatus('extract','error','Please enter a worker name first.'); return; }
+
+  const availColor = avail==='Available Immediately' ? '#22c55e'
+    : avail==='Available in 2 Weeks' ? '#f0b429'
+    : avail==='Limited Availability' ? '#f0b429' : '#ef4444';
+
+  const icon = (() => {
+    const t = title.toLowerCase();
+    if (t.includes('electric')) return '⚡';
+    if (t.includes('construct')||t.includes('carpenter')||t.includes('welder')) return '⛑';
+    if (t.includes('admin')||t.includes('office')||t.includes('clerk')) return '✎';
+    if (t.includes('medical')||t.includes('dental')) return '⚕';
+    return '⚒';
+  })();
+
+  const skillTags = skills.map(s=>`
+    <span style="background:#005a7e;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:3px;border-left:2px solid #0099d8;letter-spacing:0.5px;text-transform:uppercase">${s}</span>
+  `).join('');
+
+  const compRows = companies.map((co,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;${i<companies.length-1?'border-bottom:1px solid #b8dff0':''}">
+      <div style="width:6px;height:6px;border-radius:50%;background:#0099d8;flex-shrink:0"></div>
+      <span style="font-size:11px;font-weight:700;color:#003a52">${co}</span>
+    </div>`).join('');
+
+  const certRows = certs.map((ce,i)=>`
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;${i<certs.length-1?'border-bottom:1px solid #b8dff0':''}">
+      <span style="color:#0099d8;font-weight:700;font-size:12px;flex-shrink:0">✓</span>
+      <span style="font-size:11px;color:#2a4a5a">${ce}</span>
+    </div>`).join('');
+
+  const vetting = ['Skill Tested','Ref. Checked','BG Checked','Drug Tested','Safety Trained'];
+  const pills = vetting.map(v=>`
+    <span style="background:#004d6b;color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+      <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block"></span>${v}
+    </span>`).join('');
+
+  // Privacy mode indicator on card
+  const privacyNote = privacy
+    ? `<div style="background:rgba(0,153,216,0.1);border:1px solid #b8dff0;border-radius:6px;padding:5px 10px;margin-bottom:10px;font-size:9px;color:#0077a8;font-weight:600;display:flex;align-items:center;gap:6px">
+        🔒 Privacy Mode — name and phone are masked for external sharing
+       </div>`
+    : '';
+
+  const html = `
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title>QLM — ${name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Barlow',system-ui,sans-serif; background:#f4f7fb; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; padding:20px; gap:14px; }
+  @media print {
+    body { background:white; padding:0; }
+    .no-print { display:none !important; }
+    @page { size: 6in auto; margin: 0; }
+  }
+  .card { width:576px; background:white; border-radius:10px; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,0.15); }
+
+/* ── TOOL NAV ── */
+.tool-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:5px 13px;border-radius:6px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;transition:all .2s;cursor:pointer;font-family:inherit;background:none;}
+.tnav:hover{border-color:#0099d8;color:#0099d8;background:rgba(0,153,216,.08);}
+.tnav.active{background:#0099d8;border-color:#0099d8;color:#fff;}
+
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="height:4px;background:#0099d8"></div>
+  <div style="background:#e0f4fc;padding:20px 24px 16px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:#cceefa;opacity:0.6"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="background:#0099d8;color:#fff;font-size:12px;font-weight:700;letter-spacing:2px;padding:4px 12px;border-radius:4px">QLM</div>
+        <span style="font-size:10px;color:#4a7a90;letter-spacing:1px">QUALITY LABOR MANAGEMENT</span>
+      </div>
+      <div style="background:${availColor};color:#fff;font-size:9px;font-weight:700;letter-spacing:1px;padding:4px 12px;border-radius:20px">${avail.toUpperCase()}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:48px;height:48px;border-radius:50%;background:#0099d8;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid white">
+        <span style="color:white;font-weight:700;font-size:14px">${initials}</span>
+      </div>
+      <div>
+        <div style="font-size:22px;font-weight:700;color:#003a52;line-height:1.1">${name}</div>
+        <div style="font-size:11px;font-weight:700;color:#0077a8;margin-top:3px;letter-spacing:1px">${icon} ${title.toUpperCase()}</div>
+        <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
+          ${exp   ? `<span style="font-size:10px;color:#4a7a90">● ${exp}</span>` : ''}
+          ${city  ? `<span style="font-size:10px;color:#4a7a90">● ${city}</span>` : ''}
+          ${phone ? `<span style="font-size:10px;color:#4a7a90">● ${phone}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="height:1px;background:#b8dff0"></div>
+  <div style="padding:16px 24px;background:white">
+    ${privacyNote}
+    ${summary ? `<div style="font-size:10.5px;color:#2a4a5a;line-height:1.65;margin-bottom:14px;padding:10px 12px;background:#f0f8fd;border-radius:6px;border-left:3px solid #0099d8">${summary}</div>` : ''}
+    <div style="margin-bottom:12px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#0077a8;margin-bottom:5px">SKILLS & SPECIALTIES</div>
+      <div style="height:1px;background:#0099d8;margin-bottom:8px"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${skillTags}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+      <div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#0077a8;margin-bottom:5px">PREVIOUS COMPANIES</div>
+        <div style="height:1px;background:#0099d8;margin-bottom:8px"></div>
+        ${compRows || '<span style="font-size:10px;color:#94a3b8">None listed</span>'}
+      </div>
+      <div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#0077a8;margin-bottom:5px">CERTIFICATIONS & EDUCATION</div>
+        <div style="height:1px;background:#0099d8;margin-bottom:8px"></div>
+        ${certRows || '<span style="font-size:10px;color:#94a3b8">None listed</span>'}
+      </div>
+    </div>
+  </div>
+  <div style="background:#005a7e;padding:14px 24px 0">
+    <div style="height:2px;background:#0099d8;margin-bottom:12px"></div>
+    <div style="font-size:10px;font-weight:700;color:#e0f4fc;letter-spacing:1px;margin-bottom:4px">OUR MISSION</div>
+    <div style="font-size:10px;color:white;margin-bottom:8px">Guided by Faith, we transform the landscape of employment, while building strong communities.</div>
+    <div style="font-size:10px;font-weight:700;color:#e0f4fc;letter-spacing:1px;margin-bottom:4px">OUR VISION</div>
+    <div style="font-size:10px;color:white;margin-bottom:10px">To be the single source for world-class staffing — delivering raving fans.</div>
+    <div style="height:1px;background:#007aaa;margin-bottom:10px"></div>
+    <div style="font-size:9px;font-weight:700;color:#e0f4fc;letter-spacing:2px;margin-bottom:6px">THE 4 F'S</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      ${[['Faith','Integrity & compassion'],['Fitness','Safe, healthy teams'],['Family','Work-life balance'],['Finance','Growth & giving back']].map(([l,d])=>`
+        <div><div style="font-size:10px;font-weight:700;color:white">${l}</div><div style="font-size:8.5px;color:#8ab8cc;margin-top:2px;line-height:1.4">${d}</div></div>`).join('')}
+    </div>
+    <div style="height:1px;background:#007aaa;margin-bottom:10px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:12px">
+      <div style="display:flex;gap:6px">
+        ${[['S','Safety'],['P','Productivity'],['Q','Quality']].map(([l,w])=>`
+          <span style="background:#004d6b;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px">
+            <span style="background:#0099d8;color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center">${l}</span>
+            <span style="color:white;font-size:9px;font-weight:700">${w}</span>
+          </span>`).join('')}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${pills}</div>
+    </div>
+  </div>
+  <div style="background:#f0f8fd;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #b8dff0">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${availColor}"></div>
+      <span style="font-size:9px;font-weight:700;color:#4a7a90;letter-spacing:1px">${avail.toUpperCase()}</span>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;font-weight:700;color:#005a7e">QLM — Quality Labor Management</div>
+      <div style="font-size:9px;color:#4a7a90">info@myqlm.com · 855-756-9675 · myqlm.com</div>
+    </div>
+  </div>
+</div>
+
+<div class="no-print" style="text-align:center">
+  <button onclick="window.print()" style="background:#0099d8;color:white;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px">
+    🖨️ Save as PDF
+  </button>
+</div>
+</body></html>`;
+
+  const wrap = document.getElementById('previewWrap');
+  wrap.innerHTML = '';
+  const cardMsg = document.createElement('div');
+  cardMsg.className = 'card-ready-msg';
+  cardMsg.innerHTML = `
+    <h3>✅ ${name}'s Card is Ready!</h3>
+    <p>${privacy ? '🔒 Privacy mode is <strong>ON</strong> — last name and phone are masked.<br>' : ''}Click below to open the print-ready card.<br>Then use <strong>File → Print → Save as PDF</strong>.</p>
+    <button class="btn-download" onclick="openCard()">🖨️ Open & Save as PDF</button>
+  `;
+  wrap.appendChild(cardMsg);
+  window._cardHTML = html;
+}
+
+function openCard() {
+  const win = window.open('', '_blank');
+  win.document.write(window._cardHTML);
+  win.document.close();
+}
+
+// ══════════════════════════════════════
+//  RESET
+// ══════════════════════════════════════
+function resetAll() {
+  ['f_name','f_title','f_exp','f_city','f_phone','resumeText','interviewNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_avail').selectedIndex = 0;
+  ['skillsWrap','companiesWrap','certsWrap'].forEach(w=>document.querySelectorAll('#'+w+' .tag').forEach(t=>t.remove()));
+  document.getElementById('privacyToggle').checked = false;
+  updatePrivacyLabel();
+  document.getElementById('notesBody').classList.remove('open');
+  document.getElementById('notesIcon').classList.remove('open');
+  pdfBase64 = null; uploadedFileName = null;
+  window._extractedSummary = ''; window._cardHTML = '';
+  document.getElementById('dropLabel').textContent = 'Drop resume here or click to upload';
+  document.getElementById('dropLabel').className = '';
+  document.getElementById('extractStatus').classList.add('hidden');
+  document.getElementById('previewWrap').innerHTML = `
+    <div class="empty-state">
+      <div class="big-icon">🗂️</div>
+      <p>Upload a resume and click<br>
+      <strong style="color:var(--blue)">✦ AI Extract Info</strong><br>
+      then click <strong style="color:var(--navy)">⚡ Generate Talent Card</strong></p>
+    </div>`;
+}
+
+function toggleSettings() {
+  var p = document.getElementById('settings-panel');
+  p.classList.toggle('open');
+}
+// Auto-close settings panel after URL is saved successfully
+var _origSave = saveServerUrl;
+saveServerUrl = function() {
+  _origSave();
+  var url = document.getElementById('serverUrl').value.trim();
+  if (url.startsWith('https://') && url.includes('.')) {
+    setTimeout(function() {
+      var p = document.getElementById('settings-panel');
+      if (p) p.classList.remove('open');
+    }, 1200);
+  }
+};
+
+</script>
+</body>
+</html>
