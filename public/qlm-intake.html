@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Apply with QLM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0099d8;--blue-dk:#005a7e;--blue-md:#0077a8;--blue-lt:#e0f4fc;--blue-mid2:#b8dff0;
+  --navy:#003a52;--navy-lt:#004d6b;
+  --white:#ffffff;--gray:#f4f7fb;--text:#2a4a5a;--border:#b8dff0;
+  --danger:#ef4444;--success:#22c55e;
+}
+body{font-family:'Barlow',system-ui,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+
+/* HEADER */
+header{background:var(--navy);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:1rem;letter-spacing:2px;padding:6px 14px;border-radius:4px;}
+.logo-text{color:var(--blue-mid2);font-size:.85rem;letter-spacing:1px;}
+.version-badge{background:rgba(0,153,216,.3);color:var(--blue-lt);font-size:.65rem;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:20px;margin-left:8px;}
+.hdr-tag{color:var(--blue-mid2);font-size:.75rem;letter-spacing:2px;text-transform:uppercase;}
+
+/* SERVER URL BAR */
+.config-bar{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:10px 32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.config-bar label{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);white-space:nowrap;}
+.config-bar input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:.82rem;font-family:monospace;outline:none;background:#fff;color:var(--text);}
+.config-bar input:focus{border-color:var(--blue);}
+.config-bar input::placeholder{color:#94a3b8;}
+#serverStatus{font-size:.72rem;color:#94a3b8;}
+#serverStatus.ok{color:var(--success);font-weight:600;}
+#serverStatus.err{color:var(--danger);font-weight:600;}
+
+/* HERO */
+.hero{background:var(--navy);border-bottom:4px solid var(--blue);padding:2.75rem 32px;position:relative;overflow:hidden;}
+.hero::before{content:'QUALITY LABOR MANAGEMENT';position:absolute;right:-40px;top:50%;transform:translateY(-50%) rotate(90deg);font-size:5rem;font-weight:700;color:rgba(0,153,216,.07);white-space:nowrap;pointer-events:none;letter-spacing:.1em;}
+.hero-inner{max-width:960px;margin:0 auto;}
+.hero-spq{display:inline-flex;align-items:center;gap:8px;background:rgba(0,153,216,.15);border:1px solid rgba(0,153,216,.3);border-radius:20px;padding:4px 14px;margin-bottom:1rem;}
+.hero-spq span{font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue);}
+.hero-spq .dot{width:4px;height:4px;border-radius:50%;background:rgba(0,153,216,.4);}
+.hero h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;line-height:1.1;color:#fff;margin-bottom:.65rem;}
+.hero h1 span{color:var(--blue);}
+.hero p{font-size:.9rem;color:var(--blue-mid2);font-weight:300;margin-bottom:1.75rem;max-width:500px;line-height:1.6;}
+.stats{display:flex;flex-wrap:wrap;gap:0;}
+.stat{padding:.6rem 1.4rem;border-right:1px solid rgba(0,153,216,.2);text-align:center;}
+.stat:first-child{padding-left:0;}.stat:last-child{border-right:none;}
+.stat-n{font-size:1.5rem;font-weight:700;color:var(--blue);line-height:1;}
+.stat-l{font-size:.6rem;color:var(--blue-mid2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+
+/* PROGRESS */
+.prog-wrap{background:var(--navy-lt);border-bottom:1px solid rgba(0,153,216,.2);padding:.9rem 32px;}
+.prog-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;}
+.prog-step{flex:1;display:flex;align-items:center;}
+.prog-c{width:30px;height:30px;border:2px solid rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.35);flex-shrink:0;transition:all .3s;background:var(--navy-lt);position:relative;z-index:1;}
+.prog-c.active{border-color:var(--blue);color:var(--blue);box-shadow:0 0 0 3px rgba(0,153,216,.25);}
+.prog-c.done{border-color:var(--blue);background:var(--blue);color:#fff;}
+.prog-line{flex:1;height:2px;background:rgba(255,255,255,.1);transition:background .3s;}
+.prog-line.done{background:var(--blue);}
+.prog-lbl{position:absolute;top:32px;left:50%;transform:translateX(-50%);font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.3);font-weight:600;}
+.prog-c.active .prog-lbl,.prog-c.done .prog-lbl{color:var(--blue);}
+
+/* FORM AREA */
+.form-area{max-width:960px;margin:0 auto;padding:2rem 24px 5rem;}
+.card{background:#fff;border-radius:10px;border:1px solid var(--border);border-top:4px solid var(--blue);padding:28px;margin-bottom:20px;display:none;box-shadow:0 4px 20px rgba(0,0,0,.06);}
+.card.active{display:block;animation:sIn .3s ease;}
+@keyframes sIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+.card-hdr{display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #e2e8f0;}
+.sec-num{font-size:2.8rem;font-weight:700;color:var(--blue);line-height:1;opacity:.2;flex-shrink:0;min-width:48px;}
+.sec-title{font-size:1.15rem;font-weight:700;color:var(--navy);line-height:1;margin-bottom:.3rem;}
+.sec-sub{font-size:.8rem;color:#64748b;font-weight:400;}
+
+/* FIELDS */
+.row{display:grid;gap:14px;margin-bottom:14px;}
+.c2{grid-template-columns:1fr 1fr;}.c3{grid-template-columns:1fr 1fr 1fr;}.c1{grid-template-columns:1fr;}
+@media(max-width:560px){.c2,.c3{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:5px;}
+label{display:block;font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:2px;}
+label .req{color:var(--blue);margin-left:2px;}
+input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s;background:#fff;color:var(--text);}
+input::placeholder,textarea::placeholder{color:#94a3b8;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,153,216,.1);}
+textarea{resize:vertical;min-height:90px;line-height:1.6;}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230099d8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:2rem;}
+.hint{font-size:.72rem;color:#94a3b8;margin-top:3px;}
+
+/* REPEAT BLOCKS */
+.repeat-block{border:1px solid #e2e8f0;border-left:3px solid var(--blue);border-radius:8px;padding:18px;margin-bottom:14px;background:#f8fafc;}
+.rb-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.rb-title{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);}
+.btn-rm{background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;cursor:pointer;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:4px;font-family:inherit;transition:background .2s;}
+.btn-rm:hover{background:rgba(239,68,68,.08);}
+.btn-add-block{display:flex;align-items:center;justify-content:center;gap:7px;background:none;border:1.5px dashed var(--border);color:var(--blue-md);padding:.65rem;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;width:100%;border-radius:8px;transition:all .2s;margin-top:.5rem;}
+.btn-add-block:hover{background:var(--blue-lt);border-color:var(--blue);}
+
+/* DYNAMIC QUESTIONS */
+.dyn-wrap{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);}
+.dyn-lbl{font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.dyn-lbl::before{content:'✦';font-size:.6rem;color:var(--blue);}
+
+/* TAGS */
+.tags-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+.skill-tag{background:var(--blue-lt);color:var(--blue-dk);border:1px solid var(--border);padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;gap:5px;}
+.cert-tag{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;gap:5px;}
+.tag-x{background:none;border:none;cursor:pointer;font-size:.9rem;line-height:1;padding:0;opacity:.5;}
+.tag-x:hover{opacity:1;}
+.tag-input-row{display:flex;gap:7px;}
+.tag-input-row input{flex:1;}
+.btn-add-tag{background:var(--blue);color:#fff;border:none;padding:.6rem 1rem;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;border-radius:8px;white-space:nowrap;transition:background .2s;}
+.btn-add-tag:hover{background:var(--blue-md);}
+
+/* SKILL RATINGS */
+.rate-row{display:grid;grid-template-columns:1fr 140px 80px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;}
+.rate-row:last-child{border-bottom:none;}
+.rate-name{font-size:.88rem;color:var(--text);}
+.rate-row input[type=range]{padding:0;border:none;box-shadow:none;cursor:pointer;accent-color:var(--blue);background:transparent;width:100%;}
+.lvl-badge{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:20px;text-align:center;letter-spacing:.5px;}
+
+/* CHECKBOX */
+.cb-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:border-color .2s;margin-top:10px;}
+.cb-row:hover{border-color:var(--blue);}
+.cb-row input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--blue);flex-shrink:0;}
+.cb-label{font-size:.84rem;color:#475569;line-height:1.5;}
+
+/* NAV */
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;}
+.btn-back{background:transparent;border:2px solid var(--border);color:var(--blue-md);padding:.65rem 1.5rem;cursor:pointer;font-family:inherit;font-size:.88rem;font-weight:600;border-radius:8px;transition:all .2s;letter-spacing:.5px;text-transform:uppercase;}
+.btn-back:hover{border-color:var(--blue);color:var(--blue);}
+.btn-next{background:var(--blue);color:#fff;border:none;padding:.7rem 2rem;cursor:pointer;font-family:inherit;font-size:.9rem;font-weight:700;border-radius:8px;transition:background .2s;letter-spacing:.5px;text-transform:uppercase;}
+.btn-next:hover{background:var(--blue-md);}
+.btn-submit{background:var(--navy);color:#fff;border:none;padding:.8rem 2.25rem;cursor:pointer;font-family:inherit;font-size:.95rem;font-weight:700;border-radius:8px;transition:background .2s;letter-spacing:.5px;text-transform:uppercase;}
+.btn-submit:hover{background:var(--blue-dk);}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed;}
+hr.dv{border:none;border-top:1px solid #e2e8f0;margin:18px 0;}
+
+/* STATUS BOX */
+.status-box{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;font-size:.82rem;font-weight:600;margin-top:10px;}
+.status-box.loading{background:rgba(0,153,216,.08);color:var(--blue-md);}
+.status-box.error{background:rgba(239,68,68,.08);color:#ef4444;}
+.status-box.success{background:rgba(34,197,94,.08);color:#15803d;}
+.spinner{width:15px;height:15px;border:2px solid rgba(0,153,216,.3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important;}
+
+/* RESULTS */
+#results-view{display:none;}
+.res-hero{background:var(--navy);border-bottom:4px solid var(--blue);padding:2.25rem 32px;text-align:center;}
+.res-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(0,153,216,.15);border:1px solid rgba(0,153,216,.35);color:var(--blue);padding:5px 16px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;}
+.res-hero h2{font-size:2rem;font-weight:700;color:#fff;margin-bottom:.4rem;}
+.res-hero p{font-size:.85rem;color:var(--blue-mid2);font-weight:300;}
+.res-area{max-width:960px;margin:0 auto;padding:2rem 24px 5rem;}
+.score-sec{background:#fff;border-radius:10px;border:1px solid var(--border);border-top:4px solid var(--blue);padding:20px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,.06);}
+.score-hdr{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.stag{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px;display:inline-block;margin:3px;letter-spacing:.5px;text-transform:uppercase;}
+.stag.high{background:rgba(0,153,216,.15);border:1px solid rgba(0,153,216,.4);color:var(--blue-dk);}
+.stag.mid{background:var(--blue-lt);border:1px solid var(--border);color:var(--blue-md);}
+.stag.low{background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+@media(max-width:620px){.res-grid{grid-template-columns:1fr;}}
+.rc{background:#fff;border-radius:10px;border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.06);overflow:hidden;}
+.rc.full{grid-column:1/-1;}
+.rc-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--blue-lt);}
+.rc-head.or{border-top:4px solid var(--blue);}
+.rc-head.ye{border-top:4px solid var(--navy);}
+.rc-head.bl{border-top:4px solid var(--blue-md);}
+.rc-title{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);}
+.rc-body{padding:18px;font-size:.85rem;line-height:1.75;color:var(--text);white-space:pre-wrap;min-height:180px;}
+.rc-body.mono{font-family:monospace;font-size:.8rem;}
+.rc-foot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);background:#f8fafc;}
+.btn-cp,.btn-dl{flex:1;padding:8px;font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;border-radius:6px;letter-spacing:.5px;text-transform:uppercase;}
+.btn-cp{background:transparent;border:1.5px solid var(--border);color:var(--blue-md);}
+.btn-cp:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+.btn-dl{background:var(--navy);border:none;color:#fff;}
+.btn-dl:hover{background:var(--blue-dk);}
+.shim{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shim 1.4s infinite;height:13px;margin-bottom:9px;border-radius:4px;}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.shim-wrap{padding:18px;}
+
+/* RESUME UPLOAD */
+.upload-card{background:#fff;border-radius:10px;border:1px solid var(--border);border-top:4px solid var(--blue);padding:28px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,.06);}
+.upload-title{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.upload-sub{font-size:.8rem;color:#64748b;margin-bottom:18px;}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;font-size:.62rem;font-weight:700;letter-spacing:1px;background:rgba(0,153,216,.12);color:var(--blue-md);padding:2px 8px;border-radius:20px;border:1px solid var(--border);}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray);margin-bottom:14px;}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--blue);background:var(--blue-lt);}
+.drop-zone .dz-icon{font-size:2rem;margin-bottom:8px;}
+.drop-zone p{font-size:.82rem;color:#64748b;line-height:1.5;}
+.drop-zone p.success{color:var(--blue-md);font-weight:600;}
+#resumeFile{display:none;}
+.divider-or{display:flex;align-items:center;gap:10px;margin:14px 0;color:#94a3b8;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;}
+.divider-or::before,.divider-or::after{content:'';flex:1;height:1px;background:#e2e8f0;}
+.btn-extract{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;letter-spacing:1px;padding:12px;cursor:pointer;transition:background .2s;margin-top:6px;text-transform:uppercase;font-family:inherit;}
+.btn-extract:hover{background:var(--blue-md);}
+.btn-extract:disabled{opacity:.5;cursor:not-allowed;}
+#extractStatus{border-radius:8px;}
+
+/* SPQ FOOTER STRIP */
+.spq-bar{background:var(--navy-lt);border-top:1px solid rgba(0,153,216,.2);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.spq-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.spq-pill{background:rgba(0,153,216,.12);border:1px solid rgba(0,153,216,.25);color:var(--blue-lt);font-size:.68rem;font-weight:700;letter-spacing:1px;padding:4px 12px;border-radius:20px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;}
+.spq-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block;}
+.spq-contact{font-size:.72rem;color:var(--blue-mid2);text-align:right;line-height:1.6;}
+.spq-contact strong{color:#fff;display:block;font-size:.8rem;letter-spacing:.5px;}
+footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgba(255,255,255,.35);text-align:center;padding:14px 24px;font-size:.72rem;letter-spacing:.03em;}
+
+/* ── TOOL NAV ── */
+.tool-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:5px 13px;border-radius:6px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;transition:all .2s;cursor:pointer;font-family:inherit;background:none;}
+.tnav:hover{border-color:#0099d8;color:#0099d8;background:rgba(0,153,216,.08);}
+.tnav.active{background:#0099d8;border-color:#0099d8;color:#fff;}
+
+
+/* SETTINGS PANEL */
+.settings-panel{background:rgba(0,153,216,.08);border-bottom:1px solid var(--border);padding:0;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
+.settings-panel.open{max-height:80px;padding:10px 32px;}
+.settings-panel .config-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.settings-panel label{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);white-space:nowrap;}
+.settings-panel input{flex:1;max-width:480px;border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:.82rem;font-family:monospace;outline:none;background:#fff;color:var(--text);}
+.settings-panel input:focus{border-color:var(--blue);}
+.settings-panel input::placeholder{color:#94a3b8;}
+#serverStatus{font-size:.72rem;color:#94a3b8;}
+#serverStatus.ok{color:var(--success);font-weight:600;}
+#serverStatus.err{color:var(--danger);font-weight:600;}
+.btn-settings{background:none;border:1px solid rgba(255,255,255,.2);color:#b8dff0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;}
+.btn-settings:hover{border-color:var(--blue);color:var(--blue);}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-badge">QLM</div>
+    <div class="logo-text">Quality Labor Management</div>
+    <span class="version-badge">v1.0</span>
+  </div>
+  <div class="tool-nav"><button class="btn-settings" onclick="toggleSettings()" title="Server Settings">&#9881;</button><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a><a href="/qlm-intake.html" class="tnav active">&#128203; Apply</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a></div>
+</header>
+
+<!-- SERVER URL BAR -->
+
+<div class="settings-panel" id="settings-panel">
+  <div class="config-inner">
+    <label>&#128279; Server URL</label>
+    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
+    <span id="serverStatus">Paste your Railway server URL</span>
+  </div>
+</div>
+
+
+<!-- FORM VIEW -->
+<div id="form-view">
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-spq">
+      <span>Safety</span><div class="dot"></div><span>Productivity</span><div class="dot"></div><span>Quality</span>
+    </div>
+    <h1>Join the QLM <span>Team Member</span> Network</h1>
+    <p>Complete this intake form and our AI will generate a professional crew profile and resume for your recruiter — in minutes. We match your skills with rewarding opportunities nationwide.</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-n">6</div><div class="stat-l">Sections</div></div>
+      <div class="stat"><div class="stat-n">~5</div><div class="stat-l">Minutes</div></div>
+      <div class="stat"><div class="stat-n">AI</div><div class="stat-l">Powered</div></div>
+      <div class="stat"><div class="stat-n">100%</div><div class="stat-l">Confidential</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="prog-wrap"><div class="prog-inner" id="prog-inner"></div></div>
+
+<div class="form-area">
+
+<!-- RESUME UPLOAD CARD -->
+<div class="upload-card">
+  <div class="upload-title">&#128196; Upload Your Resume <span class="ai-badge">&#10022; AI Extract</span></div>
+  <div class="upload-sub">Have a resume? Upload it and AI will fill out the entire form for you — then review and complete any missing fields.</div>
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('resumeFile').click()">
+    <div class="dz-icon">&#128196;</div>
+    <p id="dropLabel">Drop resume here or click to upload<br><small style="color:#94a3b8">PDF, DOCX, or TXT supported</small></p>
+  </div>
+  <input type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt">
+  <div class="divider-or">or paste resume text</div>
+  <textarea id="resumeText" placeholder="Paste resume text here..." rows="4" style="font-size:.82rem;margin-bottom:8px;"></textarea>
+  <button class="btn-extract" id="extractBtn" onclick="extractResume()">&#10022; AI Extract &mdash; Fill Form From Resume</button>
+  <div id="extractStatus" class="status-box hidden"></div>
+</div>
+
+<!-- STEP 1 -->
+<div class="card active" id="step-1">
+  <div class="card-hdr"><div class="sec-num">01</div><div><div class="sec-title">Personal Information</div><div class="sec-sub">Your basic contact details — populates the top of your resume.</div></div></div>
+  <div class="row c2">
+    <div class="field"><label>First Name <span class="req">*</span></label><input type="text" id="fname" placeholder="John"></div>
+    <div class="field"><label>Last Name <span class="req">*</span></label><input type="text" id="lname" placeholder="Doe"></div>
+  </div>
+  <div class="row c2">
+    <div class="field"><label>Email <span class="req">*</span></label><input type="email" id="email" placeholder="john.doe@email.com"></div>
+    <div class="field"><label>Phone <span class="req">*</span></label><input type="tel" id="phone" placeholder="(555) 000-0000"></div>
+  </div>
+  <div class="row c2">
+    <div class="field"><label>City / State</label><input type="text" id="city" placeholder="Tampa, FL"></div>
+    <div class="field"><label>Willing to Relocate?</label>
+      <select id="relocate"><option value="">Select...</option><option>Yes - anywhere</option><option>Yes - regional only</option><option>No - local only</option></select>
+    </div>
+  </div>
+  <div class="row c1">
+    <div class="field"><label>Position / Trade Applying For <span class="req">*</span></label><input type="text" id="role" placeholder="e.g. Foreman, Electrician, Project Manager, Equipment Operator"></div>
+  </div>
+  <div class="row c3">
+    <div class="field"><label>Years in Trade</label>
+      <select id="yoe"><option value="">Select...</option><option>0-1 years</option><option>2-4 years</option><option>5-9 years</option><option>10-15 years</option><option>15+ years</option></select>
+    </div>
+    <div class="field"><label>Employment Type</label>
+      <select id="emptype"><option value="">Select...</option><option>Full-time</option><option>Contract / Per Diem</option><option>Seasonal</option><option>Open to all</option></select>
+    </div>
+    <div class="field"><label>Availability</label>
+      <select id="avail"><option value="">Select...</option><option>Immediately</option><option>1 week</option><option>2 weeks</option><option>1 month+</option></select>
+    </div>
+  </div>
+  <div class="nav"><div></div><button class="btn-next" onclick="goStep(2)">Next: Experience &#8594;</button></div>
+</div>
+
+<!-- STEP 2 -->
+<div class="card" id="step-2">
+  <div class="card-hdr"><div class="sec-num">02</div><div><div class="sec-title">Work Experience</div><div class="sec-sub">List roles most recent first. Enter your job title and questions auto-tailor to your trade.</div></div></div>
+  <div id="exp-blocks"></div>
+  <button class="btn-add-block" onclick="addExp()">+ Add Another Role</button>
+  <div class="nav"><button class="btn-back" onclick="goStep(1)">&#8592; Back</button><button class="btn-next" onclick="goStep(3)">Next: Education &#8594;</button></div>
+</div>
+
+<!-- STEP 3 -->
+<div class="card" id="step-3">
+  <div class="card-hdr"><div class="sec-num">03</div><div><div class="sec-title">Education &amp; Training</div><div class="sec-sub">Trade school, apprenticeships, vocational training, and degrees.</div></div></div>
+  <div id="edu-blocks"></div>
+  <button class="btn-add-block" onclick="addEdu()">+ Add Another Qualification</button>
+  <div class="nav"><button class="btn-back" onclick="goStep(2)">&#8592; Back</button><button class="btn-next" onclick="goStep(4)">Next: Skills &#8594;</button></div>
+</div>
+
+<!-- STEP 4 -->
+<div class="card" id="step-4">
+  <div class="card-hdr"><div class="sec-num">04</div><div><div class="sec-title">Skills &amp; Certifications</div><div class="sec-sub">Add trade skills, rate your level, then add licenses separately.</div></div></div>
+  <div class="field">
+    <label>Add a Skill or Trade</label>
+    <div class="tag-input-row">
+      <input type="text" id="skill-inp" placeholder="e.g. Concrete Forming, Welding, Blueprint Reading..." onkeydown="if(event.key==='Enter'){event.preventDefault();addSkill();}">
+      <button class="btn-add-tag" onclick="addSkill()">Add</button>
+    </div>
+    <p class="hint">Press Enter or click Add</p>
+  </div>
+  <div id="skill-tags" class="tags-row"></div>
+  <div id="skill-ratings-wrap" class="hidden" style="margin-top:16px;">
+    <hr class="dv">
+    <label style="display:block;margin-bottom:10px;">Proficiency Levels</label>
+    <div id="skill-ratings"></div>
+  </div>
+  <hr class="dv">
+  <div class="field">
+    <label>Certifications &amp; Licenses</label>
+    <div class="tag-input-row">
+      <input type="text" id="cert-inp" placeholder="e.g. OSHA 30, CDL Class A, AWS CWI..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCert();}">
+      <button class="btn-add-tag" onclick="addCert()">Add</button>
+    </div>
+  </div>
+  <div id="cert-tags" class="tags-row"></div>
+  <hr class="dv">
+  <div class="row c2">
+    <div class="field"><label>Equipment Operated</label><input type="text" id="equipment" placeholder="Excavator, Skid Steer, Crane..."><p class="hint">Comma separated</p></div>
+    <div class="field"><label>Software / Tools</label><input type="text" id="software" placeholder="Procore, AutoCAD, Bluebeam..."><p class="hint">Comma separated</p></div>
+  </div>
+  <div class="nav"><button class="btn-back" onclick="goStep(3)">&#8592; Back</button><button class="btn-next" onclick="goStep(5)">Next: References &#8594;</button></div>
+</div>
+
+<!-- STEP 5 -->
+<div class="card" id="step-5">
+  <div class="card-hdr"><div class="sec-num">05</div><div><div class="sec-title">References</div><div class="sec-sub">Supervisors, foremen, or PMs who can vouch for your work.</div></div></div>
+  <div id="ref-blocks"></div>
+  <button class="btn-add-block" onclick="addRef()">+ Add Another Reference</button>
+  <div class="nav"><button class="btn-back" onclick="goStep(4)">&#8592; Back</button><button class="btn-next" onclick="goStep(6)">Next: Final Step &#8594;</button></div>
+</div>
+
+<!-- STEP 6 -->
+<div class="card" id="step-6">
+  <div class="card-hdr"><div class="sec-num">06</div><div><div class="sec-title">Final Details</div><div class="sec-sub">Last few things to complete your team member profile.</div></div></div>
+  <div class="row c1">
+    <div class="field"><label>Tell Us About Yourself</label>
+      <textarea id="statement" rows="4" placeholder="Describe your work ethic, biggest projects, what sets you apart as a tradesperson..."></textarea>
+    </div>
+  </div>
+  <div class="row c2">
+    <div class="field"><label>Pay Rate Expectation</label><input type="text" id="salary" placeholder="e.g. $28-$35/hr or $75,000/yr"></div>
+    <div class="field"><label>Union Status</label>
+      <select id="union"><option value="">Select...</option><option>Union Member</option><option>Non-Union</option><option>Open to Both</option></select>
+    </div>
+  </div>
+  <div class="row c1">
+    <div class="field"><label>Additional Notes</label>
+      <textarea id="additional" rows="3" placeholder="Major projects, safety record, awards, anything else worth highlighting..."></textarea>
+    </div>
+  </div>
+  <hr class="dv">
+  <label class="cb-row">
+    <input type="checkbox" id="consent">
+    <span class="cb-label">I authorize Quality Labor Management (QLM) to store and process my information for employment matching. My data will be kept confidential and used only for recruiting and placement purposes. I understand that QLM upholds Safety, Productivity, and Quality in all placements.</span>
+  </label>
+  <div id="submitStatus" class="status-box hidden"></div>
+  <div class="nav">
+    <button class="btn-back" onclick="goStep(5)">&#8592; Back</button>
+    <button class="btn-submit" id="submit-btn" onclick="submitForm()">&#9889; Generate My QLM Profile</button>
+  </div>
+</div>
+
+</div><!-- /form-area -->
+
+<!-- SPQ BAR -->
+<div class="spq-bar">
+  <div class="spq-pills">
+    <span class="spq-pill">Safety</span>
+    <span class="spq-pill">Productivity</span>
+    <span class="spq-pill">Quality</span>
+    <span class="spq-pill">Skill Tested</span>
+    <span class="spq-pill">Background Checked</span>
+    <span class="spq-pill">Drug Tested</span>
+  </div>
+  <div class="spq-contact">
+    <strong>QLM &mdash; Quality Labor Management</strong>
+    <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fd94939b92bd90848c9190d39e9290">[email&#160;protected]</a> &middot; 855-756-9675 &middot; myqlm.com
+  </div>
+</div>
+
+</div><!-- /form-view -->
+
+<!-- RESULTS VIEW -->
+<div id="results-view">
+  <div class="res-hero">
+    <div class="res-badge">&#10004; Profile Generated</div>
+    <h2>Team Member Profile Ready</h2>
+    <p>Your AI-generated QLM profile is complete. All outputs can be copied or downloaded.</p>
+  </div>
+  <div class="res-area">
+    <div class="score-sec">
+      <div class="score-hdr">&#11088; SPQ Skill Match Tags</div>
+      <div id="score-tags">
+        <div class="shim" style="width:80px;height:26px;display:inline-block;margin:3px;border-radius:20px;"></div>
+        <div class="shim" style="width:110px;height:26px;display:inline-block;margin:3px;border-radius:20px;"></div>
+        <div class="shim" style="width:90px;height:26px;display:inline-block;margin:3px;border-radius:20px;"></div>
+      </div>
+    </div>
+    <div class="res-grid">
+      <div class="rc">
+        <div class="rc-head or"><span>&#128203;</span><span class="rc-title">Recruiter Brief</span></div>
+        <div class="rc-body" id="out-brief"><div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:82%"></div><div class="shim" style="width:91%"></div><div class="shim" style="width:68%"></div><div class="shim" style="width:78%"></div></div></div>
+        <div class="rc-foot"><button class="btn-cp" onclick="copyOut('out-brief',this)">Copy</button></div>
+      </div>
+      <div class="rc">
+        <div class="rc-head bl"><span>&#10067;</span><span class="rc-title">Interview Questions</span></div>
+        <div class="rc-body" id="out-iqs"><div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:82%"></div><div class="shim" style="width:91%"></div><div class="shim" style="width:68%"></div><div class="shim" style="width:78%"></div></div></div>
+        <div class="rc-foot"><button class="btn-cp" onclick="copyOut('out-iqs',this)">Copy</button></div>
+      </div>
+      <div class="rc full">
+        <div class="rc-head ye"><span>&#128196;</span><span class="rc-title">Professional Resume</span></div>
+        <div class="rc-body mono" id="out-resume"><div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:82%"></div><div class="shim" style="width:91%"></div><div class="shim" style="width:68%"></div><div class="shim" style="width:78%"></div></div></div>
+        <div class="rc-foot">
+          <button class="btn-cp" onclick="copyOut('out-resume',this)">Copy Text</button>
+          <button class="btn-dl" onclick="downloadResume()">Download .txt</button>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:1rem;">
+      <button class="btn-back" onclick="startOver()">&#8592; New Application</button>
+    </div>
+  </div>
+  <!-- SPQ footer strip on results too -->
+  <div class="spq-bar">
+    <div class="spq-pills">
+      <span class="spq-pill">Safety</span>
+      <span class="spq-pill">Productivity</span>
+      <span class="spq-pill">Quality</span>
+    </div>
+    <div class="spq-contact">
+      <strong>QLM &mdash; Quality Labor Management</strong>
+      <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f79e999198b79a8e869b9ad994989a">[email&#160;protected]</a> &middot; 855-756-9675 &middot; myqlm.com
+    </div>
+  </div>
+</div>
+
+<footer>&#169; 2025 Quality Labor Management, LLC &middot; Guided by Faith, we transform the landscape of employment while building strong communities &middot; myqlm.com</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ══ RESUME UPLOAD & AI EXTRACT ══
+var pdfBase64 = null;
+
+// Drag & drop
+window.addEventListener('DOMContentLoaded', function() {
+  var dz = document.getElementById('dropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', function(){ dz.classList.remove('drag'); });
+  dz.addEventListener('drop', function(e){ e.preventDefault(); dz.classList.remove('drag'); if(e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+  document.getElementById('resumeFile').addEventListener('change', function(e){ if(e.target.files[0]) readFile(e.target.files[0]); });
+});
+
+function readFile(file) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  pdfBase64 = null;
+  document.getElementById('dropLabel').innerHTML = '<span style="color:var(--blue-md)">&#8987; Reading <strong>' + file.name + '</strong>...</span>';
+
+  if (ext === 'pdf') {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfBase64 = e.target.result.split(',')[1];
+      document.getElementById('resumeText').value = '';
+      document.getElementById('dropLabel').className = 'success';
+      document.getElementById('dropLabel').innerHTML = '&#10003; ' + file.name + ' ready &mdash; click Extract below';
+    };
+    reader.onerror = function(){ showStatus('extract','error','Could not read PDF.'); };
+    reader.readAsDataURL(file);
+  } else if (ext === 'docx' || ext === 'doc') {
+    var r2 = new FileReader();
+    r2.onload = function(e) {
+      mammoth.extractRawText({ arrayBuffer: e.target.result })
+        .then(function(result) {
+          document.getElementById('resumeText').value = result.value;
+          document.getElementById('dropLabel').className = 'success';
+          document.getElementById('dropLabel').innerHTML = '&#10003; ' + file.name + ' extracted &mdash; click Extract below';
+        })
+        .catch(function(){ showStatus('extract','error','Could not read DOCX.'); });
+    };
+    r2.readAsArrayBuffer(file);
+  } else if (ext === 'txt') {
+    var r3 = new FileReader();
+    r3.onload = function(e) {
+      document.getElementById('resumeText').value = e.target.result;
+      document.getElementById('dropLabel').className = 'success';
+      document.getElementById('dropLabel').innerHTML = '&#10003; ' + file.name + ' loaded &mdash; click Extract below';
+    };
+    r3.readAsText(file);
+  } else {
+    showStatus('extract','error','Unsupported file type. Please use PDF, DOCX, or TXT.');
+  }
+}
+
+function extractResume() {
+  var text = document.getElementById('resumeText').value.trim();
+  if (!text && !pdfBase64) { showStatus('extract','error','Upload a resume file or paste text first.'); return; }
+
+  document.getElementById('extractBtn').disabled = true;
+  showStatus('extract','loading','Extracting info from resume...');
+
+  var prompt = 'You are a resume parser for QLM, a skilled trades staffing company. Extract information from this resume and return ONLY a raw JSON object with no markdown, no backticks, no explanation.\n\nReturn this exact structure:\n{"firstName":"","lastName":"","email":"","phone":"","city":"","role":"","yoe":"","skills":[],"certs":[],"equipment":"","software":"","experiences":[{"title":"","company":"","start":"","end":"","location":"","details":""}],"education":[{"degree":"","school":"","year":"","honors":""}],"statement":""}\n\nRules:\n- firstName/lastName: split full name\n- role: primary job title or trade\n- yoe: pick closest from: 0-1 years, 2-4 years, 5-9 years, 10-15 years, 15+ years\n- skills: up to 8 specific trade/professional skills as short strings\n- certs: licenses and certifications as short strings (e.g. OSHA 30, CDL Class A)\n- equipment: comma-separated list of equipment operated\n- software: comma-separated list of software/tools used\n- experiences: up to 4 most recent jobs, details as a short paragraph of key duties/achievements\n- education: degrees, trade school, apprenticeships\n- statement: 2-3 sentence professional summary in first person\n- Use empty string "" for missing fields, empty array [] for missing lists';
+
+  var content = pdfBase64
+    ? [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data:pdfBase64 }}, { type:'text', text:prompt }]
+    : [{ type:'text', text: prompt + '\n\nRESUME:\n' + text }];
+
+  var apiUrl = getServerUrl() ? getServerUrl() : '/.netlify/functions/chat';
+
+  fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1200,
+      messages: [{ role: 'user', content: content }]
+    })
+  })
+  .then(function(res) { return res.text(); })
+  .then(function(raw) {
+    var data = JSON.parse(raw);
+    if (data.error) throw new Error(data.error.message);
+    var aiText = (data.content || []).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('').trim();
+    var match = aiText.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Could not parse AI response.');
+    var info = JSON.parse(match[0]);
+    populateFromExtract(info);
+    showStatus('extract','success','&#10003; Form filled from resume! Review each section and add any missing details.');
+    document.getElementById('dropLabel').innerHTML = '&#10003; Extracted successfully!';
+  })
+  .catch(function(e) {
+    showStatus('extract','error','&#10007; Error: ' + e.message);
+  })
+  .finally(function() {
+    document.getElementById('extractBtn').disabled = false;
+  });
+}
+
+function populateFromExtract(info) {
+  // Personal fields
+  if (info.firstName) document.getElementById('fname').value = info.firstName;
+  if (info.lastName)  document.getElementById('lname').value = info.lastName;
+  if (info.email)     document.getElementById('email').value = info.email;
+  if (info.phone)     document.getElementById('phone').value = info.phone;
+  if (info.city)      document.getElementById('city').value  = info.city;
+  if (info.role)      document.getElementById('role').value  = info.role;
+  if (info.statement) document.getElementById('statement') && (document.getElementById('statement').value = info.statement);
+
+  // Years of experience select
+  if (info.yoe) {
+    var yoeEl = document.getElementById('yoe');
+    for (var i = 0; i < yoeEl.options.length; i++) {
+      if (yoeEl.options[i].value === info.yoe || yoeEl.options[i].text === info.yoe) {
+        yoeEl.selectedIndex = i; break;
+      }
+    }
+  }
+
+  // Skills
+  if (info.skills && info.skills.length) {
+    skills = []; skillLevels = {};
+    info.skills.forEach(function(s) {
+      if (s && skills.indexOf(s) === -1) { skills.push(s); skillLevels[s] = 3; }
+    });
+    renderSkillTags(); renderSkillRatings();
+  }
+
+  // Certs
+  if (info.certs && info.certs.length) {
+    certs = info.certs.filter(function(c){ return c; });
+    document.getElementById('cert-tags').innerHTML = certs.map(function(c) {
+      return '<span class="cert-tag">' + c + '<button class="tag-x" onclick="removeCert(\'' + c.replace(/'/g,"\\'") + '\')">x</button></span>';
+    }).join('');
+  }
+
+  // Equipment / software
+  if (info.equipment) document.getElementById('equipment').value = info.equipment;
+  if (info.software)  document.getElementById('software').value  = info.software;
+
+  // Work experience — clear existing blocks and rebuild
+  if (info.experiences && info.experiences.length) {
+    document.getElementById('exp-blocks').innerHTML = '';
+    expCount = 0;
+    info.experiences.forEach(function(exp) {
+      if (!exp.title && !exp.company) return;
+      addExp();
+      var block = document.querySelector('#exp-blocks .repeat-block:last-child');
+      if (!block) return;
+      var ins = block.querySelectorAll('input[type=text]');
+      if (ins[0]) ins[0].value = exp.title || '';
+      if (ins[1]) ins[1].value = exp.company || '';
+      if (ins[2]) ins[2].value = exp.start || '';
+      if (ins[3]) ins[3].value = exp.end || '';
+      if (ins[4]) ins[4].value = exp.location || '';
+      var ta = block.querySelector('textarea');
+      if (ta) ta.value = exp.details || '';
+      // Refresh dynamic questions based on title
+      if (exp.title) {
+        var blockId = block.id;
+        var titleInp = block.querySelector('.exp-title');
+        if (titleInp) { titleInp.value = exp.title; refreshDQ(blockId, exp.title); }
+      }
+    });
+  }
+
+  // Education — clear and rebuild
+  if (info.education && info.education.length) {
+    document.getElementById('edu-blocks').innerHTML = '';
+    eduCount = 0;
+    info.education.forEach(function(edu) {
+      if (!edu.degree && !edu.school) return;
+      addEdu();
+      var block = document.querySelector('#edu-blocks .repeat-block:last-child');
+      if (!block) return;
+      var ins = block.querySelectorAll('input[type=text]');
+      if (ins[0]) ins[0].value = edu.degree || '';
+      if (ins[1]) ins[1].value = edu.school || '';
+      if (ins[2]) ins[2].value = edu.year || '';
+      if (ins[3]) ins[3].value = edu.honors || '';
+    });
+  }
+
+  // Scroll to step 1 so user can review
+  window.scrollTo({ top: document.getElementById('step-1').offsetTop - 100, behavior: 'smooth' });
+}
+
+// ══ SERVER URL ══
+function saveServerUrl() {
+  var url = document.getElementById('serverUrl').value.trim();
+  localStorage.setItem('qlm_intake_url', url);
+  var s = document.getElementById('serverStatus');
+  if (!url) { s.textContent = 'Paste your Railway server URL to enable AI generation'; s.className = ''; }
+  else if (url.startsWith('https://') && url.includes('.')) { s.textContent = '&#10003; Server URL saved'; s.className = 'ok'; }
+  else { s.textContent = '&#9888; Should start with https://'; s.className = 'err'; }
+}
+function getServerUrl() { return document.getElementById('serverUrl').value.trim(); }
+
+window.addEventListener('DOMContentLoaded', function() {
+  var saved = localStorage.getItem('qlm_intake_url') || localStorage.getItem('qlm_server_url');
+  if (saved) { document.getElementById('serverUrl').value = saved; saveServerUrl(); }
+  buildProgress();
+  addExp(); addEdu(); addRef();
+});
+
+// ══ PROGRESS ══
+var STEP_LABELS = ['Info','Experience','Education','Skills','References','Final'];
+var currentStep = 1;
+
+function buildProgress() {
+  var el = document.getElementById('prog-inner');
+  el.innerHTML = STEP_LABELS.map(function(lbl, i) {
+    var n = i + 1;
+    var line = n < STEP_LABELS.length ? '<div class="prog-line" id="pl-' + n + '"></div>' : '';
+    return '<div class="prog-step"><div class="prog-c" id="pc-' + n + '">' + n + '<span class="prog-lbl">' + lbl + '</span></div>' + line + '</div>';
+  }).join('');
+}
+
+function updateProgress() {
+  STEP_LABELS.forEach(function(_, i) {
+    var n = i + 1;
+    var c = document.getElementById('pc-' + n);
+    var l = document.getElementById('pl-' + n);
+    if (!c) return;
+    c.className = 'prog-c' + (n < currentStep ? ' done' : n === currentStep ? ' active' : '');
+    c.childNodes[0].textContent = n < currentStep ? '\u2713' : n;
+    if (l) l.className = 'prog-line' + (n < currentStep ? ' done' : '');
+  });
+}
+
+function goStep(n) {
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  currentStep = n;
+  document.getElementById('step-' + n).classList.add('active');
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ══ DYNAMIC TRADE QUESTIONS ══
+var TRADE_QS = {
+  foreman: ['How many crew members have you supervised at one time?','How do you handle a worker violating safety protocols?','What project types have you led - commercial, residential, civil, or industrial?'],
+  electrician: ['Are you a licensed Journeyman or Master Electrician? Which state(s)?','Experience with commercial/industrial 3-phase systems?','Describe your panel installation and load calculation experience.'],
+  plumber: ['Do you hold a plumbing license? Level and state?','What piping systems have you worked with - PVC, copper, PEX, cast iron?','Commercial vs residential rough-in experience?'],
+  welder: ['Which processes are you certified in - MIG, TIG, Stick, Flux-Core?','Materials welded - structural steel, stainless, aluminum, pipe?','Do you hold AWS or ASME certifications?'],
+  hvac: ['Are you EPA 608 certified? Which type?','Commercial, residential, or industrial HVAC focus?','Experience with DDC, BAS, or building controls systems?'],
+  carpenter: ['Rough framing or finish carpentry - which is your focus?','Commercial wood framing or steel stud experience?','Specialty work - formwork, cabinetry, or trusses?'],
+  concrete: ['Experience with poured walls, slabs, footings, or all three?','Operated concrete pumps or finishing equipment?','Largest pour you have been part of - scope and volume?'],
+  operator: ['Which equipment classes on your CDL or operator card?','Hours on excavators, graders, scrapers, or cranes?','Any NCCCO crane certifications?'],
+  superintendent: ['Largest project superintended - scope, value, and duration?','How do you recover schedule when a project falls behind?','Experience with design-build or owner-direct contracts?'],
+  estimator: ['Types of work estimated - GC, electrical, civil, MEP?','Software used - Sage, Timberline, PlanSwift, Bluebeam?','Largest single bid prepared - value and result?'],
+  safety: ['Credentials held - CHST, CSP, OSHA 510/500, STSC?','Experience writing JHAs, JSAs, and site safety plans?','How do you build safety culture with resistant crews?'],
+  'default': ['Describe the most complex project you have worked on.','What is your approach to quality control on a busy job site?','Describe a challenging job site situation and how you resolved it.']
+};
+
+function getDQ(title) {
+  var t = (title || '').toLowerCase();
+  var keys = Object.keys(TRADE_QS);
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i] !== 'default' && t.indexOf(keys[i]) !== -1) return TRADE_QS[keys[i]];
+  }
+  return TRADE_QS['default'];
+}
+
+// ══ REPEAT BLOCKS ══
+var expCount = 0, eduCount = 0, refCount = 0;
+
+function addExp() {
+  expCount++;
+  var id = 'exp-' + expCount;
+  var div = document.createElement('div');
+  div.className = 'repeat-block'; div.id = id;
+  div.innerHTML =
+    '<div class="rb-hdr">' +
+      '<span class="rb-title">Role ' + expCount + '</span>' +
+      (expCount > 1 ? '<button class="btn-rm" onclick="document.getElementById(\''+id+'\').remove()">Remove</button>' : '') +
+    '</div>' +
+    '<div class="row c2">' +
+      '<div class="field"><label>Job Title / Trade <span class="req">*</span></label>' +
+        '<input type="text" class="exp-title" placeholder="e.g. Journeyman Electrician, Superintendent" oninput="refreshDQ(\''+id+'\',this.value)"></div>' +
+      '<div class="field"><label>Company / Contractor</label>' +
+        '<input type="text" placeholder="e.g. Turner Construction"></div>' +
+    '</div>' +
+    '<div class="row c3">' +
+      '<div class="field"><label>Start Date</label><input type="text" placeholder="Mar 2019"></div>' +
+      '<div class="field"><label>End Date</label><input type="text" placeholder="Present"></div>' +
+      '<div class="field"><label>Location</label><input type="text" placeholder="Tampa, FL"></div>' +
+    '</div>' +
+    '<div class="row c1">' +
+      '<div class="field"><label>Key Duties &amp; Achievements</label>' +
+        '<textarea rows="4" placeholder="Supervised crew of 14 on $8M commercial build&#10;Zero safety incidents over 18 months"></textarea></div>' +
+    '</div>' +
+    '<div class="dyn-wrap" id="dq-' + id + '">' +
+      '<div class="dyn-lbl">Experience-Based Questions</div>' +
+      '<div id="dq-fields-' + id + '"></div>' +
+    '</div>';
+  document.getElementById('exp-blocks').appendChild(div);
+  refreshDQ(id, '');
+}
+
+function refreshDQ(blockId, title) {
+  var el = document.getElementById('dq-fields-' + blockId);
+  if (!el) return;
+  el.innerHTML = getDQ(title).map(function(q) {
+    return '<div class="field" style="margin-bottom:10px;"><label>' + q + '</label><textarea rows="2" style="min-height:55px;" placeholder="Your answer..."></textarea></div>';
+  }).join('');
+}
+
+function addEdu() {
+  eduCount++;
+  var id = 'edu-' + eduCount;
+  var div = document.createElement('div');
+  div.className = 'repeat-block'; div.id = id;
+  div.innerHTML =
+    '<div class="rb-hdr">' +
+      '<span class="rb-title">Qualification ' + eduCount + '</span>' +
+      (eduCount > 1 ? '<button class="btn-rm" onclick="document.getElementById(\''+id+'\').remove()">Remove</button>' : '') +
+    '</div>' +
+    '<div class="row c2">' +
+      '<div class="field"><label>Degree / Program / Apprenticeship</label><input type="text" placeholder="e.g. IBEW Apprenticeship, AAS Construction Mgmt"></div>' +
+      '<div class="field"><label>School / Union / Institution</label><input type="text" placeholder="e.g. IBEW Local 915, Florida State College"></div>' +
+    '</div>' +
+    '<div class="row c2">' +
+      '<div class="field"><label>Year Completed</label><input type="text" placeholder="2016"></div>' +
+      '<div class="field"><label>Honors / Notes</label><input type="text" placeholder="Top of class, 4-year apprenticeship"></div>' +
+    '</div>';
+  document.getElementById('edu-blocks').appendChild(div);
+}
+
+function addRef() {
+  refCount++;
+  var id = 'ref-' + refCount;
+  var div = document.createElement('div');
+  div.className = 'repeat-block'; div.id = id;
+  div.innerHTML =
+    '<div class="rb-hdr">' +
+      '<span class="rb-title">Reference ' + refCount + '</span>' +
+      (refCount > 1 ? '<button class="btn-rm" onclick="document.getElementById(\''+id+'\').remove()">Remove</button>' : '') +
+    '</div>' +
+    '<div class="row c2">' +
+      '<div class="field"><label>Full Name</label><input type="text" placeholder="Mike Torres"></div>' +
+      '<div class="field"><label>Title / Position</label><input type="text" placeholder="General Superintendent"></div>' +
+    '</div>' +
+    '<div class="row c2">' +
+      '<div class="field"><label>Company</label><input type="text" placeholder="ABC Construction Co."></div>' +
+      '<div class="field"><label>Phone / Email</label><input type="text" placeholder="(555) 123-4567"></div>' +
+    '</div>' +
+    '<div class="row c1">' +
+      '<div class="field"><label>Relationship</label><input type="text" placeholder="Direct supervisor for 4 years on commercial projects"></div>' +
+    '</div>';
+  document.getElementById('ref-blocks').appendChild(div);
+}
+
+// ══ SKILLS ══
+var LEVELS = ['Apprentice','Basic','Journeyman','Skilled','Advanced','Master'];
+var LEVEL_STYLES = {
+  Apprentice:'background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0',
+  Basic:'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
+  Journeyman:'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0',
+  Skilled:'background:#fefce8;color:#a16207;border:1px solid #fde68a',
+  Advanced:'background:#fff7ed;color:#c2410c;border:1px solid #fed7aa',
+  Master:'background:#e0f4fc;color:#005a7e;border:1px solid #b8dff0'
+};
+var skills = [], skillLevels = {}, certs = [];
+
+function addSkill() {
+  var inp = document.getElementById('skill-inp');
+  var v = inp.value.trim();
+  if (!v || skills.indexOf(v) !== -1) { inp.value = ''; return; }
+  skills.push(v); skillLevels[v] = 3; inp.value = '';
+  renderSkillTags(); renderSkillRatings();
+}
+function removeSkill(s) { skills = skills.filter(function(x){return x!==s;}); delete skillLevels[s]; renderSkillTags(); renderSkillRatings(); }
+function renderSkillTags() {
+  document.getElementById('skill-tags').innerHTML = skills.map(function(s) {
+    return '<span class="skill-tag">' + s + '<button class="tag-x" onclick="removeSkill(\'' + s.replace(/'/g,"\\'") + '\')">x</button></span>';
+  }).join('');
+}
+function renderSkillRatings() {
+  var wrap = document.getElementById('skill-ratings-wrap');
+  var list = document.getElementById('skill-ratings');
+  if (!skills.length) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  list.innerHTML = skills.map(function(s) {
+    var v = skillLevels[s] || 3, lbl = LEVELS[v], sty = LEVEL_STYLES[lbl];
+    var key = s.replace(/[^a-zA-Z0-9]/g,'_');
+    return '<div class="rate-row">' +
+      '<span class="rate-name">' + s + '</span>' +
+      '<input type="range" min="0" max="5" step="1" value="' + v + '" oninput="updateLevel(\'' + s.replace(/'/g,"\\'") + '\',\'' + key + '\',this.value)">' +
+      '<span class="lvl-badge" id="lb-' + key + '" style="' + sty + '">' + lbl + '</span>' +
+    '</div>';
+  }).join('');
+}
+function updateLevel(skill, key, val) {
+  skillLevels[skill] = parseInt(val);
+  var lbl = LEVELS[parseInt(val)], sty = LEVEL_STYLES[lbl];
+  var b = document.getElementById('lb-' + key);
+  if (b) { b.textContent = lbl; b.style.cssText = sty; }
+}
+function addCert() {
+  var inp = document.getElementById('cert-inp');
+  var v = inp.value.trim();
+  if (!v || certs.indexOf(v) !== -1) { inp.value = ''; return; }
+  certs.push(v); inp.value = '';
+  document.getElementById('cert-tags').innerHTML = certs.map(function(c) {
+    return '<span class="cert-tag">' + c + '<button class="tag-x" onclick="removeCert(\'' + c.replace(/'/g,"\\'") + '\')">x</button></span>';
+  }).join('');
+}
+function removeCert(c) {
+  certs = certs.filter(function(x){return x!==c;});
+  document.getElementById('cert-tags').innerHTML = certs.map(function(c) {
+    return '<span class="cert-tag">' + c + '<button class="tag-x" onclick="removeCert(\'' + c.replace(/'/g,"\\'") + '\')">x</button></span>';
+  }).join('');
+}
+
+// ══ COLLECT DATA ══
+function collectData() {
+  var expBlocks = document.querySelectorAll('#exp-blocks .repeat-block');
+  var exps = [].map.call(expBlocks, function(b) {
+    var ins = b.querySelectorAll('input[type=text]');
+    var ta = b.querySelector('textarea');
+    var dLabels = b.querySelectorAll('.dyn-wrap label');
+    var dTas = b.querySelectorAll('.dyn-wrap textarea');
+    var dynAnswers = [].map.call(dLabels, function(l,i){ return {q:l.textContent, a:dTas[i]?dTas[i].value:''}; }).filter(function(x){return x.a;});
+    return { title:ins[0]?ins[0].value:'', company:ins[1]?ins[1].value:'', start:ins[2]?ins[2].value:'', end:ins[3]?ins[3].value:'', location:ins[4]?ins[4].value:'', details:ta?ta.value:'', dynAnswers:dynAnswers };
+  }).filter(function(e){return e.title||e.company;});
+
+  var eduBlocks = document.querySelectorAll('#edu-blocks .repeat-block');
+  var edus = [].map.call(eduBlocks, function(b) {
+    var ins = b.querySelectorAll('input[type=text]');
+    return { degree:ins[0]?ins[0].value:'', school:ins[1]?ins[1].value:'', year:ins[2]?ins[2].value:'', honors:ins[3]?ins[3].value:'' };
+  }).filter(function(e){return e.degree||e.school;});
+
+  var refBlocks = document.querySelectorAll('#ref-blocks .repeat-block');
+  var refs = [].map.call(refBlocks, function(b) {
+    var ins = b.querySelectorAll('input[type=text]');
+    return { name:ins[0]?ins[0].value:'', title:ins[1]?ins[1].value:'', company:ins[2]?ins[2].value:'', contact:ins[3]?ins[3].value:'', rel:ins[4]?ins[4].value:'' };
+  }).filter(function(r){return r.name;});
+
+  return {
+    p:{ fn:document.getElementById('fname').value, ln:document.getElementById('lname').value,
+        email:document.getElementById('email').value, phone:document.getElementById('phone').value,
+        city:document.getElementById('city').value, relocate:document.getElementById('relocate').value,
+        role:document.getElementById('role').value, yoe:document.getElementById('yoe').value,
+        emptype:document.getElementById('emptype').value, avail:document.getElementById('avail').value },
+    exps:exps, edus:edus,
+    skills:skills.map(function(s){return {name:s,level:LEVELS[skillLevels[s]||3]};}),
+    certs:certs, equipment:document.getElementById('equipment').value, software:document.getElementById('software').value,
+    refs:refs, statement:document.getElementById('statement').value,
+    salary:document.getElementById('salary').value, union:document.getElementById('union').value,
+    additional:document.getElementById('additional').value
+  };
+}
+
+function buildCtx(d) {
+  var p = d.p;
+  var c = 'CANDIDATE: '+p.fn+' '+p.ln+'\nAPPLYING FOR: '+p.role+'\nLOCATION: '+p.city+' | Relocate: '+p.relocate+'\nYEARS IN TRADE: '+p.yoe+' | Availability: '+p.avail+' | Type: '+p.emptype+'\nPAY: '+d.salary+' | Union: '+d.union+'\nCONTACT: '+p.email+' | '+p.phone+'\n\n';
+  c += 'WORK EXPERIENCE:\n';
+  d.exps.forEach(function(e,i) {
+    c += (i+1)+'. '+e.title+' @ '+e.company+' ('+e.start+'-'+e.end+') | '+e.location+'\n';
+    if (e.details) c += '   '+e.details+'\n';
+    e.dynAnswers.forEach(function(a){ c += '   Q: '+a.q+'\n   A: '+a.a+'\n'; });
+  });
+  c += '\nEDUCATION:\n';
+  d.edus.forEach(function(e){ c += '- '+e.degree+', '+e.school+' ('+e.year+') '+(e.honors?'| '+e.honors:'')+'\n'; });
+  if (d.certs.length) c += '\nCERTIFICATIONS: '+d.certs.join(', ')+'\n';
+  c += '\nSKILLS:\n'; d.skills.forEach(function(s){ c += '- '+s.name+': '+s.level+'\n'; });
+  if (d.equipment) c += '\nEQUIPMENT: '+d.equipment+'\n';
+  if (d.software) c += 'SOFTWARE: '+d.software+'\n';
+  if (d.refs.length) { c += '\nREFERENCES:\n'; d.refs.forEach(function(r){ c += '- '+r.name+', '+r.title+' @ '+r.company+' | '+r.contact+' | '+r.rel+'\n'; }); }
+  if (d.statement) c += '\nCANDIDATE STATEMENT:\n'+d.statement+'\n';
+  if (d.additional) c += '\nADDITIONAL: '+d.additional+'\n';
+  return c;
+}
+
+// ══ AI CALL — routes through Railway when deployed, direct when testing ══
+function aiCall(prompt, maxTokens) {
+  var apiUrl = getServerUrl() ? getServerUrl() : '/.netlify/functions/chat';
+  return fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens || 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  }).then(function(res) {
+    return res.text().then(function(raw) {
+      if (!res.ok) throw new Error('Server error ' + res.status + ': ' + raw.slice(0,200));
+      var data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+      return (data.content || []).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('').trim();
+    });
+  });
+}
+
+// ══ SUBMIT ══
+function submitForm() {
+  if (!document.getElementById('consent').checked) {
+    showStatus('submit','error','Please check the consent box first.'); return;
+  }
+  document.getElementById('submit-btn').disabled = true;
+  showStatus('submit','loading','Sending to AI - this may take a few seconds...');
+
+  var data = collectData();
+  var ctx = buildCtx(data);
+
+  document.getElementById('form-view').style.display = 'none';
+  document.getElementById('results-view').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Skill tags
+  aiCall('You are a QLM construction recruiter. Generate a JSON array of skill match tags from this candidate profile. Each object: {"label":"SKILL NAME","tier":"high|mid|low"} where high=expert/master, mid=journeyman/skilled, low=basic. Max 12 tags. Return ONLY the raw JSON array, no markdown, no backticks.\n\n' + ctx, 400)
+    .then(function(text) {
+      try {
+        var tags = JSON.parse(text.replace(/```json|```/g,'').trim());
+        document.getElementById('score-tags').innerHTML = tags.map(function(t){ return '<span class="stag '+t.tier+'">'+t.label+'</span>'; }).join('');
+      } catch(e) {
+        document.getElementById('score-tags').innerHTML = data.skills.map(function(s){ return '<span class="stag mid">'+s.name+'</span>'; }).join('');
+      }
+    }).catch(function() {
+      document.getElementById('score-tags').innerHTML = data.skills.map(function(s){ return '<span class="stag mid">'+s.name+'</span>'; }).join('');
+    });
+
+  // Recruiter brief
+  aiCall('You are a senior QLM (Quality Labor Management) recruiter. Write a concise recruiter brief (250-350 words) for an internal hiring manager. QLM values Safety, Productivity, and Quality (SPQ) in all team members.\n\nStructure:\nSNAPSHOT: [2-3 sentence overview]\nSTRENGTHS: [3 bullet points of standout qualifications]\nEXPERIENCE HIGHLIGHTS: [2-3 bullets of notable achievements]\nCONCERNS / GAPS: [1-2 honest recruiter notes]\nSPQ ASSESSMENT: [brief note on safety mindset, productivity, quality indicators]\nRECOMMENDATION: [1-sentence placement recommendation]\n\nUse construction industry language. Be direct and specific.\n\n---\n' + ctx, 800)
+    .then(function(t){ document.getElementById('out-brief').textContent = t; })
+    .catch(function(e){ document.getElementById('out-brief').textContent = 'Error: ' + e.message; });
+
+  // Interview questions
+  aiCall('You are a QLM construction hiring manager. Generate 8-10 targeted interview questions based on this candidate. QLM focuses on Safety, Productivity, and Quality (SPQ). Mix categories: TECHNICAL, SAFETY (SPQ), LEADERSHIP, SITUATIONAL, BEHAVIORAL. Tailor to their specific trade and experience level.\n\nFormat each as:\n[CATEGORY] Question text\n\n---\n' + ctx, 800)
+    .then(function(t){ document.getElementById('out-iqs').textContent = t; })
+    .catch(function(e){ document.getElementById('out-iqs').textContent = 'Error: ' + e.message; });
+
+  // Resume
+  aiCall('You are a professional resume writer for QLM (Quality Labor Management), a skilled trades staffing company. Write a clean ATS-optimized resume in plain text:\n\n[FULL NAME]\n[Trade / Title] | [Phone] | [Email] | [City, State]\n----------------------------------------\nPROFESSIONAL SUMMARY\n[3-4 sentences with quantified experience and certifications]\n----------------------------------------\nLICENSES & CERTIFICATIONS\n----------------------------------------\nWORK EXPERIENCE\n[TITLE | COMPANY | Dates | Location]\n- Achievement bullets with numbers/metrics\n----------------------------------------\nEDUCATION & TRAINING\n----------------------------------------\nSKILLS & EQUIPMENT\n----------------------------------------\nREFERENCES\n\nBe accurate to the data. Aim for 1-2 pages.\n\n---\n' + ctx, 1000)
+    .then(function(t){ document.getElementById('out-resume').textContent = t; })
+    .catch(function(e){ document.getElementById('out-resume').textContent = 'Error: ' + e.message; });
+}
+
+// ══ UTILITIES ══
+function showStatus(id, type, msg) {
+  var box = document.getElementById(id + 'Status');
+  box.className = 'status-box ' + type;
+  box.innerHTML = type === 'loading' ? '<div class="spinner"></div><span>' + msg + '</span>' : msg;
+  box.classList.remove('hidden');
+}
+function copyOut(elId, btn) {
+  var text = document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = orig; }, 2000);
+  });
+}
+function downloadResume() {
+  var text = document.getElementById('out-resume').textContent;
+  var fn = document.getElementById('fname').value || 'candidate';
+  var ln = document.getElementById('lname').value || '';
+  var blob = new Blob([text], { type: 'text/plain' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url;
+  a.download = ('qlm-resume-' + fn + '-' + ln + '.txt').toLowerCase().replace(/\s+/g,'-');
+  a.click(); URL.revokeObjectURL(url);
+}
+function startOver() {
+  document.getElementById('results-view').style.display = 'none';
+  document.getElementById('form-view').style.display = 'block';
+  ['out-brief','out-iqs','out-resume'].forEach(function(id) {
+    document.getElementById(id).innerHTML = '<div class="shim-wrap"><div class="shim"></div><div class="shim" style="width:82%"></div><div class="shim" style="width:91%"></div><div class="shim" style="width:68%"></div></div>';
+  });
+  document.getElementById('score-tags').innerHTML = '<div class="shim" style="width:80px;height;24px;display:inline-block;margin:3px;border-radius:20px;"></div><div class="shim" style="width:110px;height:24px;display:inline-block;margin:3px;border-radius:20px;"></div>';
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submitStatus').classList.add('hidden');
+  pdfBase64 = null;
+  document.getElementById('dropLabel').innerHTML = 'Drop resume here or click to upload<br><small style="color:#94a3b8">PDF, DOCX, or TXT supported</small>';
+  document.getElementById('dropLabel').className = '';
+  document.getElementById('resumeText').value = '';
+  document.getElementById('extractStatus').classList.add('hidden');
+  goStep(1);
+}
+
+function toggleSettings() {
+  var p = document.getElementById('settings-panel');
+  p.classList.toggle('open');
+}
+// Auto-close settings panel after URL is saved successfully
+var _origSave = saveServerUrl;
+saveServerUrl = function() {
+  _origSave();
+  var url = document.getElementById('serverUrl').value.trim();
+  if (url.startsWith('https://') && url.includes('.')) {
+    setTimeout(function() {
+      var p = document.getElementById('settings-panel');
+      if (p) p.classList.remove('open');
+    }, 1200);
+  }
+};
+
+</script>
+</body>
+</html>
