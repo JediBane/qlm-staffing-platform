@@ -176,13 +176,22 @@ header{background:var(--navy);padding:0 24px;display:flex;align-items:center;jus
 
 /* PRINT */
 @media print{
-  header,.tool-nav,.left,.settings-panel,.output-btns,footer,.btn-out,.tp-copy,.pb-copy-btn{display:none!important;}
-  body{background:#fff;}
-  .main{grid-template-columns:1fr;padding:0;}
-  .rs{box-shadow:none;break-inside:avoid;}
+  header,.tool-nav,.left,.settings-panel,.output-btns,footer,.btn-out,.tp-copy,.pb-copy-btn,.hero{display:none!important;}
+  body{background:#fff;font-size:11pt;}
+  .main{grid-template-columns:1fr;padding:0;max-width:100%;}
+  .rs{box-shadow:none;break-inside:avoid;page-break-inside:avoid;border:1px solid #b8dff0;margin-bottom:12px;}
+  .rs-hd{background:#f8fafc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  /* Print ALL tabs, not just the visible one */
+  .dtab-pane{display:block!important;page-break-before:auto;}
+  .drill-tabs{display:none!important;}
+  .bill-rate-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid;}
+  .comp-table,.sal-table{font-size:9pt;}
+  .comp-table th,.qlm-hdr,.qlm-col{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tp-box,.proposal-block{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .diff-factor-bar,.dem-bar,.sb-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .print-hdr{display:flex!important;}
+  a[href]:after{content:"";}
 }
-.print-hdr{display:none;align-items:center;justify-content:space-between;padding:0 0 16px;border-bottom:3px solid var(--blue);margin-bottom:20px;}
 .ph-logo{font-weight:700;color:var(--navy);font-size:1rem;}
 .ph-meta{font-size:.74rem;color:#64748b;text-align:right;line-height:1.6;}
 
@@ -1077,7 +1086,18 @@ function copyProposal(){
   navigator.clipboard.writeText(text).then(function(){alert('Proposal copy copied to clipboard!');});
 }
 
+
+// ─── QLM ACTIVITY LOG (feeds Admin Dashboard) ───────────────────────────
+function qlmLog(type, payload){
+  try{
+    var log = JSON.parse(localStorage.getItem('qlm_activity')||'[]');
+    log.unshift(Object.assign({ type:type, date:new Date().toISOString() }, payload||{}));
+    localStorage.setItem('qlm_activity', JSON.stringify(log.slice(0,500)));
+  }catch(e){}
+}
+
 function saveHistory(label,date){
+  qlmLog('insight', { label: label });
   var h=JSON.parse(localStorage.getItem('qlm_insight_history')||'[]');
   h.unshift({label:label,date:date});
   localStorage.setItem('qlm_insight_history',JSON.stringify(h.slice(0,8)));
