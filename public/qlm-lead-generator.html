@@ -229,7 +229,6 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 <header>
   <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
   <div class="tool-nav">
-    <button class="btn-settings" onclick="toggleSettings()">&#9881;</button>
     <a href="/index.html" class="tnav">&#127968; Home</a>
     <a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a>
     <a href="/qlm-intake.html" class="tnav">&#128203; Apply</a>
@@ -238,14 +237,6 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     <a href="/qlm-dashboard.html" class="tnav">&#128202; Admin</a>
   </div>
 </header>
-<div class="settings-panel" id="settings-panel">
-  <div class="ci">
-    <label>&#128279; Server URL</label>
-    <input type="text" id="serverUrl" placeholder="https://your-app.up.railway.app" oninput="saveServerUrl()" autocomplete="off">
-    <span id="srvStatus">Paste your Railway server URL</span>
-  </div>
-</div>
-
 <div class="hero">
   <div class="hero-inner">
     <div>
@@ -484,17 +475,9 @@ var currentEmailLeadId = null;
 var currentNotesLeadId = null;
 
 // ═══════ SERVER / SETTINGS ═══════
-function getServerUrl(){ return (document.getElementById('serverUrl').value||'').trim(); }
-function toggleSettings(){ document.getElementById('settings-panel').classList.toggle('open'); }
-function saveServerUrl(){
-  var url = getServerUrl();
-  localStorage.setItem('qlm_server_url', url);
-  var s = document.getElementById('srvStatus');
-  if(!url){ s.textContent='Paste your Railway server URL'; s.className=''; }
-  else if(url.startsWith('https://') && url.includes('.')){ s.textContent='\u2713 Saved'; s.className='ok';
-    setTimeout(function(){ document.getElementById('settings-panel').classList.remove('open'); }, 1200);
-  } else { s.textContent='\u26a0 Should start with https://'; s.className=''; }
-}
+function getServerUrl(){ return ''; }
+function toggleSettings(){}
+function saveServerUrl(){}
 
 // ═══════ TRADE TAGS ═══════
 function toggleTrade(el, t){
@@ -550,7 +533,7 @@ function aiCall(messages, maxTokens){
   });
 }
 
-// ═══════ LEAD SEARCH CALL (uses /api/lead-search with web search tool) ═══════
+// ═══════ LEAD SEARCH CALL (Netlify function with web search) ═══════
 function rawLeadSearch(prompt) {
   return fetch('/.netlify/functions/lead-search', {
     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -1196,8 +1179,6 @@ function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
 
 // ═══════ INIT ═══════
 window.addEventListener('DOMContentLoaded', function(){
-  var saved = localStorage.getItem('qlm_server_url');
-  if(saved){ document.getElementById('serverUrl').value=saved; saveServerUrl(); }
   loadExclude();
   renderSavedSearches();
   updateStats();
