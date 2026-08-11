@@ -367,7 +367,7 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
         </div>
       </div>
       <div id="leads-container">
-        <div class="empty"><div class="empty-icon">&#127919;</div><p>Set parameters and click <strong>Generate Leads</strong>.</p></div>
+        <div class="empty"><div class="empty-icon">&#127919;</div><p style="font-size:.92rem;line-height:1.7;">Set your market and trades on the left, then click <strong>Generate Leads</strong>.<br><span style="font-size:.82rem;color:#94a3b8;">AI searches Indeed, LinkedIn, and ZipRecruiter live &mdash; takes 15-30 seconds.</span></p></div>
       </div>
     </div>
 
@@ -773,7 +773,18 @@ function runSearch(){
 }
 
 // ═══════ SOURCE TRACKING ═══════
+
+// ─── QLM ACTIVITY LOG (feeds Admin Dashboard) ───────────────────────────
+function qlmLog(type, payload){
+  try{
+    var log = JSON.parse(localStorage.getItem('qlm_activity')||'[]');
+    log.unshift(Object.assign({ type:type, date:new Date().toISOString() }, payload||{}));
+    localStorage.setItem('qlm_activity', JSON.stringify(log.slice(0,500)));
+  }catch(e){}
+}
+
 function trackSourceSearch(leads){
+  qlmLog('lead_search', { count: leads.length, location: (document.getElementById('s-loc')||{}).value || '' });
   var analytics = JSON.parse(localStorage.getItem('qlm_lead_analytics')||'{}');
   if(!analytics.sources) analytics.sources = {};
   leads.forEach(function(l){
