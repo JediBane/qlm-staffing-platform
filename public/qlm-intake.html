@@ -237,7 +237,7 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
     <div class="logo-text">Quality Labor Management</div>
     <span class="version-badge">v1.0</span>
   </div>
-  <div class="tool-nav"><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav active">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav active">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
 </header>
 
 <!-- SERVER URL BAR -->
@@ -479,7 +479,9 @@ footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgb
 
 <footer>&#169; 2025 Quality Labor Management, LLC &middot; Guided by Faith, we transform the landscape of employment while building strong communities &middot; myqlm.com</footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
+<script>
 // ══ RESUME UPLOAD & AI EXTRACT ══
 var pdfBase64 = null;
 
@@ -970,6 +972,7 @@ function aiCall(prompt, maxTokens) {
 
 // ─── QLM ACTIVITY LOG (feeds Admin Dashboard) ───────────────────────────
 function qlmLog(type, payload){
+  if(window.QLM && QLM.logActivity){ QLM.logActivity(type, payload||{}); return; }
   try{
     var log = JSON.parse(localStorage.getItem('qlm_activity')||'[]');
     log.unshift(Object.assign({ type:type, date:new Date().toISOString() }, payload||{}));
@@ -987,6 +990,18 @@ function submitForm() {
   var data = collectData();
   var ctx = buildCtx(data);
 
+  if(window.QLM && QLM.save){
+    QLM.save('candidates', {
+      full_name: data.name || null, trade: data.trade || null,
+      title: data.title || null, city: data.city || null,
+      phone: data.phone || null, email: data.email || null,
+      experience: data.experience || null,
+      availability: data.availability || null,
+      skills: (data.skills||[]).map(function(s){ return s.name||s; }),
+      certs: (data.certs||[]).map(function(s){ return s.name||s; }),
+      source_tool: 'intake'
+    });
+  }
   qlmLog('intake', {
     name: data.name || 'Unnamed candidate',
     trade: data.trade || data.title || '',
@@ -1083,5 +1098,6 @@ saveServerUrl = function() {
 };
 
 </script>
+<script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
 </body>
 </html>
