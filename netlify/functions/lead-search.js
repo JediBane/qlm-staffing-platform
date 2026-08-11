@@ -37,11 +37,11 @@ export async function handler(event) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4096,
+        max_tokens: 2500,
         tools: [{
           type: 'web_search_20250305',
           name: 'web_search',
-          max_uses: 3,
+          max_uses: 2,
         }],
         messages: [{ role: 'user', content: prompt }],
       }),
