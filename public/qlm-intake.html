@@ -684,7 +684,7 @@ function getServerUrl(){ return ''; }
 
 window.addEventListener('DOMContentLoaded', function() {
   var saved = localStorage.getItem('qlm_intake_url') || localStorage.getItem('qlm_server_url');
-  if (saved) { document.getElementById('serverUrl').value = saved; saveServerUrl(); }
+  if (saved) { if(document.getElementById('serverUrl')) document.getElementById('serverUrl').value = saved; saveServerUrl(); }
   buildProgress();
   addExp(); addEdu(); addRef();
 });
@@ -1096,18 +1096,6 @@ function startOver() {
 
 function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
-var _origSave = saveServerUrl;
-saveServerUrl = function() {
-  _origSave();
-  var url = document.getElementById('serverUrl').value.trim();
-  if (url.startsWith('https://') && url.includes('.')) {
-    setTimeout(function() {
-      var p = document.getElementById('settings-panel');
-      if (p) p.classList.remove('open');
-    }, 1200);
-  }
-};
-
 </script>
 <script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
 </body>
