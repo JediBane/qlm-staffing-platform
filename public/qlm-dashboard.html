@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Admin Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#0099d8;--blue-dk:#005a7e;--blue-md:#0077a8;--blue-lt:#e0f4fc;--blue-mid2:#b8dff0;
+  --navy:#003a52;--navy-lt:#004d6b;--gray:#f4f7fb;--text:#2a4a5a;--border:#b8dff0;
+  --danger:#ef4444;--success:#22c55e;--warn:#f59e0b;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+header{background:var(--navy);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:1rem;letter-spacing:2px;padding:6px 14px;border-radius:4px;}
+.logo-text{color:var(--blue-mid2);font-size:.85rem;letter-spacing:1px;}
+.tool-nav{display:flex;align-items:center;gap:6px;}
+.tnav{display:inline-block;padding:5px 13px;border-radius:6px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;transition:all .2s;background:none;}
+.tnav:hover{border-color:var(--blue);color:var(--blue);}
+.tnav.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+.main{max-width:1200px;margin:0 auto;padding:24px 24px 80px;}
+
+/* VIEW TOGGLE */
+.view-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.view-title{font-size:1.4rem;font-weight:700;color:var(--navy);}
+.view-toggle{display:flex;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.vbtn{padding:7px 18px;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:#64748b;font-family:inherit;transition:all .2s;}
+.vbtn.active{background:var(--navy);color:#fff;}
+.date-filter{display:flex;gap:6px;}
+.dfbtn{padding:5px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border);color:#64748b;background:#fff;font-family:inherit;transition:all .2s;}
+.dfbtn.active,.dfbtn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 4px 16px rgba(0,0,0,.05);position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.green::before{background:var(--success);}
+.stat-card.warn::before{background:var(--warn);}
+.stat-card.red::before{background:var(--danger);}
+.stat-card.purple::before{background:#6d28d9;}
+.stat-num{font-size:2rem;font-weight:700;color:var(--navy);line-height:1;margin-bottom:4px;}
+.stat-label{font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:1px;}
+.stat-sub{font-size:.7rem;color:#94a3b8;margin-top:3px;}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr;}}
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+.chart-title{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:16px;}
+.bar-chart{display:flex;flex-direction:column;gap:8px;}
+.bar-row{display:flex;align-items:center;gap:10px;}
+.bar-label{font-size:.75rem;color:var(--text);min-width:120px;font-weight:500;}
+.bar-track{flex:1;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;transition:width .8s ease;}
+.bar-val{font-size:.72rem;font-weight:700;color:var(--text);min-width:24px;text-align:right;}
+
+.donut-wrap{display:flex;align-items:center;gap:20px;}
+.donut-svg{flex-shrink:0;}
+.donut-legend{display:flex;flex-direction:column;gap:8px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* TABLES */
+.table-card{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.05);margin-bottom:16px;}
+.table-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{background:#f8fafc;font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);}
+.data-table td{padding:11px 16px;border-bottom:1px solid #f1f5f9;font-size:.83rem;vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:#f8fafc;}
+.verdict-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;}
+.v-pass{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;}
+.v-review{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+.v-fail{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+.score-pill{font-weight:700;font-size:.82rem;}
+
+/* RECRUITER VIEW */
+.recruiter-select{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.rec-btn{padding:6px 16px;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:#64748b;background:#fff;font-family:inherit;transition:all .2s;}
+.rec-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+.btn-export{padding:7px 16px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--blue-md);background:#fff;font-family:inherit;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.btn-export:hover{border-color:var(--blue);color:var(--blue);}
+
+.empty-state{text-align:center;padding:40px;color:#94a3b8;font-size:.88rem;}
+footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgba(255,255,255,.35);text-align:center;padding:14px;font-size:.72rem;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-badge">QLM</div>
+    <div class="logo-text">Quality Labor Management</div>
+  </div>
+  <div class="tool-nav">
+    <a href="/index.html" class="tnav">&#127968; Home</a>
+    <a href="/talent-card.html" class="tnav">&#128196; SPQ Card</a>
+    <a href="/qlm-intake.html" class="tnav">&#128203; Apply</a>
+    <a href="/qlm-trades-assessment.html" class="tnav">&#9889; Trades Test</a>
+    <a href="/qlm-lead-generator.html" class="tnav">&#127919; Who's Hiring</a>
+    <a href="/qlm-dashboard.html" class="tnav active">&#128202; Admin</a>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="view-bar">
+    <div class="view-title" id="dash-title">&#128202; QLM Dashboard</div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <div class="date-filter">
+        <button class="dfbtn" onclick="setDateFilter(7,this)">7d</button>
+        <button class="dfbtn active" onclick="setDateFilter(30,this)">30d</button>
+        <button class="dfbtn" onclick="setDateFilter(90,this)">90d</button>
+        <button class="dfbtn" onclick="setDateFilter(0,this)">All</button>
+      </div>
+      <div class="view-toggle">
+        <button class="vbtn active" onclick="setView('admin',this)">&#128274; Admin</button>
+        <button class="vbtn" onclick="setView('recruiter',this)">&#128100; Recruiter</button>
+      </div>
+      <button class="btn-export" onclick="exportAllCSV()">&#8595; Export CSV</button>
+    </div>
+  </div>
+
+  <!-- RECRUITER SELECTOR (hidden in admin mode) -->
+  <div id="recruiter-bar" style="display:none;margin-bottom:16px;">
+    <div style="font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Select Recruiter</div>
+    <div class="recruiter-select" id="recruiter-btns"></div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="stat-grid" id="stat-grid"></div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Assessments by Trade</div>
+      <div class="bar-chart" id="trade-chart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Pass / Review / Fail Breakdown</div>
+      <div class="donut-wrap" id="verdict-chart"></div>
+    </div>
+  </div>
+
+  <!-- ASSESSMENT HISTORY TABLE -->
+  <div class="table-card">
+    <div class="table-head">
+      <div class="table-title">&#9889; Recent Assessments</div>
+      <div id="assess-count" style="font-size:.75rem;color:#94a3b8;"></div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="assess-table">
+        <thead><tr>
+          <th>Candidate</th><th>Trade</th><th>Score</th><th>Verdict</th><th>Date</th><th>Recruiter</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="assess-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LEADS TABLE -->
+  <div class="table-card">
+    <div class="table-head">
+      <div class="table-title">&#127919; Lead Pipeline Summary</div>
+      <div id="leads-count" style="font-size:.75rem;color:#94a3b8;"></div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="leads-table">
+        <thead><tr>
+          <th>Company</th><th>Trades</th><th>Location</th><th>Fit Score</th><th>Status</th><th>Source</th>
+        </tr></thead>
+        <tbody id="leads-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer>&#169; 2025 Quality Labor Management, LLC &middot; Internal Dashboard &middot; myqlm.com</footer>
+
+<script>
+var currentView = 'admin';
+var dateFilter = 30;
+var selectedRecruiter = 'all';
+
+// ─── DATA LOADERS ────────────────────────────────────────────────────────
+function getAssessments(){
+  try{ return JSON.parse(localStorage.getItem('qlm_assessment_history')||'[]'); } catch(e){ return []; }
+}
+function getLeads(){
+  try{ return JSON.parse(localStorage.getItem('qlm_leads')||'[]'); } catch(e){ return []; }
+}
+
+function filterByDate(items, days){
+  if(!days) return items;
+  var cutoff = Date.now() - days*24*60*60*1000;
+  return items.filter(function(item){
+    var d = item.date || item.savedAt || '';
+    if(!d) return true;
+    try{
+      var ts = new Date(d).getTime();
+      return ts >= cutoff;
+    } catch(e){ return true; }
+  });
+}
+
+// ─── VIEW CONTROLS ───────────────────────────────────────────────────────
+function setView(view, el){
+  currentView = view;
+  document.querySelectorAll('.vbtn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('recruiter-bar').style.display = view==='recruiter' ? 'block' : 'none';
+  if(view==='recruiter') buildRecruiterBar();
+  render();
+}
+
+function setDateFilter(days, el){
+  dateFilter = days;
+  document.querySelectorAll('.dfbtn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  render();
+}
+
+function buildRecruiterBar(){
+  var all = getAssessments();
+  var recruiters = ['all'];
+  all.forEach(function(a){ if(a.recruiter && recruiters.indexOf(a.recruiter)===-1) recruiters.push(a.recruiter); });
+  document.getElementById('recruiter-btns').innerHTML = recruiters.map(function(r){
+    return '<button class="rec-btn'+(r===selectedRecruiter?' active':'')+'" onclick="selectRecruiter(\''+r+'\',this)">'+(r==='all'?'All Recruiters':r)+'</button>';
+  }).join('');
+}
+
+function selectRecruiter(r, el){
+  selectedRecruiter = r;
+  document.querySelectorAll('.rec-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  render();
+}
+
+// ─── MAIN RENDER ─────────────────────────────────────────────────────────
+function render(){
+  var assessments = filterByDate(getAssessments(), dateFilter);
+  var leads = filterByDate(getLeads(), dateFilter);
+
+  if(currentView==='recruiter' && selectedRecruiter!=='all'){
+    assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
+  }
+
+  renderKPIs(assessments, leads);
+  renderTradeChart(assessments);
+  renderVerdictChart(assessments);
+  renderAssessTable(assessments);
+  renderLeadsTable(leads);
+}
+
+// ─── KPI CARDS ───────────────────────────────────────────────────────────
+function renderKPIs(assessments, leads){
+  var passes = assessments.filter(function(a){ return (a.verdict||'').toLowerCase().includes('pass'); }).length;
+  var fails  = assessments.filter(function(a){ return (a.verdict||'').toLowerCase().includes('fail'); }).length;
+  var avgScore = assessments.length ? Math.round(assessments.reduce(function(s,a){ return s+(a.score||0); },0)/assessments.length) : 0;
+  var qualified = leads.filter(function(l){ return l.status==='qualified'; }).length;
+  var contacted = leads.filter(function(l){ return l.status==='contacted'; }).length;
+
+  document.getElementById('stat-grid').innerHTML = [
+    { color:'blue',  num: assessments.length, label:'Assessments Run',   sub: dateFilter ? 'Last '+dateFilter+' days' : 'All time' },
+    { color:'green', num: passes,             label:'Passed',            sub: assessments.length ? Math.round(passes/assessments.length*100)+'% pass rate' : '' },
+    { color:'red',   num: fails,              label:'Failed',            sub: assessments.length ? Math.round(fails/assessments.length*100)+'% fail rate' : '' },
+    { color:'blue',  num: avgScore||'—',      label:'Avg Score',         sub: 'Across all assessments' },
+    { color:'purple',num: leads.length,       label:'Total Leads',       sub: 'In lead database' },
+    { color:'green', num: qualified,          label:'Qualified Leads',   sub: contacted + ' contacted' },
+  ].map(function(s){
+    return '<div class="stat-card '+s.color+'"><div class="stat-num">'+s.num+'</div><div class="stat-label">'+s.label+'</div><div class="stat-sub">'+s.sub+'</div></div>';
+  }).join('');
+}
+
+// ─── TRADE CHART ─────────────────────────────────────────────────────────
+function renderTradeChart(assessments){
+  var counts = {};
+  assessments.forEach(function(a){
+    var t = a.trade || 'Unknown';
+    counts[t] = (counts[t]||0) + 1;
+  });
+  var sorted = Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
+  var max = sorted.length ? sorted[0][1] : 1;
+  var colors = ['#0099d8','#0077a8','#005a7e','#22c55e','#f59e0b','#6d28d9','#ef4444','#0891b2'];
+
+  if(!sorted.length){
+    document.getElementById('trade-chart').innerHTML = '<div class="empty-state">No assessment data yet.</div>';
+    return;
+  }
+  document.getElementById('trade-chart').innerHTML = sorted.map(function(entry, i){
+    var pct = Math.round(entry[1]/max*100);
+    return '<div class="bar-row"><span class="bar-label">'+entry[0]+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+colors[i%colors.length]+'"></div></div><span class="bar-val">'+entry[1]+'</span></div>';
+  }).join('');
+}
+
+// ─── VERDICT DONUT ───────────────────────────────────────────────────────
+function renderVerdictChart(assessments){
+  var pass=0, review=0, fail=0;
+  assessments.forEach(function(a){
+    var v = (a.verdict||'').toLowerCase();
+    if(v.includes('pass')) pass++;
+    else if(v.includes('fail')) fail++;
+    else review++;
+  });
+  var total = pass+review+fail || 1;
+
+  var segments = [
+    { val:pass,   color:'#22c55e', label:'Pass' },
+    { val:review, color:'#f59e0b', label:'Review' },
+    { val:fail,   color:'#ef4444', label:'Fail' },
+  ].filter(function(s){ return s.val>0; });
+
+  // Build SVG donut
+  var cx=60, cy=60, r=45, stroke=18;
+  var circumference = 2*Math.PI*r;
+  var offset = 0;
+  var arcs = segments.map(function(s){
+    var dash = (s.val/total)*circumference;
+    var arc = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+s.color+'" stroke-width="'+stroke+'" stroke-dasharray="'+dash+' '+circumference+'" stroke-dashoffset="-'+offset+'" transform="rotate(-90 '+cx+' '+cy+')" />';
+    offset += dash;
+    return arc;
+  }).join('');
+
+  var svg = '<svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="45" fill="none" stroke="#f1f5f9" stroke-width="18"/>' + arcs +
+    '<text x="60" y="55" text-anchor="middle" font-size="16" font-weight="700" fill="#003a52">'+total+'</text>' +
+    '<text x="60" y="70" text-anchor="middle" font-size="9" fill="#94a3b8">ASSESSED</text></svg>';
+
+  var legend = '<div class="donut-legend">' + segments.map(function(s){
+    return '<div class="legend-item"><div class="legend-dot" style="background:'+s.color+'"></div><span>'+s.label+' — <strong>'+s.val+'</strong> ('+Math.round(s.val/total*100)+'%)</span></div>';
+  }).join('') + '</div>';
+
+  document.getElementById('verdict-chart').innerHTML = !assessments.length
+    ? '<div class="empty-state">No data yet.</div>'
+    : svg + legend;
+}
+
+// ─── ASSESSMENT TABLE ─────────────────────────────────────────────────────
+function renderAssessTable(assessments){
+  var tbody = document.getElementById('assess-tbody');
+  document.getElementById('assess-count').textContent = assessments.length + ' records';
+  if(!assessments.length){
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No assessments in this period.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = assessments.slice(0,50).map(function(a){
+    var vc = (a.verdict||'').toLowerCase().includes('fail') ? 'v-fail' : (a.verdict||'').toLowerCase().includes('pass') ? 'v-pass' : 'v-review';
+    var sc = (a.score||0) >= 75 ? '#15803d' : (a.score||0) >= 55 ? '#a16207' : '#b91c1c';
+    return '<tr>' +
+      '<td style="font-weight:600;">'+(a.firstName||'')+' '+(a.lastName||'')+'</td>' +
+      '<td>'+(a.trade||'')+'</td>' +
+      '<td><span class="score-pill" style="color:'+sc+'">'+(a.score||'—')+'</span></td>' +
+      '<td><span class="verdict-badge '+vc+'">'+(a.verdict||'—')+'</span></td>' +
+      '<td style="color:#64748b;font-size:.78rem;">'+(a.date||'')+'</td>' +
+      '<td style="font-size:.82rem;">'+(a.recruiter||'—')+'</td>' +
+      '<td><button onclick="viewAssessment(this)" data-idx="'+assessments.indexOf(a)+'" style="font-size:.68rem;padding:3px 10px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:#fff;font-family:inherit;color:var(--blue-md);">View</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ─── LEADS TABLE ─────────────────────────────────────────────────────────
+function renderLeadsTable(leads){
+  var tbody = document.getElementById('leads-tbody');
+  document.getElementById('leads-count').textContent = leads.length + ' leads';
+  if(!leads.length){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No leads saved yet. Use the Lead Generator to find leads.</td></tr>';
+    return;
+  }
+  var statusColors = { new:'#1d4ed8', contacted:'#a16207', qualified:'#15803d', dead:'#94a3b8' };
+  tbody.innerHTML = leads.slice(0,50).map(function(l){
+    var sc = (l.qlmFitScore||0) >= 75 ? '#15803d' : (l.qlmFitScore||0) >= 50 ? '#a16207' : '#b91c1c';
+    var scolor = statusColors[l.status||'new'] || '#94a3b8';
+    return '<tr>' +
+      '<td style="font-weight:600;">'+(l.company||'')+'</td>' +
+      '<td style="font-size:.78rem;">'+(l.trades||[]).join(', ')+'</td>' +
+      '<td style="font-size:.78rem;color:#64748b;">'+(l.location||'')+'</td>' +
+      '<td><span style="font-weight:700;color:'+sc+'">'+(l.qlmFitScore||'—')+'</span></td>' +
+      '<td><span style="font-size:.68rem;font-weight:700;color:'+scolor+';text-transform:uppercase;letter-spacing:.5px;">'+(l.status||'new')+'</span></td>' +
+      '<td style="font-size:.78rem;color:#64748b;">'+(l.source||'')+'</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ─── VIEW ASSESSMENT DETAIL ───────────────────────────────────────────────
+function viewAssessment(btn){
+  var assessments = filterByDate(getAssessments(), dateFilter);
+  if(currentView==='recruiter' && selectedRecruiter!=='all'){
+    assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
+  }
+  var idx = parseInt(btn.getAttribute('data-idx'));
+  var a = assessments[idx];
+  if(!a || !a.fullText) return alert('Full report not available for this record.');
+  var win = window.open('','_blank');
+  win.document.write('<html><head><title>Assessment Report</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#2a4a5a;line-height:1.7;}h1{color:#003a52;}pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:.85rem;}</style></head><body>');
+  win.document.write('<h1>'+a.firstName+' '+a.lastName+' &mdash; '+a.trade+'</h1>');
+  win.document.write('<p><strong>Score:</strong> '+(a.score||'—')+' &nbsp; <strong>Verdict:</strong> '+(a.verdict||'—')+'<br><strong>Date:</strong> '+(a.date||'')+'&nbsp; <strong>Recruiter:</strong> '+(a.recruiter||'—')+'</p><hr>');
+  win.document.write('<pre>'+(a.fullText||'').replace(/</g,'&lt;')+'</pre></body></html>');
+  win.document.close();
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────
+function exportAllCSV(){
+  var assessments = filterByDate(getAssessments(), dateFilter);
+  var leads = filterByDate(getLeads(), dateFilter);
+  var lines = ['=== ASSESSMENTS ===','Candidate,Trade,Score,Verdict,Date,Recruiter,YOE,Certs'];
+  assessments.forEach(function(a){
+    lines.push(['"'+(a.firstName||'')+' '+(a.lastName||'')+'"','"'+(a.trade||'')+'"',a.score||'','"'+(a.verdict||'')+'"','"'+(a.date||'')+'"','"'+(a.recruiter||'')+'"','"'+(a.yoe||'')+'"','"'+(a.certs||'')+'"'].join(','));
+  });
+  lines.push('','=== LEADS ===','Company,Trades,Location,Fit Score,Status,Source,Urgency');
+  leads.forEach(function(l){
+    lines.push(['"'+(l.company||'')+'"','"'+(l.trades||[]).join(';')+'"','"'+(l.location||'')+'"',l.qlmFitScore||'','"'+(l.status||'')+'"','"'+(l.source||'')+'"','"'+(l.urgency||'')+'"'].join(','));
+  });
+  var blob = new Blob([lines.join('\n')], { type:'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href=url; a.download='qlm-dashboard-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function(){
+  render();
+  // Auto-refresh every 30s
+  setInterval(render, 30000);
+});
+</script>
+</body>
+</html>
