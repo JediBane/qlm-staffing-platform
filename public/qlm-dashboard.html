@@ -89,6 +89,17 @@ header{background:var(--navy);padding:0 32px;display:flex;align-items:center;jus
 
 .empty-state{text-align:center;padding:40px;color:#94a3b8;font-size:.88rem;}
 footer{background:var(--navy);border-top:1px solid rgba(0,153,216,.15);color:rgba(255,255,255,.35);text-align:center;padding:14px;font-size:.72rem;}
+
+/* --- compact nav (auth badge fits inline) --- */
+header{gap:12px;}
+.logo-text{white-space:nowrap;}
+.tool-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+.tool-nav::-webkit-scrollbar{display:none;}
+.tnav{white-space:nowrap;flex-shrink:0;}
+@media(max-width:900px){
+  .logo-text{display:none;}
+  .tnav{padding:4px 8px;font-size:.62rem;}
+}
 </style>
 </head>
 <body>
@@ -451,18 +462,7 @@ function viewAssessment(btn){
   var a = assessments[idx];
   if(!a || !a.fullText) return alert('Full report not available for this record.');
   var win = window.open('','_blank');
-  win.document.write('<html><head><title>Assessment Report</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#2a4a5a;line-height:1.7;}h1{color:#003a52;}pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:.85rem;}
-/* --- compact nav (auth badge fits inline) --- */
-header{gap:12px;}
-.logo-text{white-space:nowrap;}
-.tool-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
-.tool-nav::-webkit-scrollbar{display:none;}
-.tnav{white-space:nowrap;flex-shrink:0;}
-@media(max-width:900px){
-  .logo-text{display:none;}
-  .tnav{padding:4px 8px;font-size:.62rem;}
-}
-</style></head><body>');
+  win.document.write('<html><head><title>Assessment Report</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#2a4a5a;line-height:1.7;}h1{color:#003a52;}pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:.85rem;}</style></head><body>');
   win.document.write('<h1>'+a.firstName+' '+a.lastName+' &mdash; '+a.trade+'</h1>');
   win.document.write('<p><strong>Score:</strong> '+(a.score||'—')+' &nbsp; <strong>Verdict:</strong> '+(a.verdict||'—')+'<br><strong>Date:</strong> '+(a.date||'')+'&nbsp; <strong>Recruiter:</strong> '+(a.recruiter||'—')+'</p><hr>');
   win.document.write('<pre>'+(a.fullText||'').replace(/</g,'&lt;')+'</pre></body></html>');
