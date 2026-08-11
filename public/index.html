@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Internal Tools</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f4f7fb;min-height:100vh;color:#2a4a5a;}
+header{background:#003a52;padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-badge{background:#0099d8;color:#fff;font-weight:700;font-size:1rem;letter-spacing:2px;padding:6px 14px;border-radius:4px;}
+.logo-text{color:#b8dff0;font-size:.85rem;letter-spacing:1px;}
+.hero{background:#003a52;border-bottom:4px solid #0099d8;padding:3rem 32px;}
+.hero-inner{max-width:860px;margin:0 auto;text-align:center;}
+.hero h1{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;color:#fff;margin-bottom:.5rem;}
+.hero h1 span{color:#0099d8;}
+.hero p{font-size:.95rem;color:#b8dff0;font-weight:300;max-width:500px;margin:0 auto;}
+.main{max-width:860px;margin:0 auto;padding:2.5rem 24px 5rem;}
+.section-label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:1rem;}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:2.5rem;}
+.tool-card{background:#fff;border:1px solid #b8dff0;border-radius:12px;border-top:4px solid #0099d8;padding:24px;text-decoration:none;color:#2a4a5a;display:flex;flex-direction:column;gap:10px;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+.tool-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,153,216,.15);border-color:#0099d8;}
+.tool-icon{font-size:2rem;}
+.tool-name{font-size:1rem;font-weight:700;color:#003a52;}
+.tool-desc{font-size:.8rem;color:#64748b;line-height:1.55;}
+.tool-badge{display:inline-flex;align-items:center;gap:5px;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0077a8;background:#e0f4fc;border:1px solid #b8dff0;padding:3px 9px;border-radius:20px;margin-top:auto;}
+.spq-bar{background:#004d6b;border-top:1px solid rgba(0,153,216,.2);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:fixed;bottom:0;width:100%;}
+.spq-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.spq-pill{background:rgba(0,153,216,.12);border:1px solid rgba(0,153,216,.25);color:#b8dff0;font-size:.65rem;font-weight:700;letter-spacing:1px;padding:3px 11px;border-radius:20px;text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;}
+.spq-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:#0099d8;display:inline-block;}
+.spq-contact{font-size:.72rem;color:#b8dff0;text-align:right;line-height:1.6;}
+.spq-contact strong{color:#fff;display:block;font-size:.78rem;}
+
+/* ── TOOL NAV ── */
+.tool-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tnav{display:inline-block;padding:5px 13px;border-radius:6px;font-size:.72rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#b8dff0;transition:all .2s;cursor:pointer;font-family:inherit;background:none;}
+.tnav:hover{border-color:#0099d8;color:#0099d8;background:rgba(0,153,216,.08);}
+.tnav.active{background:#0099d8;border-color:#0099d8;color:#fff;}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-badge">QLM</div>
+    <div class="logo-text">Quality Labor Management</div>
+  </div>
+  <div style="font-size:.72rem;color:#b8dff0;letter-spacing:1px;text-transform:uppercase;">Internal Tools Suite</div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>QLM <span>AI-Powered</span> Tools</h1>
+    <p>Recruiting, screening, and candidate management — all in one place. Select a tool below to get started.</p>
+  </div>
+</div>
+
+<div class="main">
+  <div class="section-label">Recruiting Tools</div>
+  <div class="tool-grid">
+
+    <a class="tool-card" href="/talent-card.html">
+      <div class="tool-icon">&#128196;</div>
+      <div class="tool-name">SPQ'd Team Member Marketing Card</div>
+      <div class="tool-desc">Upload a resume and AI extracts candidate info, then generates a print-ready QLM talent card for clients.</div>
+      <div class="tool-badge">&#10022; AI Powered</div>
+    </a>
+
+    <a class="tool-card" href="/qlm-intake.html">
+      <div class="tool-icon">&#128203;</div>
+      <div class="tool-name">Apply with QLM &mdash; AI Powered</div>
+      <div class="tool-desc">Multi-step candidate intake form with resume upload. AI generates a recruiter brief, formatted resume, and skill tags.</div>
+      <div class="tool-badge">&#10022; AI Powered</div>
+    </a>
+
+    <a class="tool-card" href="/qlm-trades-assessment.html">
+      <div class="tool-icon">&#9889;</div>
+      <div class="tool-name">QLM Trades Assessment</div>
+      <div class="tool-desc">13-trade knowledge screening with scenario-based questions and traps. AI scores and generates a full recruiter report.</div>
+      <div class="tool-badge">13 Trades &middot; AI Scored</div>
+    </a>
+
+    <a class="tool-card" href="/qlm-lead-generator.html">
+      <div class="tool-icon">&#127919;</div>
+      <div class="tool-name">QLM Lead Generator</div>
+      <div class="tool-desc">AI searches live job boards and the web to find companies hiring skilled trades workers — with outreach emails and CRM pipeline built in.</div>
+      <div class="tool-badge">&#10022; AI + Web Search</div>
+    </a>
+
+    <a class="tool-card" href="/qlm-dashboard.html">
+      <div class="tool-icon">&#128202;</div>
+      <div class="tool-name">Admin Dashboard</div>
+      <div class="tool-desc">Track all tool activity across assessments, intakes, and leads. Admin overview plus per-recruiter views with CSV export.</div>
+      <div class="tool-badge">Admin + Recruiter Views</div>
+    </a>
+
+    <a class="tool-card" href="/qlm-hiring-insights.html">
+      <div class="tool-icon">&#128202;</div>
+      <div class="tool-name">Hiring Insights</div>
+      <div class="tool-desc">AI-powered construction labor market reports — trade demand, salary benchmarks, candidate supply, and competitor landscape for your market.</div>
+      <div class="tool-badge">&#10022; AI + Live Web Data</div>
+    </a>
+
+  </div>
+
+  <div class="section-label">Quick Links</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a href="https://myqlm.com" target="_blank" style="background:#fff;border:1px solid #b8dff0;border-radius:8px;padding:10px 18px;text-decoration:none;color:#0077a8;font-size:.82rem;font-weight:600;">&#127760; myqlm.com</a>
+    <a href="mailto:info@myqlm.com" style="background:#fff;border:1px solid #b8dff0;border-radius:8px;padding:10px 18px;text-decoration:none;color:#0077a8;font-size:.82rem;font-weight:600;">&#128140; info@myqlm.com</a>
+    <a href="tel:8557569675" style="background:#fff;border:1px solid #b8dff0;border-radius:8px;padding:10px 18px;text-decoration:none;color:#0077a8;font-size:.82rem;font-weight:600;">&#128222; 855-756-9675</a>
+  </div>
+</div>
+
+<div class="spq-bar">
+  <div class="spq-pills">
+    <span class="spq-pill">Safety</span>
+    <span class="spq-pill">Productivity</span>
+    <span class="spq-pill">Quality</span>
+  </div>
+  <div class="spq-contact">
+    <strong>QLM &mdash; Quality Labor Management</strong>
+    info@myqlm.com &middot; 855-756-9675 &middot; myqlm.com
+  </div>
+</div>
+</body>
+</html>
