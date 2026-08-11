@@ -618,6 +618,16 @@ Rules:
 // ══════════════════════════════════════
 //  GENERATE CARD — privacy masking applied (v1.01)
 // ══════════════════════════════════════
+
+// ─── QLM ACTIVITY LOG (feeds Admin Dashboard) ───────────────────────────
+function qlmLog(type, payload){
+  try{
+    var log = JSON.parse(localStorage.getItem('qlm_activity')||'[]');
+    log.unshift(Object.assign({ type:type, date:new Date().toISOString() }, payload||{}));
+    localStorage.setItem('qlm_activity', JSON.stringify(log.slice(0,500)));
+  }catch(e){}
+}
+
 function generateCard() {
   const rawName  = document.getElementById('f_name').value.trim();
   const rawPhone = document.getElementById('f_phone').value.trim();
@@ -636,6 +646,14 @@ function generateCard() {
   const initials = rawName.split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
   if (!rawName) { showStatus('extract','error','Please enter a worker name first.'); return; }
+
+  qlmLog('talent_card', {
+    name: rawName,
+    trade: title,
+    city: city,
+    experience: exp,
+    availability: avail
+  });
 
   const availColor = avail==='Available Immediately' ? '#22c55e'
     : avail==='Available in 2 Weeks' ? '#f0b429'
