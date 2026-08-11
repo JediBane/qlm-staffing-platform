@@ -1,16 +1,37 @@
 // QLM AI Chat — Netlify serverless function
-// Proxies to Anthropic API, forces Haiku model, handles CORS
 export async function handler(event) {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+
+  const rawKey = process.env.ANTHROPIC_KEY;
+
+  // Diagnostic: GET /.netlify/functions/chat  → reports key status, never the key itself
+  if (event.httpMethod === 'GET') {
+    const names = Object.keys(process.env).filter(n => /ANTHROPIC|CLAUDE|API/i.test(n));
+    return {
+      statusCode: 200,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        keyPresent: !!rawKey,
+        keyLength: rawKey ? rawKey.length : 0,
+        keyPrefix: rawKey ? rawKey.slice(0, 10) : null,
+        keySuffix: rawKey ? rawKey.slice(-4) : null,
+        hasWhitespace: rawKey ? rawKey !== rawKey.trim() : false,
+        hasQuotes: rawKey ? (rawKey.startsWith('"') || rawKey.startsWith("'")) : false,
+        matchingEnvNames: names,
+      }, null, 2),
+    };
+  }
+
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
 
-  const key = process.env.ANTHROPIC_KEY;
+  // Strip whitespace and stray quotes that break auth
+  const key = rawKey ? rawKey.trim().replace(/^["']|["']$/g, '') : null;
   if (!key) return {
     statusCode: 500, headers: CORS,
     body: JSON.stringify({ error: { message: 'ANTHROPIC_KEY not set in Netlify environment variables.' } })
@@ -18,9 +39,8 @@ export async function handler(event) {
 
   let body;
   try { body = JSON.parse(event.body); }
-  catch(e) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: { message: 'Invalid JSON' } }) }; }
+  catch (e) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: { message: 'Invalid JSON' } }) }; }
 
-  // Always force Haiku — cheapest model
   body.model = 'claude-haiku-4-5-20251001';
   if (!body.max_tokens) body.max_tokens = 2000;
 
@@ -40,7 +60,7 @@ export async function handler(event) {
       headers: { ...CORS, 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     };
-  } catch(e) {
+  } catch (e) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: { message: e.message } }) };
   }
 }
