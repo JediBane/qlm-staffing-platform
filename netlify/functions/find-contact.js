@@ -14,11 +14,25 @@ export async function handler(event) {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
 
+  // GET: browser-testable. /.netlify/functions/find-contact?company=Acme&website=https://acme.com
   let body;
-  try { body = JSON.parse(event.body); }
-  catch (e) { return json(400, CORS, { error: 'Invalid JSON' }); }
+  if (event.httpMethod === 'GET') {
+    const q = event.queryStringParameters || {};
+    if (!q.company && !q.website) {
+      return json(200, CORS, {
+        ok: true,
+        usage: 'Add ?company=Some+Company or ?website=https://example.com to test extraction',
+        anthropicKey: !!process.env.ANTHROPIC_KEY,
+      });
+    }
+    body = { company: q.company || '', website: q.website || '', location: q.location || '', jobUrl: q.jobUrl || '' };
+  } else if (event.httpMethod === 'POST') {
+    try { body = JSON.parse(event.body); }
+    catch (e) { return json(400, CORS, { error: 'Invalid JSON' }); }
+  } else {
+    return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
+  }
 
   const company = (body.company || '').trim();
   let website = (body.website || '').trim();
@@ -131,7 +145,8 @@ export async function handler(event) {
     company,
     website: website || null,
     pagesChecked: results.filter(r => r && r.html).map(r => r.url),
-    pagesFailed: results.filter(r => r && !r.html).map(r => r.url),
+    pagesFailed: results.filter(r => r && !r.html).map(r => ({ url: r.url, why: r.why || 'unknown' })),
+    domainLookup: website ? 'resolved' : 'could not determine company website',
     emails: emailList,
     phones: phoneList,
     people,
@@ -148,17 +163,21 @@ async function fetchPage(url) {
     const r = await fetch(url, {
       signal: ctrl.signal,
       redirect: 'follow',
-      headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' },
+      headers: {
+        'User-Agent': UA,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
     });
     clearTimeout(t);
-    if (!r.ok) return { url, html: null };
+    if (!r.ok) return { url, html: null, why: 'HTTP ' + r.status };
     const ct = r.headers.get('content-type') || '';
-    if (!ct.includes('html')) return { url, html: null };
+    if (!ct.includes('html')) return { url, html: null, why: 'not html (' + ct.split(';')[0] + ')' };
     const html = (await r.text()).slice(0, 400000);
     return { url, html };
   } catch (e) {
     clearTimeout(t);
-    return { url, html: null };
+    return { url, html: null, why: e.name === 'AbortError' ? 'timed out' : e.message };
   }
 }
 
