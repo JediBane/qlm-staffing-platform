@@ -52,11 +52,42 @@ export async function handler(event) {
       return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: data.error }) };
     }
 
-    const text = (data.content || [])
+    let text = (data.content || [])
       .filter(b => b.type === 'text')
       .map(b => b.text)
       .join('')
       .trim();
+
+    // The model sometimes narrates its search instead of returning JSON —
+    // especially when a site blocks it. One fast follow-up (no tools) forces
+    // structured output from whatever it did find.
+    if (text && text.indexOf('[') === -1 && text.indexOf('{') === -1) {
+      try {
+        const retry = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': key,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2000,
+            messages: [
+              { role: 'user', content: prompt },
+              { role: 'assistant', content: text },
+              { role: 'user', content:
+                'Output ONLY the raw JSON now, starting with [ or {. No preamble, no explanation, no markdown. ' +
+                'Use whatever you found above, even if it is partial or low confidence. ' +
+                'If you genuinely found nothing usable, return an empty array: []' },
+            ],
+          }),
+        });
+        const rd = await retry.json();
+        const rt = (rd.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+        if (rt) text = rt;
+      } catch (e) { /* keep the original text */ }
+    }
 
     return {
       statusCode: 200,
