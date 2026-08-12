@@ -97,6 +97,66 @@ export async function handler(event) {
     });
 
   try {
+    // ── CREATE DIRECTLY (no email, no rate limit) ──
+    if (body.action === 'create') {
+      const email = (body.email || '').trim().toLowerCase();
+      const password = body.password || '';
+      if (!email) return json(400, CORS, { ok: false, error: 'Email address required' });
+      if (password.length < 8) return json(400, CORS, { ok: false, error: 'Password must be at least 8 characters' });
+
+      const r = await admin('/auth/v1/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          password,
+          email_confirm: true,                       // no confirmation email needed
+          user_metadata: { full_name: body.full_name || email },
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        return json(200, CORS, { ok: false, error: data.msg || data.message || data.error_description || 'Could not create the account' });
+      }
+
+      // Make sure the profile exists with the right name and role
+      const wantAdmin = !!body.is_admin;
+      await admin(`/rest/v1/profiles?id=eq.${data.id}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ full_name: body.full_name || email, email, is_admin: wantAdmin }),
+      });
+      // If the signup trigger did not fire, insert the row
+      const check = await admin(`/rest/v1/profiles?id=eq.${data.id}&select=id`);
+      const rows = await check.json();
+      if (!Array.isArray(rows) || !rows.length) {
+        await admin('/rest/v1/profiles', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ id: data.id, email, full_name: body.full_name || email, is_admin: wantAdmin }),
+        });
+      }
+
+      return json(200, CORS, { ok: true, created: email, id: data.id });
+    }
+
+    // ── SET PASSWORD for an existing user ──
+    if (body.action === 'setPassword') {
+      const id = body.id;
+      const password = body.password || '';
+      if (!id) return json(400, CORS, { ok: false, error: 'User id required' });
+      if (password.length < 8) return json(400, CORS, { ok: false, error: 'Password must be at least 8 characters' });
+
+      const r = await admin(`/auth/v1/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        return json(200, CORS, { ok: false, error: d.msg || 'Could not set the password' });
+      }
+      return json(200, CORS, { ok: true });
+    }
+
     // ── INVITE ──
     if (body.action === 'invite') {
       const email = (body.email || '').trim().toLowerCase();
