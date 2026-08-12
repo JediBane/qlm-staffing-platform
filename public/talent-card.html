@@ -614,7 +614,14 @@ Rules:
 
     document.getElementById('dropLabel').textContent = `✅ Extracted — review fields then Generate!`;
     document.getElementById('dropLabel').className = 'success';
-    showStatus('extract','success','✅ Info extracted! Review the fields below then click Generate.');
+    var _missing = [];
+    if(!document.getElementById('f_phone').value.trim()) _missing.push('phone number');
+    if(!document.getElementById('f_email').value.trim()) _missing.push('email address');
+    if(_missing.length){
+      showStatus('extract','error','\u26a0 Info extracted, but no ' + _missing.join(' or ') + ' was found on the resume. Add it below \u2014 contact info is required and is how we tell team members apart in the database.');
+    } else {
+      showStatus('extract','success','\u2705 Info extracted! Review the fields below then click Generate.');
+    }
 
   } catch(err) {
     showStatus('extract','error','❌ '+err.message);
