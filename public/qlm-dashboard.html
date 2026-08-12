@@ -374,7 +374,7 @@ function renderTradeChart(assessments){
   }
   document.getElementById('trade-chart').innerHTML = sorted.map(function(entry, i){
     var pct = Math.round(entry[1]/max*100);
-    return '<div class="bar-row"><span class="bar-label">'+entry[0]+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+colors[i%colors.length]+'"></div></div><span class="bar-val">'+entry[1]+'</span></div>';
+    return '<div class="bar-row"><span class="bar-label">'+tradeLabel(entry[0])+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+colors[i%colors.length]+'"></div></div><span class="bar-val">'+entry[1]+'</span></div>';
   }).join('');
 }
 
@@ -420,6 +420,19 @@ function renderVerdictChart(assessments){
 }
 
 // ─── ASSESSMENT TABLE ─────────────────────────────────────────────────────
+var TRADE_LABEL = {
+  electrician:'Electrician', plumber:'Plumber / Pipefitter', welder:'Welder',
+  hvac:'HVAC Technician', carpenter:'Carpenter / Framing', concrete:'Concrete / Formwork',
+  operator:'Heavy Equipment Operator', foreman:'Foreman / Superintendent',
+  solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)', ironworker:'Ironworker',
+  painter:'Painter / Coatings', instrumentation:'Instrumentation Technician',
+  general_labor:'General Labor', skilled_labor:'Skilled Labor',
+  display_tech:'Display / Electronics Technician'
+};
+function tradeLabel(t){
+  if(!t) return '\u2014';
+  return TRADE_LABEL[t] || String(t).replace(/_/g,' ').replace(/\b\w/g, function(m){ return m.toUpperCase(); });
+}
 var _renderedAssessments = [];
 function renderAssessTable(assessments){
   _renderedAssessments = assessments;
@@ -434,7 +447,7 @@ function renderAssessTable(assessments){
     var sc = (a.score||0) >= 75 ? '#15803d' : (a.score||0) >= 55 ? '#a16207' : '#b91c1c';
     return '<tr>' +
       '<td style="font-weight:600;">'+(((a.firstName||'')+' '+(a.lastName||'')).trim() || a.candidate || '\u2014')+'</td>' +
-      '<td>'+(a.trade||'')+'</td>' +
+      '<td>'+tradeLabel(a.trade)+'</td>' +
       '<td><span class="score-pill" style="color:'+sc+'">'+(a.score||'—')+'</span></td>' +
       '<td><span class="verdict-badge '+vc+'">'+(a.verdict||'—')+'</span></td>' +
       '<td style="color:#64748b;font-size:.78rem;">'+(a.date||'')+'</td>' +
