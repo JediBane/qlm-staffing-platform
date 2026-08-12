@@ -967,9 +967,15 @@ function scrapedBlock(s, col){
   if(!s) return '';
   var emails = s.emails || [], phones = s.phones || [];
   if(!emails.length && !phones.length){
-    if(!(s.pagesChecked||[]).length) return '';
-    return '<div style="margin-top:10px;padding-top:9px;border-top:1px solid '+col[1]+';font-size:.76rem;color:#94a3b8;">' +
-      'Checked ' + (s.pagesChecked||[]).length + ' page(s) on their site \u2014 no published email or phone found.</div>';
+    var checked = (s.pagesChecked||[]).length, failed = (s.pagesFailed||[]).length;
+    var why = '';
+    if(!s.website) why = 'Could not determine their website from search, so there was nothing to read.';
+    else if(!checked && failed) why = 'Their site blocked or timed out on every page (' + ((s.pagesFailed||[])[0]||{}).why + ').';
+    else if(checked) why = 'Read ' + checked + ' page(s) but found no published email or phone.';
+    return '<div style="margin-top:10px;padding-top:9px;border-top:1px solid '+col[1]+';font-size:.76rem;color:#94a3b8;line-height:1.6;">' +
+      '&#128269; Site scan: ' + why +
+      (s.website ? '<br><a href="'+s.website+'" target="_blank" rel="noopener" style="color:#0077a8;">Open their site</a>' : '') +
+      '</div>';
   }
   var kindLabel = { hiring:'hiring inbox', general:'general inbox', personal:'personal' };
   var kindCol   = { hiring:'#15803d', general:'#64748b', personal:'#0077a8' };
