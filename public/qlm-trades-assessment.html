@@ -3339,6 +3339,40 @@ function showInviteThanks(){
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+
+// ── Prefill the invite form when arriving from the Candidate Database ──
+function applyCandidatePrefill(){
+  var p = new URLSearchParams(location.search);
+  if(!p.get('cand')) return false;
+  function set(id, v){ var el = document.getElementById(id); if(el && v) el.value = v; }
+  set('c-fname', p.get('fname'));
+  set('c-lname', p.get('lname'));
+  set('c-email', p.get('email'));
+  set('c-phone', p.get('phone'));
+  set('c-certs', p.get('certs'));
+
+  var lvl = (p.get('level')||'').toLowerCase();
+  var sel = document.getElementById('c-level');
+  if(sel && lvl){
+    for(var i=0;i<sel.options.length;i++){
+      if(sel.options[i].value.toLowerCase().indexOf(lvl) > -1 || lvl.indexOf(sel.options[i].value.toLowerCase()) > -1){
+        sel.selectedIndex = i; break;
+      }
+    }
+  }
+
+  var tr = p.get('trade');
+  if(tr && QUESTIONS[tr]) selectTrade(tr);
+
+  var host = document.getElementById('inviteStatus');
+  if(host){
+    host.innerHTML = '<div class="status-box success" style="display:block;">\u2713 Loaded ' +
+      ((p.get('fname')||'') + ' ' + (p.get('lname')||'')).trim() +
+      ' from the candidate database. Confirm the trade and generate their link.</div>';
+  }
+  return true;
+}
+
 // ═══════════════════════════════════════════════════
 //  ASSESSMENT INVITES (recruiter side)
 // ═══════════════════════════════════════════════════
@@ -3656,6 +3690,7 @@ async function submitInviteResults(reportText){
 function checkUrlParams() {
   var params = new URLSearchParams(window.location.search);
   if (params.get('invite')) { checkInviteToken(); return; }
+  if (params.get('cand')) return;   // recruiter prefill, handled separately
   var trade = params.get('trade');
   var recruiter = params.get('recruiter');
   if (trade && QUESTIONS[trade]) {
@@ -3790,7 +3825,7 @@ function updatePrintMeta() {
 window.addEventListener('DOMContentLoaded', function() {
   try { updateHistCount(); } catch(e) { console.warn(e); }
   try { checkUrlParams(); } catch(e) { console.warn('checkUrlParams failed', e); }
-  try { if(!(typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)) { populateInviteTrades(); loadInvites(); } } catch(e) { console.warn(e); }
+  try { if(!(typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)) { populateInviteTrades(); loadInvites(); applyCandidatePrefill(); } } catch(e) { console.warn(e); }
 });
 
 function toggleSettings(){}
