@@ -153,6 +153,14 @@ var TRADE_LABEL = {
 };
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function prettyTrade(t){
+  if(!t) return '';
+  if(TRADE_LABEL[t]) return TRADE_LABEL[t];
+  var key = String(t).toLowerCase().replace(/\s+/g,'_');
+  if(TRADE_LABEL[key]) return TRADE_LABEL[key];
+  return String(t).replace(/_/g,' ').replace(/\b\w/g, function(m){ return m.toUpperCase(); });
+}
+
 function initials(n){
   return String(n||'?').split(/\s+/).filter(Boolean).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
 }
@@ -240,7 +248,7 @@ function renderStats(){
     '<div class="stat"><div class="stat-n">'+cards+'</div><div class="stat-l">Talent Cards</div></div>' +
     '<div class="stat"><div class="stat-n">'+asmtOnly+'</div><div class="stat-l">Assessment Only</div></div>' +
     '<div class="stat"><div class="stat-n">'+assessed+'</div><div class="stat-l">Assessed</div></div>' +
-    '<div class="stat"><div class="stat-n" style="font-size:1.05rem;padding-top:6px;">'+(topTrade?esc(topTrade[0]):'\u2014')+'</div><div class="stat-l">Top Trade</div></div>';
+    '<div class="stat"><div class="stat-n" style="font-size:1.05rem;padding-top:6px;">'+(topTrade?esc(prettyTrade(topTrade[0])):'\u2014')+'</div><div class="stat-l">Top Trade</div></div>';
 }
 
 function setFilter(f, el){
@@ -257,7 +265,7 @@ function applyFilters(){
     if(FILTER==='talent_card' && c.source_tool!=='talent_card') return false;
     if(FILTER==='assessed' && !assessmentFor(c)) return false;
     if(!q) return true;
-    var hay = [c.full_name,c.trade,c.title,c.city,c.experience,c.availability,c.phone,c.email,
+    var hay = [c.full_name,c.trade,prettyTrade(c.trade),c.title,c.city,c.experience,c.availability,c.phone,c.email,
                (c.skills||[]).join(' '),(c.certs||[]).join(' '),(c.companies||[]).join(' ')]
                .join(' ').toLowerCase();
     return hay.indexOf(q) > -1;
@@ -289,7 +297,7 @@ function render(rows){
     return '<div class="card" onclick="openCandidate('+idx+')">' +
       '<div class="c-top">' +
         '<div><div class="c-name">'+esc(c.full_name||'Unnamed')+'</div>' +
-        (c.title||c.trade ? '<div class="c-title">'+esc(c.title||c.trade)+'</div>' : '') + '</div>' +
+        (c.title||c.trade ? '<div class="c-title">'+esc(prettyTrade(c.title||c.trade))+'</div>' : '') + '</div>' +
         '<div class="avatar">'+initials(c.full_name)+'</div>' +
       '</div>' +
       '<div class="c-meta">' + srcPill +
@@ -317,7 +325,7 @@ function openCandidate(i){
 
   document.getElementById('m-name').textContent = c.full_name || 'Unnamed Candidate';
   document.getElementById('m-sub').textContent =
-    [c.title||c.trade, c.city, c.experience].filter(Boolean).join(' \u00b7 ');
+    [prettyTrade(c.title||c.trade), c.city, c.experience].filter(Boolean).join(' \u00b7 ');
 
   function row(k,v){ return v ? '<div class="m-row"><span class="k">'+k+'</span><span class="v">'+esc(v)+'</span></div>' : ''; }
   function tags(arr, cls){
@@ -335,7 +343,7 @@ function openCandidate(i){
     (!c.phone && !c.email && !c.city ? '<div style="font-size:.84rem;color:#94a3b8;">No contact details recorded.</div>' : '') +
 
     '<div class="m-sec">Trade &amp; Experience</div>' +
-    row('Trade', c.trade) + row('Title', c.title) +
+    row('Trade', prettyTrade(c.trade)) + row('Title', prettyTrade(c.title)) +
     row('Experience', c.experience) + row('Availability', c.availability) +
 
     ((c.skills||[]).length ? '<div class="m-sec">Skills</div>' + tags(c.skills,'blue') : '') +
@@ -345,7 +353,7 @@ function openCandidate(i){
     (a ? '<div class="m-sec">Assessment Result' +
       (a.ai_analysis ? ' <span style="float:right;text-transform:none;letter-spacing:0;"><a href="#" onclick="viewCandidateReport('+i+');return false;" style="color:#0099d8;font-weight:600;font-size:.72rem;">View full report &rarr;</a></span>' : '') +
       '</div>' +
-      row('Trade Tested', a.trade) + row('Score', (a.score!=null?a.score+' / 100':'')) +
+      row('Trade Tested', prettyTrade(a.trade)) + row('Score', (a.score!=null?a.score+' / 100':'')) +
       row('Verdict', a.verdict) + row('Assessed', fmtDate(a.created_at)) : '') +
 
     (c.summary ? '<div class="m-sec">Summary</div><div style="font-size:.87rem;line-height:1.75;">'+esc(c.summary)+'</div>' : '') +
