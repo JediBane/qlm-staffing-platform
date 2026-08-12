@@ -652,7 +652,7 @@ function runSearch(){
   var prompt = 'You are a business development researcher for QLM (Quality Labor Management), a skilled trades staffing company in Florida.\n\n' +
     'TASK: Search job boards right now and find companies that are ACTIVELY HIRING ' + trades + ' workers in ' + locationStr + '.\n\n' +
     excludeNote +
-    'Search these sources: Indeed.com, LinkedIn Jobs, ZipRecruiter, iHireConstruction.com, ConstructionJobs.com.\n' +
+    'Search the open web for current openings. Aggregators like Indeed and ZipRecruiter often block automated access \u2014 that is expected and is NOT a reason to stop. When a site is inaccessible, use what appears in the search result snippets and move on to company career pages, Google job listings, local news about projects, and contractor association postings.\n' +
     'Search queries to try:\n' +
     '1. "' + trades.split(',')[0].trim() + ' jobs ' + loc + '"\n' +
     '2. "electrician hiring ' + loc + '"\n' +
@@ -670,7 +670,11 @@ function runSearch(){
     '- No apostrophes inside values (write "does not" not "doesn\'t")\n' +
     '- jobUrl must be a real URL from the search or empty string ""\n' +
     '- qlmFitScore is 0-100 integer\n' +
-    '- Only include companies that are ACTUALLY HIRING right now based on your search';
+    '- Only include companies that are ACTUALLY HIRING right now based on your search\n' +
+    '- NEVER explain what you could or could not access. NEVER apologise. Output the array only.\n' +
+    '- Partial information is fine: fill what you know and leave other fields as empty strings.\n' +
+    '- If a company clearly appears in a snippet as hiring, include it even without a job URL, and lower qlmFitScore to reflect the weaker evidence.\n' +
+    '- If you truly found nothing at all, return exactly: []';
 
   leadSearchCall(prompt)
   .then(function(text){
@@ -688,8 +692,8 @@ function runSearch(){
     // Step 3: extract the array
     var match = clean.match(/\[[\s\S]*\]/);
     if(!match) {
-      var preview = clean.length > 0 ? clean.substring(0, 200) : 'Empty response';
-      throw new Error('No JSON array in response. Got: ' + preview);
+      // Usually means the aggregators blocked the crawler on this pass
+      throw new Error('The search finished without usable listings \u2014 job boards commonly block automated access. Try again, widen the radius, or add another trade.');
     }
     var jsonStr = match[0];
 
