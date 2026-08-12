@@ -306,6 +306,12 @@ header{gap:12px;}
         <div class="field"><label>Candidate Phone</label><input type="tel" id="c-phone" placeholder="(555) 123-4567"></div>
         <div class="field"><label>Email Results To *</label><input type="email" id="c-results-email" placeholder="you@myqlm.com"></div>
       </div>
+      <div class="field"><label>Test Language</label>
+        <select id="c-lang" onchange="TEST_LANG=this.value;">
+          <option value="en">English</option>
+          <option value="es">Espa&ntilde;ol (Spanish)</option>
+        </select>
+      </div>
       <div class="field"><label>Experience Level (optional)</label>
         <select id="c-level">
           <option value="">Any level</option>
@@ -1201,6 +1207,12 @@ function startAssessment() {
   questions = buildQuestionSet(selectedTrade, 10);
   answers = questions.map(function(){ return null; });
   currentQ = 0;
+  integrityStart();
+  loadThresholds(selectedTrade, window._testLevel || 'all');
+  if (TEST_LANG === 'es') {
+    document.getElementById('prog-text').textContent = 'Preparando su evaluación...';
+    translateQuestions(questions).then(function(tq){ questions = tq; renderQuestion(); });
+  }
 
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('assessment-screen').style.display = 'block';
@@ -1222,12 +1234,14 @@ var CAT_CLASSES = { technical:'cat-technical', safety:'cat-safety', scenario:'ca
 
 function renderQuestion() {
   var q = questions[currentQ];
+  try { integrityQuestionShown(q.id); } catch(e) {}
   var total = questions.length;
   var pct = ((currentQ) / total) * 100;
   document.getElementById('prog-fill').style.width = pct + '%';
   document.getElementById('prog-text').textContent = 'Question ' + (currentQ+1) + ' of ' + total;
 
   var savedAnswer = answers[currentQ];
+  setTimeout(function(){ try { guardTextarea(document.getElementById('open-answer')); } catch(e){} }, 30);
   var html = '';
 
   // Meta row
@@ -1431,11 +1445,21 @@ function parseAndRenderResults(text) {
   document.getElementById('score-num').textContent = score;
   document.getElementById('score-num').className = 'score-num ' + scoreClass;
 
+  // Apply the configured pass threshold for this trade + level
+  var thresholdVerdict = verdictFromScore(score);
+  if (thresholdVerdict !== verdict.toUpperCase().replace(/[^A-Z]/g,'').substring(0,6)) {
+    verdict = thresholdVerdict;
+  }
   var verdictLower = verdict.toLowerCase();
   var verdictClass = verdictLower.includes('strong') || verdictLower.includes('pass') ? 'pass' : verdictLower.includes('fail') ? 'fail' : 'review';
   var vBadge = document.getElementById('verdict-badge');
   vBadge.textContent = verdict;
   vBadge.className = 'verdict ' + verdictClass;
+  vBadge.title = 'Threshold for this level: pass ' + THRESHOLDS.pass_min + '+, review ' + THRESHOLDS.review_min + '+';
+
+  // Integrity + benchmark panels (recruiter view only)
+  try { renderIntegrityPanel(); } catch(e) {}
+  try { renderBenchmark(score); } catch(e) {}
 
   // Category bars
   var catColors = { Technical:'#0099d8', Safety:'#ef4444', 'Scenario/Problem-Solving':'#22c55e', Leadership:'#6d28d9' };
@@ -1505,6 +1529,58 @@ function parseAndRenderResults(text) {
   window._assessmentText = text;
   window._assessmentScore = score;
   window._assessmentVerdict = verdict;
+}
+
+function renderIntegrityPanel(){
+  if (typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN) return;  // candidates never see this
+  var res = integrityFinalize(questions, answers);
+  window._integrity = res;
+
+  var host = document.getElementById('r-qreview');
+  if(!host || !host.parentNode) return;
+  var existing = document.getElementById('integrity-panel');
+  if(existing) existing.remove();
+
+  var color = res.flag === 'clean' ? ['#f0fdf4','#bbf7d0','#15803d','\u2705','Clean']
+            : res.flag === 'minor' ? ['#fefce8','#fde68a','#a16207','\u26A0','Minor Concerns']
+            : ['#fef2f2','#fecaca','#b91c1c','\u{1F6A9}','Review Recommended'];
+
+  var mins = Math.floor(res.durationSec/60), secs = res.durationSec%60;
+
+  var div = document.createElement('div');
+  div.id = 'integrity-panel';
+  div.style.cssText = 'background:'+color[0]+';border:1px solid '+color[1]+';border-radius:12px;padding:16px 18px;margin-bottom:16px;';
+  div.innerHTML =
+    '<div style="font-size:.66rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:'+color[2]+';margin-bottom:9px;">'+color[3]+' Test Integrity \u2014 '+color[4]+'</div>' +
+    '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:#2a4a5a;margin-bottom:'+(res.concerns.length?'10px':'0')+';">' +
+      '<span><strong>'+mins+'m '+secs+'s</strong> total time</span>' +
+      '<span><strong>'+res.tabBlurs+'</strong> window switches</span>' +
+      '<span><strong>'+res.pasteAttempts+'</strong> paste attempts blocked</span>' +
+    '</div>' +
+    (res.concerns.length ?
+      '<ul style="margin:0;padding-left:18px;font-size:.82rem;color:'+color[2]+';line-height:1.7;">' +
+      res.concerns.map(function(x){ return '<li>'+x+'</li>'; }).join('') + '</ul>' : '');
+
+  host.parentNode.insertBefore(div, host);
+}
+
+async function renderBenchmark(score){
+  if (typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN) return;
+  var pct = await getPercentile(selectedTrade, window._testLevel || null, score);
+  if(!pct) return;
+  var host = document.getElementById('r-qreview');
+  if(!host || !host.parentNode) return;
+  var old = document.getElementById('benchmark-panel');
+  if(old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'benchmark-panel';
+  div.style.cssText = 'background:#e0f4fc;border:1px solid #b8dff0;border-radius:12px;padding:16px 18px;margin-bottom:16px;';
+  div.innerHTML =
+    '<div style="font-size:.66rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0077a8;margin-bottom:8px;">\u{1F4CA} Benchmark</div>' +
+    '<div style="font-size:.9rem;color:#003a52;line-height:1.7;">Scored higher than <strong>' + pct.percentile + '%</strong> of ' +
+    tradeLabel(selectedTrade) + ' candidates assessed' + (window._testLevel && window._testLevel!=='unknown' ? ' at ' + window._testLevel + ' level' : '') + '.' +
+    '<br><span style="font-size:.8rem;color:#64748b;">Cohort: ' + pct.cohort_size + ' assessments \u00b7 average score ' + pct.cohort_avg + '</span></div>';
+  host.parentNode.insertBefore(div, host);
 }
 
 function renderBasicScores() {
@@ -1870,6 +1946,257 @@ function buildQuestionSet(trade, total){
   return shuffle(picked).map(shuffleChoices);
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  INTEGRITY MONITOR — anti-cheating signals
+// ═══════════════════════════════════════════════════════════════
+var INTEGRITY = {
+  startedAt: null,
+  tabBlurs: 0,
+  blurSeconds: 0,
+  pasteAttempts: 0,
+  pastedChars: 0,
+  perQuestion: {},      // qid -> seconds
+  _blurStart: null,
+  _qStart: null,
+  _currentQid: null
+};
+
+function integrityStart(){
+  INTEGRITY.startedAt = Date.now();
+  INTEGRITY.tabBlurs = 0;
+  INTEGRITY.blurSeconds = 0;
+  INTEGRITY.pasteAttempts = 0;
+  INTEGRITY.pastedChars = 0;
+  INTEGRITY.perQuestion = {};
+
+  window.addEventListener('blur', function(){
+    if(!INTEGRITY.startedAt) return;
+    INTEGRITY.tabBlurs++;
+    INTEGRITY._blurStart = Date.now();
+  });
+  window.addEventListener('focus', function(){
+    if(INTEGRITY._blurStart){
+      INTEGRITY.blurSeconds += Math.round((Date.now() - INTEGRITY._blurStart)/1000);
+      INTEGRITY._blurStart = null;
+    }
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && INTEGRITY.startedAt){
+      INTEGRITY.tabBlurs++;
+      INTEGRITY._blurStart = Date.now();
+    } else if(INTEGRITY._blurStart){
+      INTEGRITY.blurSeconds += Math.round((Date.now() - INTEGRITY._blurStart)/1000);
+      INTEGRITY._blurStart = null;
+    }
+  });
+}
+
+function integrityQuestionShown(qid){
+  if(INTEGRITY._currentQid && INTEGRITY._qStart){
+    var el = Math.round((Date.now() - INTEGRITY._qStart)/1000);
+    INTEGRITY.perQuestion[INTEGRITY._currentQid] =
+      (INTEGRITY.perQuestion[INTEGRITY._currentQid]||0) + el;
+  }
+  INTEGRITY._currentQid = qid;
+  INTEGRITY._qStart = Date.now();
+}
+
+// Block paste on open-response fields
+function guardTextarea(el){
+  if(!el || el._guarded) return;
+  el._guarded = true;
+  el.addEventListener('paste', function(e){
+    e.preventDefault();
+    INTEGRITY.pasteAttempts++;
+    INTEGRITY.pastedChars += ((e.clipboardData && e.clipboardData.getData('text')) || '').length;
+    showPasteWarning(el);
+  });
+  el.addEventListener('drop', function(e){ e.preventDefault(); INTEGRITY.pasteAttempts++; });
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
+
+function showPasteWarning(el){
+  var w = document.getElementById('paste-warn');
+  if(!w){
+    w = document.createElement('div');
+    w.id = 'paste-warn';
+    w.style.cssText = 'position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#7f1d1d;color:#fff;padding:11px 20px;border-radius:9px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 26px rgba(0,0,0,.3);';
+    document.body.appendChild(w);
+  }
+  w.textContent = 'Pasting is disabled — please answer in your own words.';
+  w.style.display = 'block';
+  clearTimeout(w._t);
+  w._t = setTimeout(function(){ w.style.display = 'none'; }, 2600);
+}
+
+// Score the integrity signals into a flag
+function integrityFinalize(questions, answers){
+  if(INTEGRITY._currentQid && INTEGRITY._qStart){
+    var el = Math.round((Date.now() - INTEGRITY._qStart)/1000);
+    INTEGRITY.perQuestion[INTEGRITY._currentQid] =
+      (INTEGRITY.perQuestion[INTEGRITY._currentQid]||0) + el;
+  }
+
+  var total = Math.round((Date.now() - (INTEGRITY.startedAt||Date.now()))/1000);
+  var concerns = [];
+
+  if(INTEGRITY.pasteAttempts > 0)
+    concerns.push(INTEGRITY.pasteAttempts + ' paste attempt' + (INTEGRITY.pasteAttempts>1?'s':'') + ' blocked on written answers');
+  if(INTEGRITY.tabBlurs >= 3)
+    concerns.push('Left the test window ' + INTEGRITY.tabBlurs + ' times (' + INTEGRITY.blurSeconds + 's away)');
+  else if(INTEGRITY.blurSeconds > 60)
+    concerns.push('Spent ' + INTEGRITY.blurSeconds + 's outside the test window');
+
+  // Rushed answers
+  var fast = questions.filter(function(q){
+    var s = INTEGRITY.perQuestion[q.id] || 0;
+    return s > 0 && s < 6;
+  }).length;
+  if(fast >= 4) concerns.push(fast + ' questions answered in under 6 seconds');
+
+  // Long written answers that took almost no time to produce
+  var suspiciousWriting = 0;
+  questions.forEach(function(q, i){
+    if(q.type !== 'open') return;
+    var a = answers[i];
+    if(!a || typeof a !== 'string') return;
+    var words = a.trim().split(/\s+/).length;
+    var secs = INTEGRITY.perQuestion[q.id] || 0;
+    if(words > 45 && secs > 0 && secs < 25) suspiciousWriting++;
+  });
+  if(suspiciousWriting > 0)
+    concerns.push(suspiciousWriting + ' long written answer(s) produced unusually fast');
+
+  var flag = concerns.length === 0 ? 'clean'
+           : concerns.length === 1 ? 'minor'
+           : 'review';
+
+  return {
+    flag: flag,
+    concerns: concerns,
+    durationSec: total,
+    tabBlurs: INTEGRITY.tabBlurs,
+    blurSeconds: INTEGRITY.blurSeconds,
+    pasteAttempts: INTEGRITY.pasteAttempts,
+    perQuestion: INTEGRITY.perQuestion
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PASS THRESHOLDS
+// ═══════════════════════════════════════════════════════════════
+var THRESHOLDS = { pass_min: 75, review_min: 55 };
+
+async function loadThresholds(trade, level){
+  if(!window.QLM || !QLM.client()) return THRESHOLDS;
+  try{
+    var res = await QLM.client().from('pass_thresholds')
+      .select('*').or('trade.eq.' + trade + ',trade.eq.all');
+    var rows = res.data || [];
+    var exact = rows.find(function(r){ return r.trade === trade && r.level === level; })
+             || rows.find(function(r){ return r.trade === trade && r.level === 'all'; })
+             || rows.find(function(r){ return r.trade === 'all' && r.level === level; })
+             || rows.find(function(r){ return r.trade === 'all' && r.level === 'all'; });
+    if(exact) THRESHOLDS = { pass_min: exact.pass_min, review_min: exact.review_min };
+  }catch(e){}
+  return THRESHOLDS;
+}
+
+function verdictFromScore(score){
+  if(score >= THRESHOLDS.pass_min) return 'PASS';
+  if(score >= THRESHOLDS.review_min) return 'REVIEW';
+  return 'FAIL';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PERCENTILE BENCHMARK
+// ═══════════════════════════════════════════════════════════════
+async function getPercentile(trade, level, score){
+  if(!window.QLM || !QLM.client()) return null;
+  try{
+    var res = await QLM.client().rpc('score_percentile', {
+      p_trade: trade, p_level: level || null, p_score: score
+    });
+    if(res.error) return null;
+    var r = (res.data && res.data[0]) || null;
+    if(!r || !r.cohort_size || r.cohort_size < 5) return null;  // need a real cohort
+    return r;
+  }catch(e){ return null; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ITEM ANALYSIS — record how each question performed
+// ═══════════════════════════════════════════════════════════════
+async function recordQuestionStats(assessmentId, questions, answers, trade, level){
+  if(!window.QLM || !QLM.client()) return;
+  try{
+    var rows = questions.map(function(q, i){
+      var a = answers[i];
+      var blank = (a == null || a === '' );
+      var correct = null;
+      if(q.type === 'mc') correct = (a === q.correct);
+      return {
+        assessment_id: assessmentId || null,
+        question_id: q.id, trade: trade,
+        difficulty: q.diff, category: q.cat, level: level || null,
+        was_correct: correct, was_blank: blank,
+        seconds: INTEGRITY.perQuestion[q.id] || null
+      };
+    });
+    await QLM.client().from('question_stats').insert(rows);
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SPANISH TRANSLATION
+// ═══════════════════════════════════════════════════════════════
+var TEST_LANG = 'en';
+
+var UI_ES = {
+  'Question': 'Pregunta',
+  'of': 'de',
+  'Next': 'Siguiente',
+  'Back': 'Atrás',
+  'Submit Assessment': 'Enviar Evaluación',
+  'Type your answer here...': 'Escriba su respuesta aquí...',
+  'Begin My Assessment': 'Comenzar Mi Evaluación'
+};
+
+async function translateQuestions(questions){
+  if(TEST_LANG !== 'es') return questions;
+  try{
+    var payload = questions.map(function(q){
+      return { id:q.id, q:q.q, choices:q.choices || null };
+    });
+    var res = await fetch('/.netlify/functions/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        max_tokens: 3000,
+        messages: [{ role:'user', content:
+          'Translate these construction trade assessment questions into clear, natural Latin American Spanish as used on US jobsites. Keep technical terms and code references (NEC, OSHA, AWS, AWG, psi) in their standard form. Do not change meaning or make questions easier.\n\n' +
+          'Return ONLY a raw JSON array in the same order with the same ids:\n' +
+          '[{"id":"e1","q":"translated question","choices":["a","b","c","d"]}]\n\n' +
+          'Input:\n' + JSON.stringify(payload) }]
+      })
+    });
+    var d = await res.json();
+    var text = (d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('');
+    var m = text.match(/\[[\s\S]*\]/);
+    if(!m) return questions;
+    var tr = JSON.parse(m[0]);
+    return questions.map(function(q){
+      var t = tr.find(function(x){ return x.id === q.id; });
+      if(!t) return q;
+      var copy = Object.assign({}, q);
+      copy.q = t.q || q.q;
+      if(t.choices && q.choices && t.choices.length === q.choices.length) copy.choices = t.choices;
+      return copy;
+    });
+  }catch(e){ return questions; }
+}
+
+
+
 
 
 // ═══════════════════════════════════════════════════
@@ -1913,7 +2240,15 @@ function saveToHistory(record) {
         recruiter: _last.recruiter || null,
         category_scores: _last.categories || null,
         red_flags: _last.redFlags || null,
-        ai_analysis: _last.fullText || _last.analysis || null
+        ai_analysis: _last.fullText || _last.analysis || null,
+        level: window._testLevel || null,
+        language: TEST_LANG,
+        integrity: window._integrity || null,
+        integrity_flag: (window._integrity && window._integrity.flag) || null,
+        duration_sec: (window._integrity && window._integrity.durationSec) || null
+      }).then(function(r){
+        var id = r && r.row && r.row.id;
+        recordQuestionStats(id, questions, answers, selectedTrade, window._testLevel);
       });
     }catch(e){}
   }
@@ -2185,7 +2520,8 @@ async function createInvite(){
       candidate_phone: document.getElementById('c-phone').value.trim() || null,
       trade: trade,
       level: document.getElementById('c-level').value || null,
-      notes: document.getElementById('c-certs').value.trim() || null
+      notes: 'lang=' + ((document.getElementById('c-lang')||{}).value || 'en') +
+             ((document.getElementById('c-certs').value.trim()) ? ' | certs: ' + document.getElementById('c-certs').value.trim() : '')
     }).select().single();
 
     if(res.error) throw new Error(res.error.message);
@@ -2326,6 +2662,7 @@ async function checkInviteToken(){
       var el = document.getElementById(id); if(el){ el.readOnly = true; el.style.background = '#f1f5f9'; }
     });
 
+    if(inv.notes && /lang=es/.test(inv.notes)) { TEST_LANG = 'es'; }
     selectTrade(inv.trade);
 
     // Hide trade picker — it's already decided
@@ -2382,6 +2719,9 @@ async function submitInviteResults(reportText){
       p_red_flags: null,
       p_answers: null,
       p_ai_analysis: reportText || null
+    }).then(function(r){
+      var id = (r && r.data) || null;
+      recordQuestionStats(id, questions, answers, selectedTrade, window._testLevel);
     });
   }catch(e){ console.warn('complete_invite failed', e); }
 
@@ -2399,7 +2739,9 @@ async function submitInviteResults(reportText){
         score: window._assessmentScore || 0,
         verdict: window._assessmentVerdict || '',
         date: new Date().toLocaleDateString(),
-        fullReport: reportText || ''
+        fullReport: reportText || '',
+        integrity: (window._integrity && window._integrity.flag) || 'clean',
+        integrityNotes: (window._integrity && window._integrity.concerns || []).join(' | ')
       })
     });
   }catch(e){ console.warn('email failed', e); }
