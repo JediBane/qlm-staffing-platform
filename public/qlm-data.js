@@ -161,6 +161,40 @@
     } catch (e) {}
   }
 
+
+  // ─── PAGE ACCESS GUARD ─────────────────────────────────────
+  // Pages opt in with:  window.QLM_REQUIRE_AUTH = true
+  // Candidate assessment links (?invite=) opt out automatically.
+  function showGate(msg){
+    var g = document.getElementById('qlm-gate');
+    if(g) return;
+    g = document.createElement('div');
+    g.id = 'qlm-gate';
+    g.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#003a52;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;font-family:system-ui,-apple-system,sans-serif;';
+    g.innerHTML =
+      '<div style="background:#0099d8;color:#fff;font-weight:700;font-size:.9rem;letter-spacing:3px;padding:7px 16px;border-radius:5px;">QLM</div>' +
+      '<div style="color:#b8dff0;font-size:.9rem;">' + (msg || 'Checking access\u2026') + '</div>';
+    document.documentElement.appendChild(g);
+  }
+  function hideGate(){
+    var g = document.getElementById('qlm-gate');
+    if(g) g.remove();
+  }
+
+  async function enforceAuth(){
+    if(!window.QLM_REQUIRE_AUTH) return;
+    showGate();
+    if(!init()){
+      // SDK missing — fail closed
+      location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search));
+      return;
+    }
+    var u = null;
+    try { u = await getUser(); } catch(e) {}
+    if(u){ hideGate(); return; }
+    location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search));
+  }
+
   // ─── AUTH BAR (drop-in UI) ─────────────────────────────────
   function mountAuthBar(containerId) {
     var el = document.getElementById(containerId);
@@ -209,14 +243,16 @@
     remove: remove,
     logActivity: logActivity,
     mountAuthBar: mountAuthBar,
+    enforceAuth: enforceAuth,
     lsGet: lsGet,
     lsSet: lsSet
   };
 
   // Auto-init when the Supabase SDK is present
+  function boot(){ init(); enforceAuth(); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    init();
+    boot();
   }
 })();
