@@ -188,11 +188,17 @@ header{gap:12px;}
   <div class="table-card admin-only" id="team-card">
     <div class="table-head">
       <div class="table-title">&#128101; Team Management</div>
-      <button class="btn-export" onclick="toggleInvite()" id="invite-toggle">+ Invite User</button>
+      <button class="btn-export" onclick="toggleInvite()" id="invite-toggle">+ Add User</button>
     </div>
 
     <div id="invite-form" style="display:none;padding:14px 4px 6px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end;flex-wrap:wrap;">
+
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <button id="mode-create" onclick="setUserMode('create')" style="padding:7px 15px;border-radius:20px;font-size:.74rem;font-weight:600;border:1.5px solid #0099d8;background:#0099d8;color:#fff;cursor:pointer;font-family:inherit;">Create Directly</button>
+        <button id="mode-invite" onclick="setUserMode('invite')" style="padding:7px 15px;border-radius:20px;font-size:.74rem;font-weight:600;border:1.5px solid #b8dff0;background:#fff;color:#64748b;cursor:pointer;font-family:inherit;">Email Invite</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
         <div>
           <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Full Name</label>
           <input id="inv-name" placeholder="Jane Brooks" style="width:100%;border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;margin-top:4px;">
@@ -201,6 +207,16 @@ header{gap:12px;}
           <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Email</label>
           <input id="inv-email" type="email" placeholder="jane@myqlm.com" style="width:100%;border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;margin-top:4px;">
         </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:end;margin-top:9px;">
+        <div id="pw-wrap">
+          <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Temporary Password</label>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <input id="inv-pass" type="text" placeholder="At least 8 characters" style="flex:1;border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:ui-monospace,monospace;outline:none;">
+            <button onclick="genPassword()" title="Generate a password" style="border:1.5px solid #b8dff0;background:#fff;color:#0077a8;border-radius:7px;padding:8px 12px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">&#127922; Generate</button>
+          </div>
+        </div>
         <div>
           <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Role</label>
           <select id="inv-role" style="border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;margin-top:4px;">
@@ -208,8 +224,9 @@ header{gap:12px;}
             <option value="admin">Admin</option>
           </select>
         </div>
-        <button onclick="sendInvite()" id="inv-send" style="background:#003a52;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;">Send Invite</button>
+        <button onclick="submitUser()" id="inv-send" style="background:#003a52;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">Create User</button>
       </div>
+
       <div id="invite-status" style="margin-top:10px;"></div>
     </div>
 
@@ -964,7 +981,8 @@ function toggleInvite(){
   var f = document.getElementById('invite-form');
   var open = f.style.display !== 'none';
   f.style.display = open ? 'none' : 'block';
-  document.getElementById('invite-toggle').textContent = open ? '+ Invite User' : 'Cancel';
+  document.getElementById('invite-toggle').textContent = open ? '+ Add User' : 'Cancel';
+  if(!open){ setUserMode('create'); genPassword(); }
 }
 
 function invStatus(type, msg){
@@ -986,30 +1004,94 @@ async function adminCall(payload){
   return res.json();
 }
 
-async function sendInvite(){
+var USER_MODE = 'create';
+
+function setUserMode(m){
+  USER_MODE = m;
+  var cr = document.getElementById('mode-create'), iv = document.getElementById('mode-invite');
+  var on = 'border:1.5px solid #0099d8;background:#0099d8;color:#fff;';
+  var off = 'border:1.5px solid #b8dff0;background:#fff;color:#64748b;';
+  var base = 'padding:7px 15px;border-radius:20px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;';
+  cr.style.cssText = base + (m === 'create' ? on : off);
+  iv.style.cssText = base + (m === 'invite' ? on : off);
+  document.getElementById('pw-wrap').style.display = m === 'create' ? 'block' : 'none';
+  document.getElementById('inv-send').textContent = m === 'create' ? 'Create User' : 'Send Invite';
+  document.getElementById('invite-status').innerHTML = m === 'invite'
+    ? '<div style="background:#fefce8;border:1px solid #fde68a;color:#a16207;border-radius:8px;padding:10px 13px;font-size:.8rem;line-height:1.6;">Email invites are limited by Supabase to a few per hour on the current plan. Creating directly avoids that entirely.</div>'
+    : '';
+}
+
+function genPassword(){
+  var words = ['Bright','Steel','Anchor','Summit','Harbor','Copper','Granite','Beacon','Forge','Ridge'];
+  var w = words[Math.floor(Math.random()*words.length)];
+  var n = Math.floor(1000 + Math.random()*9000);
+  document.getElementById('inv-pass').value = 'QLM-' + w + '-' + n;
+}
+
+async function submitUser(){
   var name  = document.getElementById('inv-name').value.trim();
   var email = document.getElementById('inv-email').value.trim();
   var role  = document.getElementById('inv-role').value;
+  var pass  = document.getElementById('inv-pass').value;
   if(!email){ invStatus('error','Enter an email address.'); return; }
 
   var btn = document.getElementById('inv-send');
-  btn.disabled = true; btn.textContent = 'Sending...';
-  invStatus('info','Sending invitation...');
+  btn.disabled = true; btn.textContent = 'Working...';
   try{
-    var r = await adminCall({ action:'invite', email:email, full_name:name, is_admin: role === 'admin' });
-    if(r.needsSetup){
-      invStatus('error', r.error + '<br><br><strong>Meanwhile:</strong> have them sign up at <a href="/login.html" style="color:#0077a8;">/login.html</a> and you can set their role here once they appear.');
-    } else if(r.ok){
-      invStatus('ok','\u2713 Invitation sent to ' + email + '. They will receive an email to set their password.');
-      document.getElementById('inv-name').value = '';
-      document.getElementById('inv-email').value = '';
-      setTimeout(loadTeamList, 1200);
+    var r;
+    if(USER_MODE === 'create'){
+      if(!pass || pass.length < 8){ invStatus('error','Enter a temporary password of at least 8 characters, or click Generate.'); return; }
+      r = await adminCall({ action:'create', email:email, password:pass, full_name:name, is_admin: role === 'admin' });
+      if(r.ok){
+        invStatus('ok',
+          '\u2713 Account created for <strong>' + email + '</strong>.<br><br>' +
+          'Send them these credentials:<br>' +
+          '<div style="background:#fff;border:1px solid #bbf7d0;border-radius:7px;padding:10px 12px;margin-top:7px;font-family:ui-monospace,monospace;font-size:.82rem;">' +
+            'Site: ' + location.origin + '/login.html<br>' +
+            'Email: ' + email + '<br>' +
+            'Password: ' + pass +
+          '</div>' +
+          '<button onclick="copyCreds(\'' + email + '\',\'' + pass + '\',this)" style="margin-top:8px;border:1.5px solid #bbf7d0;background:#fff;color:#15803d;border-radius:7px;padding:6px 13px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;">\uD83D\uDCCB Copy Credentials</button>' +
+          '<p style="font-size:.75rem;color:#64748b;margin-top:8px;">Ask them to change it after signing in.</p>');
+        document.getElementById('inv-name').value = '';
+        document.getElementById('inv-email').value = '';
+        document.getElementById('inv-pass').value = '';
+        setTimeout(loadTeamList, 900);
+      }
     } else {
-      invStatus('error', r.error || 'Could not send the invitation.');
+      r = await adminCall({ action:'invite', email:email, full_name:name, is_admin: role === 'admin' });
+      if(r.ok){
+        invStatus('ok','\u2713 Invitation sent to ' + email + '.');
+        document.getElementById('inv-name').value = '';
+        document.getElementById('inv-email').value = '';
+        setTimeout(loadTeamList, 1200);
+      }
+    }
+    if(r && !r.ok){
+      if(r.needsSetup) invStatus('error', r.error);
+      else if(/rate limit/i.test(r.error||'')) invStatus('error', r.error + '<br><br>Switch to <strong>Create Directly</strong> to add this person now without an email.');
+      else invStatus('error', r.error || 'Something went wrong.');
     }
   }catch(e){ invStatus('error', e.message); }
-  finally{ btn.disabled = false; btn.textContent = 'Send Invite'; }
+  finally{ btn.disabled = false; btn.textContent = USER_MODE === 'create' ? 'Create User' : 'Send Invite'; }
 }
+
+function copyCreds(email, pass, btn){
+  var text = 'QLM Internal Tools access\n\nSite: ' + location.origin + '/login.html\nEmail: ' + email + '\nPassword: ' + pass + '\n\nPlease change your password after signing in.';
+  navigator.clipboard.writeText(text).then(function(){
+    var o = btn.textContent; btn.textContent = '\u2713 Copied';
+    setTimeout(function(){ btn.textContent = o; }, 2000);
+  });
+}
+
+async function setUserPassword(id, name){
+  var pass = prompt('Set a new password for ' + name + ':\n(at least 8 characters)');
+  if(!pass) return;
+  var r = await adminCall({ action:'setPassword', id:id, password:pass });
+  alert(r.ok ? 'Password updated for ' + name + '.\n\nPassword: ' + pass : (r.error || 'Could not set the password.'));
+}
+
+async function sendInvite(){ return submitUser(); }
 
 async function loadTeamList(){
   var el = document.getElementById('team-list');
@@ -1038,7 +1120,7 @@ async function loadTeamList(){
             '</select>' +
           '</td>' +
           '<td>' +
-            '<button class="btn-view" onclick="resetUser(\'' + (p.email||'') + '\',this)">Reset Password</button> ' +
+            '<button class="btn-view" onclick="setUserPassword(\'' + p.id + '\',\'' + name.replace(/'/g,"") + '\')">Set Password</button> ' +
             (isMe ? '' : '<button class="btn-view" style="color:#b91c1c;border-color:#fecaca;" onclick="removeUser(\'' + p.id + '\',\'' + name.replace(/'/g,"") + '\')">Remove</button>') +
           '</td>' +
         '</tr>';
