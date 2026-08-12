@@ -1051,7 +1051,10 @@ async function submitUser(){
             'Email: ' + email + '<br>' +
             'Password: ' + pass +
           '</div>' +
-          '<button onclick="copyCreds(\'' + email + '\',\'' + pass + '\',this)" style="margin-top:8px;border:1.5px solid #bbf7d0;background:#fff;color:#15803d;border-radius:7px;padding:6px 13px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;">\uD83D\uDCCB Copy Credentials</button>' +
+          '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;">' +
+            '<button onclick="copyCreds(\'' + email + '\',\'' + pass + '\',this)" style="border:1.5px solid #bbf7d0;background:#fff;color:#15803d;border-radius:7px;padding:6px 13px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;">\uD83D\uDCCB Copy Credentials</button>' +
+            '<button onclick="showWelcomeEmail(\'' + (name||'').replace(/'/g,"") + '\',\'' + email + '\',\'' + pass + '\')" style="border:none;background:#003a52;color:#fff;border-radius:7px;padding:6px 13px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;">\u2709\uFE0F Generate Welcome Email</button>' +
+          '</div>' +
           '<p style="font-size:.75rem;color:#64748b;margin-top:8px;">Ask them to change it after signing in.</p>');
         document.getElementById('inv-name').value = '';
         document.getElementById('inv-email').value = '';
@@ -1074,6 +1077,90 @@ async function submitUser(){
     }
   }catch(e){ invStatus('error', e.message); }
   finally{ btn.disabled = false; btn.textContent = USER_MODE === 'create' ? 'Create User' : 'Send Invite'; }
+}
+
+
+// ═══════════════════════════════════════════════════
+//  WELCOME EMAIL BUILDER
+// ═══════════════════════════════════════════════════
+function buildWelcomeEmail(name, email, pass){
+  var first = (name||'').trim().split(/\s+/)[0] || 'there';
+  var site = location.origin;
+  var subject = 'Your access to the QLM internal tools';
+  var body =
+'Hi ' + first + ',\n\n' +
+'Your account for the QLM internal tools platform is ready. This is where we run candidate assessments, build talent cards, track leads, and pull live market data.\n\n' +
+'SIGN IN\n' +
+'Site:     ' + site + '/login.html\n' +
+'Email:    ' + email + '\n' +
+'Password: ' + pass + '\n\n' +
+'Please change your password after your first sign-in.\n\n' +
+'WHAT YOU CAN DO\n' +
+'  - Candidate Database - every team member we have profiled, searchable by trade, skill, city or certification\n' +
+'  - Skilled Trades Assessment - send a candidate a unique test link; the full report comes back to you by email\n' +
+'  - Talent Card - turn a resume into a client-ready marketing card in about a minute\n' +
+'  - Lead Generator - AI searches live job boards for companies hiring trades right now\n' +
+'  - Hiring Insights - bill rate justification, pay benchmarks and talking points for client conversations\n\n' +
+'GETTING STARTED\n' +
+'1. Sign in and change your password\n' +
+'2. Open the Assessment tool and send yourself the QLM Orientation test - it takes about ten minutes and shows you exactly what a candidate sees\n' +
+'3. Look at the report that comes back. That is what you will be sending clients.\n\n' +
+'Everything is shared across the team, so what you add shows up for everyone.\n\n' +
+'Any trouble getting in, just reply to this message.\n\n' +
+'Quality Labor Management\n' +
+'myqlm.com | 855-756-9675\n' +
+'Safety - Productivity - Quality';
+  return { subject: subject, body: body };
+}
+
+function showWelcomeEmail(name, email, pass){
+  var m = buildWelcomeEmail(name, email, pass);
+  var box = document.getElementById('welcome-modal');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'welcome-modal';
+    box.style.cssText = 'position:fixed;inset:0;background:rgba(0,58,82,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    box.innerHTML =
+      '<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);">' +
+        '<div style="background:#003a52;padding:20px 24px;border-radius:14px 14px 0 0;position:relative;">' +
+          '<button onclick="document.getElementById(\'welcome-modal\').style.display=\'none\'" style="position:absolute;top:14px;right:16px;background:rgba(255,255,255,.12);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:1rem;line-height:1;">&times;</button>' +
+          '<h2 style="color:#fff;font-size:1.15rem;font-weight:700;">&#9993;&#65039; Welcome Email</h2>' +
+          '<div style="color:#b8dff0;font-size:.82rem;margin-top:3px;">Edit if you like, then copy or open in your mail app</div>' +
+        '</div>' +
+        '<div style="padding:20px 24px;">' +
+          '<label style="font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0077a8;">Subject</label>' +
+          '<input id="wel-subject" style="width:100%;border:1px solid #b8dff0;border-radius:7px;padding:9px 12px;font-size:.86rem;font-family:inherit;margin:5px 0 14px;outline:none;">' +
+          '<label style="font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0077a8;">Message</label>' +
+          '<textarea id="wel-body" style="width:100%;min-height:330px;border:1px solid #b8dff0;border-radius:7px;padding:12px;font-size:.83rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;margin-top:5px;outline:none;resize:vertical;"></textarea>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:14px 24px 20px;border-top:1px solid #f1f5f9;">' +
+          '<button onclick="copyWelcome(this)" style="background:#003a52;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128203; Copy Email</button>' +
+          '<button onclick="mailWelcome()" style="background:#fff;color:#0077a8;border:1.5px solid #b8dff0;border-radius:7px;padding:9px 16px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;">&#9993;&#65039; Open in Mail</button>' +
+          '<button onclick="document.getElementById(\'welcome-modal\').style.display=\'none\'" style="background:#fff;color:#64748b;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 16px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;">Close</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function(e){ if(e.target === box) box.style.display = 'none'; });
+  }
+  box.style.display = 'flex';
+  document.getElementById('wel-subject').value = m.subject;
+  document.getElementById('wel-body').value = m.body;
+  window._welTo = email;
+}
+
+function copyWelcome(btn){
+  var s = document.getElementById('wel-subject').value;
+  var b = document.getElementById('wel-body').value;
+  navigator.clipboard.writeText('Subject: ' + s + '\n\n' + b).then(function(){
+    var o = btn.textContent; btn.textContent = '\u2713 Copied';
+    setTimeout(function(){ btn.textContent = o; }, 2000);
+  });
+}
+
+function mailWelcome(){
+  var s = document.getElementById('wel-subject').value;
+  var b = document.getElementById('wel-body').value;
+  window.location.href = 'mailto:' + (window._welTo||'') + '?subject=' + encodeURIComponent(s) + '&body=' + encodeURIComponent(b);
 }
 
 function copyCreds(email, pass, btn){
