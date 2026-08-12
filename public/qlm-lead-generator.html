@@ -308,20 +308,17 @@ header{gap:12px;}
           <span class="ttag" onclick="toggleTrade(this,'Foreman')">Foreman</span>
         </div>
       </div>
-      <div class="fl"><label>Company Type</label>
+      <div class="fl"><label>Position Type</label>
         <select id="s-proj">
-          <option value="">All company types</option>
-          <option>General Contractor</option>
-          <option>Specialty / Trade Subcontractor</option>
-          <option>Mechanical / Electrical / Plumbing</option>
-          <option>Industrial &amp; Manufacturing</option>
-          <option>Civil / Heavy Highway</option>
-          <option>Utility Solar / Energy</option>
-          <option>Marine / Shipyard</option>
-          <option>Data Center / Mission Critical</option>
-          <option>Healthcare / Institutional</option>
-          <option>Oil and Gas / Petrochemical</option>
-          <option>Facilities / Maintenance</option>
+          <option value="">All positions</option>
+          <option>Helper / Apprentice</option>
+          <option>Journeyman</option>
+          <option>Senior / Master</option>
+          <option>Foreman / Lead</option>
+          <option>Superintendent</option>
+          <option>Full crew (multiple levels)</option>
+          <option>Temp / Temp-to-hire</option>
+          <option>Direct hire</option>
         </select>
       </div>
       <div class="fl"><label>Company Size</label>
@@ -893,7 +890,7 @@ function runSearch(){
     angle.build(trades, focusCity) + '\n\n' +
     'Aggregators like Indeed and ZipRecruiter often block automated access. That is expected and is NOT a reason to stop \u2014 work from the search snippets and from company, news, and public agency pages.\n\n' +
     'Target up to ' + count + ' companies. Fewer is fine. Prefer companies you can point to a specific reason for: a posting, a permit, an award, an announcement.\n' +
-    (proj ? 'Company type to prioritise: ' + proj + '. Return companies that are this kind of business.\n' : '') +
+    (proj ? 'Position type to prioritise: ' + proj + '. Favour companies hiring at this level, and say so in the summary.\n' : '') +
     (size ? 'Prefer company size: ' + size + '\n' : '') +
     '\nReturn ONLY this JSON array with NO other text before or after it:\n' +
     '[{"company":"Exact Company Name","location":"City, State","trades":["Trade1"],"jobCount":3,"source":"where you found them","postingDate":"3 days ago","contactSignal":"","projectType":"Commercial","companySize":"GC","urgency":"High","qlmFitScore":82,"fitReason":"One sentence why QLM fits","summary":"What they are doing and why they need people","competitorSignal":"Direct hire only","jobUrl":"https://...","signal":"the specific evidence: the permit, award, posting or announcement"}]\n\n' +
@@ -1114,7 +1111,7 @@ function showScoreBreakdown(id){
     {label:'Workforce Need', val:sb.workforceNeed||0, max:30},
     {label:'Trade Match', val:sb.tradeMatch||0, max:25},
     {label:'Urgency', val:sb.urgency||0, max:25},
-    {label:'Company Type', val:sb.projectType||0, max:20},
+    {label:'Position Type', val:sb.projectType||0, max:20},
   ];
   document.getElementById('sm-breakdown').innerHTML = rows.map(function(r){
     return '<div class="sb-row"><span class="sb-label">'+r.label+' (max '+r.max+')</span><div class="sb-bar-wrap"><div class="sb-bar" style="width:'+Math.round(r.val/r.max*100)+'%"></div></div><span class="sb-val">'+r.val+'</span></div>';
@@ -1363,7 +1360,7 @@ function generateEmail(id){
   var persLevel = PERS_LABELS[parseInt(document.getElementById('pers-slider').value)-1];
   var recruiter = document.getElementById('recruiter-name').value || 'Your QLM Recruiter';
   var prompt = 'Write a 3-touch outreach email sequence + SMS for a construction staffing company reaching out to a company hiring skilled trades workers. Sign emails as: ' + recruiter + ', QLM.\n\n' +
-    'Company: '+lead.company+'\nLocation: '+(lead.location||'')+'\nTrades needed: '+(lead.trades||[]).join(', ')+'\nCompany type: '+(lead.projectType||'commercial')+'\nContext: '+lead.summary+'\nContact: '+(lead.contactSignal||'unknown')+'\n\n' +
+    'Company: '+lead.company+'\nLocation: '+(lead.location||'')+'\nTrades needed: '+(lead.trades||[]).join(', ')+'\nPosition type: '+(lead.projectType||'')+'\nContext: '+lead.summary+'\nContact: '+(lead.contactSignal||'unknown')+'\n\n' +
     'Personalization level: ' + persLevel + '\n\n' +
     'QLM value prop: Pre-screened skilled trades workers with safety certs and skills assessments. Fast placement on commercial and industrial job sites in Florida.\n\n' +
     'Return ONLY raw JSON (no markdown):\n{"email1":{"subject":"","body":""},"email2":{"subject":"Day 3 follow-up subject","body":"Short 100-word follow-up"},"email3":{"subject":"Day 7 value-add subject","body":"Value-add email with a tip or resource"},"sms":"160 char max SMS"}\n\nNo apostrophes in values. Raw JSON only.';
@@ -1613,7 +1610,7 @@ function updateStats(){
 function exportCSV(){
   var leads = currentLeads.length ? currentLeads : getStore();
   if(!leads.length){ alert('No leads to export.'); return; }
-  var hdrs = ['Company','Location','Trades','Job Count','Source','Posting Date','Company Type','Company Size','Urgency','QLM Fit Score','Contact','Summary','Competitor Signal','Status','Notes','Reminder Date','Job URL'];
+  var hdrs = ['Company','Location','Trades','Job Count','Source','Posting Date','Position Type','Company Size','Urgency','QLM Fit Score','Contact','Summary','Competitor Signal','Status','Notes','Reminder Date','Job URL'];
   var rows = leads.map(function(l){
     return [l.company,l.location,(l.trades||[]).join(';'),l.jobCount,l.source,l.postingDate,l.projectType,l.companySize,l.urgency,l.qlmFitScore,l.contactSignal,(l.summary||'').replace(/,/g,' '),l.competitorSignal,l.status,l.notes,l.reminderDate,l.jobUrl||''].map(function(v){ return '"'+(v||'')+'"'; }).join(',');
   });
