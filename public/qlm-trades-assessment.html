@@ -1195,9 +1195,10 @@ function startAssessment() {
     certs:     document.getElementById('c-certs').value.trim(),
     recruiter: document.getElementById('c-recruiter').value.trim(),
     trade:     selectedTrade,
+    level:     (document.getElementById('c-level') && document.getElementById('c-level').value) || '',
     date:      new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
   };
-  questions = QUESTIONS[selectedTrade];
+  questions = buildQuestionSet(selectedTrade, 10);
   answers = questions.map(function(){ return null; });
   currentQ = 0;
 
@@ -1358,6 +1359,9 @@ function submitAssessment() {
   promptParts.push('You are a skilled trades assessor for QLM (Quality Labor Management), a construction staffing company. You have just administered a ' + tradeLabel(selectedTrade) + ' skills assessment to a candidate.');
   promptParts.push('\nCANDIDATE: ' + candidateData.firstName + ' ' + candidateData.lastName);
   promptParts.push('CLAIMED EXPERIENCE: ' + (candidateData.yoe || 'Not specified'));
+  promptParts.push('DECLARED LEVEL: ' + (candidateData.level || 'Not specified'));
+  promptParts.push('TEST CALIBRATED FOR: ' + (window._testLevel || 'unknown') + ' level');
+  promptParts.push('IMPORTANT: Grade against expectations for a ' + (window._testLevel || 'journeyman') + '-level worker. An entry/helper candidate should not be penalized for missing advanced code or engineering detail, but must demonstrate solid safety awareness and willingness to ask questions. A senior or foreman candidate is held to a high standard on both technical depth and judgment.');
   promptParts.push('CLAIMED CERTIFICATIONS: ' + (candidateData.certs || 'None listed'));
   promptParts.push('TRADE ASSESSED: ' + tradeLabel(selectedTrade));
   promptParts.push('\nQUESTION ANSWERS:');
@@ -1564,6 +1568,309 @@ var TRADE_LABELS = {
   solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)',
   ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician'
 };
+
+// ═══════════════════════════════════════════════════════════════
+//  EASY TIER — fair baseline questions for entry / helper level
+//  Merged into QUESTIONS at load so the bank has a real low end.
+// ═══════════════════════════════════════════════════════════════
+var EASY_QUESTIONS = {
+electrician: [
+  { id:'e-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'Before working inside any energized panel, the FIRST thing you should do is:',
+    choices:['Put on gloves and start work','De-energize and lock out the circuit','Ask a coworker to watch you','Work quickly to limit exposure'],
+    correct:1, explain:'De-energize and lock out first. Everything else follows.' },
+  { id:'e-x2', cat:'technical', diff:'easy', type:'mc',
+    q:'In standard US residential wiring, the color of the grounded (neutral) conductor is:',
+    choices:['Black','Red','White','Green'],
+    correct:2, explain:'White (or gray) is the grounded/neutral conductor. Green is equipment ground.' },
+  { id:'e-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'A standard residential receptacle in the US supplies approximately:',
+    choices:['12 volts','120 volts','240 volts','480 volts'],
+    correct:1, explain:'Standard US receptacles are 120V.' },
+  { id:'e-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'You arrive on a jobsite and your assigned task is not clear to you. Walk me through exactly what you do before starting work.' }
+],
+plumber: [
+  { id:'p-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'Which direction must drain piping run to work correctly?',
+    choices:['Perfectly level','Sloped downward toward the drain','Sloped upward','Direction does not matter with enough water'],
+    correct:1, explain:'Drainage relies on gravity — piping must slope toward the drain.' },
+  { id:'p-x2', cat:'technical', diff:'easy', type:'mc',
+    q:'The purpose of a P-trap under a sink is to:',
+    choices:['Slow the water down','Block sewer gas from entering the building','Catch dropped items','Reduce water pressure'],
+    correct:1, explain:'The water seal in a P-trap blocks sewer gas.' },
+  { id:'p-x3', cat:'safety', diff:'easy', type:'mc',
+    q:'Before cutting into any existing water line, you must first:',
+    choices:['Shut off and verify the water supply is isolated','Place a bucket underneath','Notify the homeowner afterward','Cut slowly to reduce spray'],
+    correct:0, explain:'Isolate and verify the supply is off before cutting.' },
+  { id:'p-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'You open a wall and find conditions different from what you expected. What do you do next, and who do you tell?' }
+],
+welder: [
+  { id:'w-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'The primary reason for wearing a welding helmet with the correct shade lens is to protect against:',
+    choices:['Sparks only','Arc radiation that can burn your eyes','Noise','Fumes'],
+    correct:1, explain:'Arc radiation causes flash burn. Shade must match the process and amperage.' },
+  { id:'w-x2', cat:'technical', diff:'easy', type:'mc',
+    q:'Before striking an arc, the work clamp (ground) should be attached:',
+    choices:['Anywhere on the jobsite','As close to the weld as practical on clean metal','To the nearest pipe','To the welding table leg only'],
+    correct:1, explain:'Attach close to the weld on clean base metal for a solid return path.' },
+  { id:'w-x3', cat:'safety', diff:'easy', type:'mc',
+    q:'Welding on a container that previously held flammable liquid is:',
+    choices:['Fine once it is empty','Fine if you work quickly','Extremely dangerous — it must be properly cleaned and tested first','Fine if the lid is open'],
+    correct:2, explain:'Residual vapors can explode. The container must be cleaned, purged, and tested.' },
+  { id:'w-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'You notice your weld is not looking right partway through a pass. What do you do?' }
+],
+hvac: [
+  { id:'h-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'A dirty air filter most commonly causes:',
+    choices:['Higher airflow','Reduced airflow and lower system efficiency','Higher refrigerant charge','No effect on the system'],
+    correct:1, explain:'Restricted filters reduce airflow, hurting capacity and efficiency.' },
+  { id:'h-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'Before servicing the electrical components of a rooftop unit, you should:',
+    choices:['Disconnect and lock out power','Turn the thermostat down','Remove the panel quickly','Wear sunglasses'],
+    correct:0, explain:'Disconnect and lock out power before opening electrical compartments.' },
+  { id:'h-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'Venting refrigerant to the atmosphere is:',
+    choices:['Allowed for small amounts','Illegal — it must be recovered','Allowed outdoors','Allowed if the system is being scrapped'],
+    correct:1, explain:'EPA Section 608 requires recovery. Venting is illegal.' },
+  { id:'h-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'A customer says their system is "not cooling." Describe the first few things you check and why.' }
+],
+carpenter: [
+  { id:'c-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'Standard stud spacing for most residential wall framing is:',
+    choices:['12 inches on center','16 inches on center','24 inches on center','18 inches on center'],
+    correct:1, explain:'16 inches on center is the common standard, with 24 used in some assemblies.' },
+  { id:'c-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'When using a circular saw, the guard should be:',
+    choices:['Removed for better visibility','Wedged open for speed','Left functional at all times','Removed only for bevel cuts'],
+    correct:2, explain:'Guards stay functional. Removing them is a common cause of serious injury.' },
+  { id:'c-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'The "crown" of a joist or stud should be installed facing:',
+    choices:['Down','Up','It does not matter','Alternating each piece'],
+    correct:1, explain:'Crown up so loads flatten the member over time.' },
+  { id:'c-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'Your measurements do not match the plans. What do you do before cutting material?' }
+],
+concrete: [
+  { id:'n-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'Adding extra water to concrete on site to make it easier to place will:',
+    choices:['Improve final strength','Reduce final strength','Have no effect','Speed up curing safely'],
+    correct:1, explain:'Excess water raises the water-cement ratio and lowers strength.' },
+  { id:'n-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'Wet concrete contacting bare skin for an extended period can cause:',
+    choices:['Nothing, it is harmless','Chemical burns','Only staining','Mild cooling'],
+    correct:1, explain:'Wet concrete is caustic and causes chemical burns.' },
+  { id:'n-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'The main purpose of curing concrete is to:',
+    choices:['Make it look better','Retain moisture so it gains strength properly','Cool it down','Speed up the pour'],
+    correct:1, explain:'Curing retains moisture for proper hydration and strength gain.' },
+  { id:'n-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'A truck arrives and the mix looks wrong to you. What do you do?' }
+],
+operator: [
+  { id:'o-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'Before operating any piece of equipment at the start of a shift, you should:',
+    choices:['Start it and listen','Perform a walk-around inspection','Fuel it up','Check the radio'],
+    correct:1, explain:'A documented walk-around pre-op inspection comes first.' },
+  { id:'o-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'When working near overhead power lines, the rule is to:',
+    choices:['Stay as close as needed to work','Maintain the required minimum clearance distance','Touch lines only with the bucket','Work only in dry weather'],
+    correct:1, explain:'Minimum approach distances must be maintained at all times.' },
+  { id:'o-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'On a jobsite, a spotter is used primarily to:',
+    choices:['Speed up production','Guide the operator where visibility is limited','Hold tools','Record hours'],
+    correct:1, explain:'Spotters cover blind spots and keep people clear of the swing/travel path.' },
+  { id:'o-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'You notice a hydraulic leak during your pre-op inspection. Walk me through what you do.' }
+],
+foreman: [
+  { id:'f-x1', cat:'leadership', diff:'easy', type:'mc',
+    q:'A crew member shows up without required PPE. The correct response is:',
+    choices:['Let him work carefully','Stop him from working until proper PPE is in place','Ignore it if the task is short','Loan him yours and go without'],
+    correct:1, explain:'No PPE, no work. Enforcing this consistently is a core foreman duty.' },
+  { id:'f-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'The purpose of a daily toolbox talk is to:',
+    choices:['Fill out paperwork','Review the day\u2019s hazards and plan with the crew','Assign overtime','Discuss pay'],
+    correct:1, explain:'It aligns the crew on tasks and specific hazards for that day.' },
+  { id:'f-x3', cat:'leadership', diff:'easy', type:'mc',
+    q:'When a task will clearly run past schedule, the best action is:',
+    choices:['Push the crew harder and say nothing','Notify the superintendent early with the reason','Wait until the deadline passes','Reduce quality to save time'],
+    correct:1, explain:'Early communication lets the schedule be managed; surprises cost more.' },
+  { id:'f-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'Two crew members are arguing on site and it is slowing work. How do you handle it?' }
+],
+solar: [
+  { id:'s-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'PV modules exposed to sunlight are:',
+    choices:['Only energized once connected to an inverter','Producing voltage whenever light hits them','Safe until wired to the grid','De-energized during daylight'],
+    correct:1, explain:'Modules produce voltage any time they are illuminated.' },
+  { id:'s-x2', cat:'technical', diff:'easy', type:'mc',
+    q:'Connecting PV modules in series primarily increases:',
+    choices:['Current','Voltage','Neither','Both equally'],
+    correct:1, explain:'Series adds voltage; parallel adds current.' },
+  { id:'s-x3', cat:'safety', diff:'easy', type:'mc',
+    q:'When working on a roof above six feet, fall protection is:',
+    choices:['Optional for short tasks','Required','Only needed on steep roofs','Only needed for new construction'],
+    correct:1, explain:'Fall protection is required — falls are the leading cause of construction deaths.' },
+  { id:'s-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'You find a damaged module during installation. What do you do?' }
+],
+pipefitter: [
+  { id:'q-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'The main reason pipe supports and hangers are used is to:',
+    choices:['Improve appearance','Carry the weight and control movement of the pipe','Speed up installation','Reduce material cost'],
+    correct:1, explain:'Supports carry load and control expansion, sag, and vibration.' },
+  { id:'q-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'Before cutting into any existing process line, you must confirm it is:',
+    choices:['Painted','Isolated, drained, and depressurized','Insulated','Labeled'],
+    correct:1, explain:'Lines must be isolated, drained, and depressurized before hot or cold work.' },
+  { id:'q-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'A pipe fitting labeled "90" refers to:',
+    choices:['A 90 foot length','A 90 degree change in direction','90 psi rating','90 percent purity'],
+    correct:1, explain:'A 90 is a 90 degree elbow.' },
+  { id:'q-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'Your isometric drawing does not match field conditions. What is your next step?' }
+],
+ironworker: [
+  { id:'i-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'When connecting steel at height, fall protection is required:',
+    choices:['Only above 30 feet','At the heights specified by OSHA for steel erection','Only when the deck is wet','Never for connectors'],
+    correct:1, explain:'Steel erection has specific OSHA fall protection requirements that must be followed.' },
+  { id:'i-x2', cat:'technical', diff:'easy', type:'mc',
+    q:'A damaged or frayed sling should be:',
+    choices:['Used for light loads only','Removed from service immediately','Taped and reused','Doubled up'],
+    correct:1, explain:'Damaged rigging is removed from service — no exceptions.' },
+  { id:'i-x3', cat:'safety', diff:'easy', type:'mc',
+    q:'Standing directly under a suspended load is:',
+    choices:['Acceptable briefly','Never acceptable','Fine with a hard hat','Fine if the crane is certified'],
+    correct:1, explain:'Never work or walk under a suspended load.' },
+  { id:'i-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'A piece is not landing where the drawings show. What do you do before forcing it?' }
+],
+painter: [
+  { id:'t-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'Proper surface preparation before painting is important because:',
+    choices:['It makes the job take longer','Adhesion and durability depend on it','It only matters outdoors','It only affects color'],
+    correct:1, explain:'Most coating failures trace back to poor surface prep.' },
+  { id:'t-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'When spraying in an enclosed area, the most important control is:',
+    choices:['Working fast','Adequate ventilation and proper respiratory protection','Opening one door','Wearing gloves only'],
+    correct:1, explain:'Vapor buildup is both a health and fire hazard.' },
+  { id:'t-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'Applying a coating outside the manufacturer\u2019s temperature and humidity range will:',
+    choices:['Have no effect','Risk improper cure and adhesion failure','Improve drying','Deepen the color'],
+    correct:1, explain:'Environmental conditions outside spec cause cure and adhesion problems.' },
+  { id:'t-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'You notice the previous coat is peeling in an area you are about to paint. What do you do?' }
+],
+instrumentation: [
+  { id:'m-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'The standard analog signal range used for most process instruments is:',
+    choices:['0-5 mA','4-20 mA','10-50 mA','0-120 V'],
+    correct:1, explain:'4-20 mA is the industry standard, and the live zero helps detect broken loops.' },
+  { id:'m-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'Before working on an instrument tied into a running process, you should:',
+    choices:['Pull the wire and see what happens','Coordinate with operations and follow isolation procedures','Work during shift change','Disable the alarm first'],
+    correct:1, explain:'Instrument work affects live process control — coordinate and isolate properly.' },
+  { id:'m-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'Calibrating an instrument means:',
+    choices:['Cleaning it','Comparing and adjusting its output against a known standard','Replacing it','Rewiring it'],
+    correct:1, explain:'Calibration compares the device against a traceable reference and adjusts it.' },
+  { id:'m-x4', cat:'scenario', diff:'easy', type:'open',
+    q:'A transmitter is reading a value operations says is wrong. How do you troubleshoot it?' }
+]
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  ADAPTIVE TEST BUILDER
+//  Difficulty mix by declared level + random selection each attempt
+// ═══════════════════════════════════════════════════════════════
+var LEVEL_MIX = {
+  entry:      { easy:4, mid:5, hard:1, expert:0 },
+  journeyman: { easy:1, mid:4, hard:5, expert:0 },
+  senior:     { easy:0, mid:2, hard:6, expert:2 },
+  foreman:    { easy:0, mid:2, hard:6, expert:2 },
+  unknown:    { easy:1, mid:4, hard:4, expert:1 }
+};
+
+function normalizeLevel(){
+  var lvl = (document.getElementById('c-level') && document.getElementById('c-level').value || '').toLowerCase();
+  var yoe = (document.getElementById('c-yoe') && document.getElementById('c-yoe').value || '').toLowerCase();
+  var s = lvl + ' ' + yoe;
+  if(/entry|helper|apprentice|0-1|1-2|less than/.test(s)) return 'entry';
+  if(/foreman|superintendent|lead/.test(s)) return 'foreman';
+  if(/senior|master|10\+|15\+|20\+/.test(s)) return 'senior';
+  if(/journey|2-4|5-9|3-5|5-10/.test(s)) return 'journeyman';
+  return 'unknown';
+}
+
+function shuffle(arr){
+  var a = arr.slice();
+  for(var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+// Shuffle multiple-choice options and remap the correct index
+function shuffleChoices(q){
+  if(q.type !== 'mc' || !q.choices) return q;
+  var pairs = q.choices.map(function(c, i){ return { c:c, correct: i === q.correct }; });
+  pairs = shuffle(pairs);
+  var copy = Object.assign({}, q);
+  copy.choices = pairs.map(function(p){ return p.c; });
+  copy.correct = pairs.findIndex(function(p){ return p.correct; });
+  return copy;
+}
+
+function buildQuestionSet(trade, total){
+  total = total || 10;
+  var pool = (QUESTIONS[trade] || []).concat(EASY_QUESTIONS[trade] || []);
+  var level = normalizeLevel();
+  var mix = LEVEL_MIX[level] || LEVEL_MIX.unknown;
+
+  var byDiff = { easy:[], mid:[], hard:[], expert:[] };
+  pool.forEach(function(q){ (byDiff[q.diff] || byDiff.mid).push(q); });
+  Object.keys(byDiff).forEach(function(k){ byDiff[k] = shuffle(byDiff[k]); });
+
+  var picked = [];
+  ['easy','mid','hard','expert'].forEach(function(d){
+    var want = mix[d] || 0;
+    picked = picked.concat(byDiff[d].splice(0, want));
+  });
+
+  // Top up from whatever remains, staying near the candidate's level
+  if(picked.length < total){
+    var order = (level === 'entry')    ? ['easy','mid','hard','expert']
+              : (level === 'senior' || level === 'foreman') ? ['hard','expert','mid','easy']
+              : ['mid','hard','easy','expert'];
+    var rest = [];
+    order.forEach(function(d){ rest = rest.concat(byDiff[d]); });
+    picked = picked.concat(rest.slice(0, total - picked.length));
+  }
+  picked = picked.slice(0, total);
+
+  // Guarantee at least one safety and one scenario question
+  var hasSafety = picked.some(function(q){ return q.cat === 'safety'; });
+  var hasScenario = picked.some(function(q){ return q.cat === 'scenario' || q.type === 'open'; });
+  if(!hasSafety){
+    var s = pool.find(function(q){ return q.cat === 'safety' && picked.indexOf(q) === -1; });
+    if(s) picked[picked.length - 1] = s;
+  }
+  if(!hasScenario){
+    var sc = pool.find(function(q){ return (q.cat === 'scenario' || q.type === 'open') && picked.indexOf(q) === -1; });
+    if(sc) picked[picked.length - 2] = sc;
+  }
+
+  window._testLevel = level;
+  return shuffle(picked).map(shuffleChoices);
+}
+
+
 
 // ═══════════════════════════════════════════════════
 //  SCREEN NAVIGATION
