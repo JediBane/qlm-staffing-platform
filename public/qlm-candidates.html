@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Candidates</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--blue:#0099d8;--blue-dk:#005a7e;--blue-md:#0077a8;--blue-lt:#e0f4fc;--mid:#b8dff0;--navy:#003a52;--gray:#f4f7fb;--text:#2a4a5a;--success:#22c55e;--warn:#f59e0b;--danger:#ef4444;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+header{background:var(--navy);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 2px 12px rgba(0,0,0,.3);gap:12px;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:.85rem;letter-spacing:2px;padding:5px 11px;border-radius:4px;}
+.logo-text{color:var(--mid);font-size:.78rem;letter-spacing:1px;white-space:nowrap;}
+.tool-nav{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+.tool-nav::-webkit-scrollbar{display:none;}
+.tnav{padding:4px 10px;border-radius:6px;font-size:.66rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.22);color:var(--mid);white-space:nowrap;flex-shrink:0;transition:all .2s;}
+.tnav:hover{border-color:var(--blue);color:var(--blue);}
+.tnav.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+@media(max-width:900px){.logo-text{display:none;}}
+
+.main{max-width:1150px;margin:0 auto;padding:22px 20px 70px;}
+.head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.head h1{font-size:1.3rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:9px;}
+.src-note{font-size:.72rem;color:#64748b;margin-bottom:16px;}
+
+.controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.search{flex:1;min-width:220px;border:1px solid var(--mid);border-radius:9px;padding:10px 14px;font-size:.88rem;font-family:inherit;outline:none;background:#fff;}
+.search:focus{border-color:var(--blue);}
+.chip{padding:6px 13px;border-radius:20px;font-size:.72rem;font-weight:600;border:1.5px solid var(--mid);color:#64748b;cursor:pointer;background:#fff;transition:all .2s;font-family:inherit;}
+.chip:hover{border-color:var(--blue);color:var(--blue);}
+.chip.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-export{background:#fff;border:1.5px solid var(--mid);color:var(--blue-md);border-radius:8px;padding:8px 15px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.4px;}
+.btn-export:hover{border-color:var(--blue);background:var(--blue-lt);}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:20px;}
+.stat{background:#fff;border:1px solid var(--mid);border-radius:11px;border-top:3px solid var(--blue);padding:15px;}
+.stat-n{font-size:1.6rem;font-weight:700;color:var(--navy);line-height:1;}
+.stat-l{font-size:.65rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-top:4px;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:13px;}
+.card{background:#fff;border:1px solid var(--mid);border-radius:12px;padding:16px;transition:box-shadow .2s,transform .1s;cursor:pointer;}
+.card:hover{box-shadow:0 6px 22px rgba(0,153,216,.13);transform:translateY(-1px);}
+.c-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px;}
+.c-name{font-size:.98rem;font-weight:700;color:var(--navy);line-height:1.3;}
+.c-title{font-size:.78rem;color:var(--blue-md);margin-top:2px;}
+.avatar{width:40px;height:40px;border-radius:10px;background:var(--blue-lt);color:var(--blue-dk);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--mid);}
+.c-meta{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0;}
+.pill{font-size:.65rem;font-weight:600;padding:3px 9px;border-radius:20px;background:#f8fafc;border:1px solid #e2e8f0;color:#64748b;}
+.pill.blue{background:var(--blue-lt);border-color:var(--mid);color:var(--blue-md);}
+.pill.green{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+.pill.amber{background:#fefce8;border-color:#fde68a;color:#a16207;}
+.pill.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9;}
+.c-line{font-size:.78rem;color:#64748b;display:flex;align-items:center;gap:5px;margin-top:3px;}
+.c-foot{display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:10px;border-top:1px solid #f1f5f9;}
+.c-date{font-size:.7rem;color:#94a3b8;}
+.score-chip{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;}
+
+.empty{text-align:center;padding:60px 20px;color:#94a3b8;background:#fff;border:1px solid var(--mid);border-radius:12px;}
+.empty-icon{font-size:2.4rem;margin-bottom:12px;}
+.empty a{color:var(--blue);font-weight:600;text-decoration:none;}
+
+/* MODAL */
+.modal{position:fixed;inset:0;background:rgba(0,58,82,.55);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal.hidden{display:none!important;}
+.modal-box{background:#fff;border-radius:14px;max-width:620px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);}
+.m-hdr{background:var(--navy);padding:22px 26px;border-radius:14px 14px 0 0;position:relative;}
+.m-hdr h2{color:#fff;font-size:1.25rem;font-weight:700;}
+.m-hdr .sub{color:var(--mid);font-size:.85rem;margin-top:4px;}
+.m-close{position:absolute;top:16px;right:18px;background:rgba(255,255,255,.12);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;line-height:1;}
+.m-body{padding:22px 26px;}
+.m-sec{font-size:.64rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin:18px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--blue-lt);}
+.m-sec:first-child{margin-top:0;}
+.m-row{display:flex;gap:12px;padding:7px 0;font-size:.86rem;}
+.m-row .k{color:#64748b;min-width:120px;flex-shrink:0;}
+.m-row .v{color:var(--text);font-weight:500;}
+.m-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.m-actions{display:flex;gap:8px;flex-wrap:wrap;padding:16px 26px;border-top:1px solid #f1f5f9;}
+.m-btn{padding:9px 16px;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--mid);background:#fff;color:var(--blue-md);text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+.m-btn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+.m-btn:hover{border-color:var(--blue);}
+
+.shim{background:linear-gradient(90deg,#f1f5f9 25%,#e8eef4 50%,#f1f5f9 75%);background-size:200% 100%;animation:sh 1.4s infinite;height:11px;border-radius:4px;margin-bottom:8px;}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.shim-card{background:#fff;border:1px solid var(--mid);border-radius:12px;padding:16px;}
+footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padding:12px;font-size:.7rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
+  <div class="tool-nav">
+    <span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span>
+    <a href="/" class="tnav">&#127968; Home</a>
+    <a href="/talent-card.html" class="tnav">&#128196; Talent Card</a>
+    <a href="/qlm-intake.html" class="tnav">&#128203; Intake</a>
+    <a href="/qlm-candidates.html" class="tnav active">&#128101; Candidates</a>
+    <a href="/qlm-trades-assessment.html" class="tnav">&#9889; Assessment</a>
+    <a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a>
+    <a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a>
+    <a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a>
+  </div>
+</header>
+
+<div class="main">
+  <div class="head">
+    <h1>&#128101; Candidate Database</h1>
+    <button class="btn-export" onclick="exportCSV()">&#8595; Export CSV</button>
+  </div>
+  <div class="src-note" id="src-note"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <input class="search" id="search" placeholder="Search by name, trade, city, skill, or certification..." oninput="applyFilters()">
+    <button class="chip active" data-f="all" onclick="setFilter('all',this)">All</button>
+    <button class="chip" data-f="intake" onclick="setFilter('intake',this)">From Intake</button>
+    <button class="chip" data-f="talent_card" onclick="setFilter('talent_card',this)">Talent Cards</button>
+    <button class="chip" data-f="assessed" onclick="setFilter('assessed',this)">Assessed</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-box">
+    <div class="m-hdr">
+      <button class="m-close" onclick="closeModal()">&times;</button>
+      <h2 id="m-name"></h2>
+      <div class="sub" id="m-sub"></div>
+    </div>
+    <div class="m-body" id="m-body"></div>
+    <div class="m-actions" id="m-actions"></div>
+  </div>
+</div>
+
+<footer>&copy; 2025 Quality Labor Management, LLC &middot; Candidate Database &middot; myqlm.com</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
+<script>
+var CANDIDATES = [], ASSESSMENTS = [], FILTER = 'all';
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function initials(n){
+  return String(n||'?').split(/\s+/).filter(Boolean).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+}
+function fmtDate(d){
+  if(!d) return '';
+  try{ return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return ''; }
+}
+
+async function load(){
+  document.getElementById('list').innerHTML =
+    '<div class="grid">' + Array(6).fill('<div class="shim-card"><div class="shim" style="width:55%"></div><div class="shim" style="width:35%"></div><div class="shim"></div><div class="shim" style="width:70%"></div></div>').join('') + '</div>';
+
+  var signedIn = false;
+  if(window.QLM && QLM.getUser){
+    var u = await QLM.getUser();
+    signedIn = !!u;
+  }
+
+  if(!signedIn){
+    document.getElementById('src-note').innerHTML = '&#128187; Not signed in \u2014 <a href="/login.html" style="color:#0099d8;font-weight:600;">sign in</a> to see your team\'s candidate database.';
+    document.getElementById('list').innerHTML =
+      '<div class="empty"><div class="empty-icon">&#128274;</div>' +
+      '<p style="font-size:.95rem;margin-bottom:8px;">Sign in to view candidates</p>' +
+      '<p style="font-size:.85rem;">Candidates are shared across your team. <a href="/login.html">Sign in &rarr;</a></p></div>';
+    document.getElementById('stats').innerHTML = '';
+    return;
+  }
+
+  try{
+    var res = await Promise.all([ QLM.list('candidates'), QLM.list('assessments') ]);
+    CANDIDATES = res[0] || [];
+    ASSESSMENTS = res[1] || [];
+    document.getElementById('src-note').textContent = '\u2601 Team database \u00b7 ' + CANDIDATES.length + ' candidate' + (CANDIDATES.length===1?'':'s') + ' \u00b7 live from cloud';
+    renderStats();
+    applyFilters();
+  }catch(e){
+    document.getElementById('list').innerHTML = '<div class="empty"><div class="empty-icon">&#9888;&#65039;</div><p>Could not load candidates: ' + esc(e.message) + '</p></div>';
+  }
+}
+
+// Match an assessment to a candidate by name
+function assessmentFor(c){
+  var nm = (c.full_name||'').trim().toLowerCase();
+  if(!nm) return null;
+  return ASSESSMENTS.find(function(a){ return (a.candidate_name||'').trim().toLowerCase() === nm; }) || null;
+}
+
+function renderStats(){
+  var intake = CANDIDATES.filter(function(c){ return c.source_tool==='intake'; }).length;
+  var cards  = CANDIDATES.filter(function(c){ return c.source_tool==='talent_card'; }).length;
+  var assessed = CANDIDATES.filter(function(c){ return !!assessmentFor(c); }).length;
+  var trades = {};
+  CANDIDATES.forEach(function(c){ if(c.trade) trades[c.trade] = (trades[c.trade]||0)+1; });
+  var topTrade = Object.entries(trades).sort(function(a,b){ return b[1]-a[1]; })[0];
+
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><div class="stat-n">'+CANDIDATES.length+'</div><div class="stat-l">Total Candidates</div></div>' +
+    '<div class="stat"><div class="stat-n">'+intake+'</div><div class="stat-l">From Intake</div></div>' +
+    '<div class="stat"><div class="stat-n">'+cards+'</div><div class="stat-l">Talent Cards</div></div>' +
+    '<div class="stat"><div class="stat-n">'+assessed+'</div><div class="stat-l">Assessed</div></div>' +
+    '<div class="stat"><div class="stat-n" style="font-size:1.05rem;padding-top:6px;">'+(topTrade?esc(topTrade[0]):'\u2014')+'</div><div class="stat-l">Top Trade</div></div>';
+}
+
+function setFilter(f, el){
+  FILTER = f;
+  document.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters(){
+  var q = (document.getElementById('search').value||'').toLowerCase().trim();
+  var rows = CANDIDATES.filter(function(c){
+    if(FILTER==='intake' && c.source_tool!=='intake') return false;
+    if(FILTER==='talent_card' && c.source_tool!=='talent_card') return false;
+    if(FILTER==='assessed' && !assessmentFor(c)) return false;
+    if(!q) return true;
+    var hay = [c.full_name,c.trade,c.title,c.city,c.experience,c.availability,
+               (c.skills||[]).join(' '),(c.certs||[]).join(' '),(c.companies||[]).join(' ')]
+               .join(' ').toLowerCase();
+    return hay.indexOf(q) > -1;
+  });
+  render(rows);
+}
+
+function render(rows){
+  var el = document.getElementById('list');
+  if(!rows.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">&#128101;</div>' +
+      '<p style="font-size:.95rem;margin-bottom:8px;">No candidates match</p>' +
+      '<p style="font-size:.85rem;">Add candidates via <a href="/qlm-intake.html">Intake</a> or the <a href="/talent-card.html">Talent Card</a> tool.</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="grid">' + rows.map(function(c,i){
+    var a = assessmentFor(c);
+    var srcPill = c.source_tool==='intake'
+      ? '<span class="pill purple">&#128203; Intake</span>'
+      : '<span class="pill blue">&#128196; Talent Card</span>';
+    var scoreChip = '';
+    if(a && a.score != null){
+      var col = a.score>=75 ? ['#f0fdf4','#15803d'] : a.score>=55 ? ['#fefce8','#a16207'] : ['#fef2f2','#b91c1c'];
+      scoreChip = '<span class="score-chip" style="background:'+col[0]+';color:'+col[1]+';">'+a.score+' \u00b7 '+esc(a.verdict||'')+'</span>';
+    }
+    var idx = CANDIDATES.indexOf(c);
+    return '<div class="card" onclick="openCandidate('+idx+')">' +
+      '<div class="c-top">' +
+        '<div><div class="c-name">'+esc(c.full_name||'Unnamed')+'</div>' +
+        (c.title||c.trade ? '<div class="c-title">'+esc(c.title||c.trade)+'</div>' : '') + '</div>' +
+        '<div class="avatar">'+initials(c.full_name)+'</div>' +
+      '</div>' +
+      '<div class="c-meta">' + srcPill +
+        (c.experience ? '<span class="pill">'+esc(c.experience)+'</span>' : '') +
+        (c.availability ? '<span class="pill green">'+esc(c.availability)+'</span>' : '') +
+      '</div>' +
+      (c.city ? '<div class="c-line">&#128205; '+esc(c.city)+'</div>' : '') +
+      ((c.certs||[]).length ? '<div class="c-line">&#127894; '+esc((c.certs||[]).slice(0,3).join(', '))+'</div>' : '') +
+      '<div class="c-foot"><span class="c-date">'+fmtDate(c.created_at)+'</span>'+scoreChip+'</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function openCandidate(i){
+  var c = CANDIDATES[i];
+  if(!c) return;
+  var a = assessmentFor(c);
+
+  document.getElementById('m-name').textContent = c.full_name || 'Unnamed Candidate';
+  document.getElementById('m-sub').textContent =
+    [c.title||c.trade, c.city, c.experience].filter(Boolean).join(' \u00b7 ');
+
+  function row(k,v){ return v ? '<div class="m-row"><span class="k">'+k+'</span><span class="v">'+esc(v)+'</span></div>' : ''; }
+  function tags(arr, cls){
+    if(!arr || !arr.length) return '';
+    return '<div class="m-tags">' + arr.map(function(t){ return '<span class="pill '+(cls||'')+'">'+esc(t)+'</span>'; }).join('') + '</div>';
+  }
+
+  var body =
+    '<div class="m-sec">Contact</div>' +
+    row('Phone', c.phone) + row('Email', c.email) + row('City', c.city) +
+    (!c.phone && !c.email && !c.city ? '<div style="font-size:.84rem;color:#94a3b8;">No contact details recorded.</div>' : '') +
+
+    '<div class="m-sec">Trade &amp; Experience</div>' +
+    row('Trade', c.trade) + row('Title', c.title) +
+    row('Experience', c.experience) + row('Availability', c.availability) +
+
+    ((c.skills||[]).length ? '<div class="m-sec">Skills</div>' + tags(c.skills,'blue') : '') +
+    ((c.certs||[]).length ? '<div class="m-sec">Certifications</div>' + tags(c.certs,'green') : '') +
+    ((c.companies||[]).length ? '<div class="m-sec">Previous Companies</div>' + tags(c.companies) : '') +
+
+    (a ? '<div class="m-sec">Assessment Result</div>' +
+      row('Trade Tested', a.trade) + row('Score', (a.score!=null?a.score+' / 100':'')) +
+      row('Verdict', a.verdict) + row('Assessed', fmtDate(a.created_at)) : '') +
+
+    (c.summary ? '<div class="m-sec">Summary</div><div style="font-size:.87rem;line-height:1.75;">'+esc(c.summary)+'</div>' : '') +
+    (c.recruiter_brief ? '<div class="m-sec">Recruiter Brief</div><div style="font-size:.87rem;line-height:1.75;white-space:pre-wrap;">'+esc(c.recruiter_brief)+'</div>' : '') +
+
+    '<div class="m-sec">Record</div>' +
+    row('Source', c.source_tool==='intake' ? 'Candidate Intake' : 'Talent Card') +
+    row('Added', fmtDate(c.created_at));
+
+  document.getElementById('m-body').innerHTML = body;
+
+  var acts = [];
+  if(c.phone) acts.push('<a class="m-btn" href="tel:'+esc(c.phone)+'">&#128222; Call</a>');
+  if(c.email) acts.push('<a class="m-btn" href="mailto:'+esc(c.email)+'">&#128140; Email</a>');
+  if(!a) acts.push('<a class="m-btn primary" href="/qlm-trades-assessment.html">&#9889; Send Assessment</a>');
+  acts.push('<button class="m-btn" onclick="closeModal()">Close</button>');
+  document.getElementById('m-actions').innerHTML = acts.join('');
+
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
+document.getElementById('modal').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+
+function exportCSV(){
+  if(!CANDIDATES.length){ alert('No candidates to export.'); return; }
+  var hdrs = ['Name','Trade','Title','City','Phone','Email','Experience','Availability','Skills','Certifications','Previous Companies','Source','Assessment Score','Verdict','Added'];
+  var rows = CANDIDATES.map(function(c){
+    var a = assessmentFor(c);
+    return [c.full_name,c.trade,c.title,c.city,c.phone,c.email,c.experience,c.availability,
+            (c.skills||[]).join('; '),(c.certs||[]).join('; '),(c.companies||[]).join('; '),
+            c.source_tool, a&&a.score!=null?a.score:'', a?a.verdict:'', fmtDate(c.created_at)]
+      .map(function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; }).join(',');
+  });
+  var blob = new Blob([[hdrs.join(',')].concat(rows).join('\n')], {type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'qlm-candidates-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+window.addEventListener('DOMContentLoaded', function(){
+  if(window.QLM) QLM.mountAuthBar('qlm-auth');
+  setTimeout(load, 300);
+});
+</script>
+</body>
+</html>
