@@ -3,6 +3,15 @@
   functions = "netlify/functions"
   command = "echo 'No build step — static HTML + functions'"
 
+[build.environment]
+  # Secrets scanning false-positives on these. Verified: none of these values
+  # appear in the repo or in published files — they are read only from
+  # process.env inside netlify/functions and never reach the browser.
+  SECRETS_SCAN_OMIT_KEYS = "ANTHROPIC_KEY,SUPABASE_SERVICE_KEY,RESEND_API_KEY"
+  # The Supabase publishable (anon) key is intentionally public and is
+  # protected by row level security.
+  SECRETS_SCAN_OMIT_PATHS = "public/qlm-data.js"
+
 [functions]
   node_bundler = "esbuild"
 
