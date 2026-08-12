@@ -311,6 +311,22 @@ header{gap:12px;}
       <div class="fl"><label>Max Results</label>
         <select id="s-count"><option value="10">10 leads</option><option value="15" selected>15 leads</option><option value="20">20 leads</option></select>
       </div>
+      <div class="fl"><label>Lead Angle</label>
+        <select id="s-angle" onchange="describeAngle()">
+          <option value="auto" selected>Auto &mdash; rotate each search</option>
+          <option value="postings">Active job postings</option>
+          <option value="permits">New permits &amp; project starts</option>
+          <option value="awards">Contract awards &amp; bids</option>
+          <option value="expansion">Growth &amp; expansion signals</option>
+          <option value="directory">Association directories</option>
+          <option value="subs">Specialty subcontractors</option>
+        </select>
+        <div id="angle-hint" style="font-size:.7rem;color:#94a3b8;line-height:1.5;margin-top:4px;">Each run uses a different strategy so you get new companies rather than the same list.</div>
+      </div>
+      <div class="fl" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:.7rem;color:#94a3b8;" id="seen-count"></span>
+        <button onclick="clearSeen();updateSeenCount();" style="background:none;border:1px solid #b8dff0;color:#0077a8;border-radius:6px;padding:4px 9px;font-size:.68rem;cursor:pointer;font-family:inherit;">Reset history</button>
+      </div>
       <div id="searchStatus"></div>
       <button class="btn-main" id="search-btn" onclick="runSearch()">&#127919; Generate Leads</button>
     </div>
@@ -575,7 +591,145 @@ function getStore(){ try{ return JSON.parse(localStorage.getItem('qlm_leads')||'
 function setStore(leads){ localStorage.setItem('qlm_leads', JSON.stringify(leads)); }
 
 // ═══════ EXCLUDE LIST ═══════
-function loadExclude(){ excludeList = JSON.parse(localStorage.getItem('qlm_exclude')||'[]'); renderExcludeTags(); }
+
+// ═══════════════════════════════════════════════════
+//  SEARCH ANGLES — different ways to find a company
+//  that needs labor. Rotating these is what stops the
+//  tool returning the same handful of names every run.
+// ═══════════════════════════════════════════════════
+var SEARCH_ANGLES = [
+  {
+    id:'postings',
+    label:'Active job postings',
+    hint:'Companies advertising trade openings right now',
+    build:function(trades, loc){
+      return 'ANGLE: companies with live job postings.\n' +
+        'Search:\n' +
+        '1. "' + trades + ' jobs ' + loc + '"\n' +
+        '2. "hiring ' + trades + '" ' + loc + ' construction\n' +
+        '3. ' + loc + ' contractor "now hiring" ' + trades + '\n' +
+        'Look at company career pages and Google job listings, not just aggregators.';
+    }
+  },
+  {
+    id:'permits',
+    label:'New permits & project starts',
+    hint:'Work just awarded — they need crews before they post jobs',
+    build:function(trades, loc){
+      return 'ANGLE: recently permitted or newly started construction projects.\n' +
+        'Search:\n' +
+        '1. ' + loc + ' building permits issued commercial contractor ' + (new Date().getFullYear()) + '\n' +
+        '2. ' + loc + ' "broke ground" OR "groundbreaking" commercial construction\n' +
+        '3. ' + loc + ' construction project awarded general contractor\n' +
+        'Identify the CONTRACTOR on these projects. A company starting a build needs ' + trades + ' before it advertises openings. ' +
+        'This is the highest value angle because you reach them before their competitors do.';
+    }
+  },
+  {
+    id:'awards',
+    label:'Contract awards & bids',
+    hint:'Companies that just won work',
+    build:function(trades, loc){
+      return 'ANGLE: recent contract awards and winning bidders.\n' +
+        'Search:\n' +
+        '1. ' + loc + ' "awarded contract" construction ' + (new Date().getFullYear()) + '\n' +
+        '2. ' + loc + ' school district OR county OR municipal construction bid award contractor\n' +
+        '3. ' + loc + ' "selected as general contractor" OR "construction manager"\n' +
+        'Public agencies publish award notices with the winning contractor named. Those companies are staffing up.';
+    }
+  },
+  {
+    id:'expansion',
+    label:'Growth & expansion signals',
+    hint:'New facilities, new offices, big projects announced',
+    build:function(trades, loc){
+      return 'ANGLE: companies expanding into or growing within this market.\n' +
+        'Search:\n' +
+        '1. ' + loc + ' business journal construction company expansion OR "new office"\n' +
+        '2. ' + loc + ' data center OR warehouse OR manufacturing facility construction announced\n' +
+        '3. ' + loc + ' solar farm OR utility project construction ' + (new Date().getFullYear()) + '\n' +
+        'Large announced projects mean subcontractors scrambling for ' + trades + '.';
+    }
+  },
+  {
+    id:'directory',
+    label:'Association & trade directories',
+    hint:'Established contractors you may not have called yet',
+    build:function(trades, loc){
+      return 'ANGLE: contractor directories and association membership.\n' +
+        'Search:\n' +
+        '1. ' + loc + ' "associated builders and contractors" OR ABC member contractors list\n' +
+        '2. ' + loc + ' AGC member general contractors directory\n' +
+        '3. ' + loc + ' top commercial contractors list ' + (new Date().getFullYear()) + '\n' +
+        'Return established firms that employ ' + trades + '. Prefer ones with recent project activity you can point to.';
+    }
+  },
+  {
+    id:'subs',
+    label:'Specialty subcontractors',
+    hint:'The trade contractors themselves, not just GCs',
+    build:function(trades, loc){
+      return 'ANGLE: specialty subcontractors in these trades.\n' +
+        'Search:\n' +
+        '1. ' + loc + ' commercial ' + trades + ' contractor company\n' +
+        '2. ' + loc + ' ' + trades + ' subcontractor industrial\n' +
+        '3. ' + loc + ' mechanical OR electrical OR concrete subcontractor commercial\n' +
+        'These firms live and die by crew availability and are the most likely to need help fast.';
+    }
+  }
+];
+
+function describeAngle(){
+  var v = (document.getElementById('s-angle')||{}).value || 'auto';
+  var el = document.getElementById('angle-hint');
+  if(!el) return;
+  if(v === 'auto'){ el.textContent = 'Each run uses a different strategy so you get new companies rather than the same list.'; return; }
+  var a = angleById(v);
+  el.textContent = a ? a.hint : '';
+}
+
+function updateSeenCount(){
+  var el = document.getElementById('seen-count');
+  if(!el) return;
+  var n = seenCompanies().length;
+  el.textContent = n ? n + ' companies already seen (excluded)' : 'No search history yet';
+}
+
+function angleById(id){
+  for(var i=0;i<SEARCH_ANGLES.length;i++) if(SEARCH_ANGLES[i].id === id) return SEARCH_ANGLES[i];
+  return null;
+}
+
+// Remember every company we have already surfaced so runs do not repeat
+function seenCompanies(){
+  try{ return JSON.parse(localStorage.getItem('qlm_seen_companies')||'[]'); }catch(e){ return []; }
+}
+function rememberCompanies(list){
+  var seen = seenCompanies();
+  list.forEach(function(c){
+    var n = (c||'').trim();
+    if(n && seen.indexOf(n) === -1) seen.push(n);
+  });
+  localStorage.setItem('qlm_seen_companies', JSON.stringify(seen.slice(-300)));
+}
+function clearSeen(){
+  localStorage.removeItem('qlm_seen_companies');
+  alert('Cleared. The next search can surface companies you have already seen.');
+}
+
+// Rotate through angles so consecutive searches differ
+function nextAngle(){
+  var used = [];
+  try{ used = JSON.parse(localStorage.getItem('qlm_angle_history')||'[]'); }catch(e){}
+  var unused = SEARCH_ANGLES.filter(function(a){ return used.indexOf(a.id) === -1; });
+  var pick = unused.length ? unused[Math.floor(Math.random()*unused.length)]
+                           : SEARCH_ANGLES[Math.floor(Math.random()*SEARCH_ANGLES.length)];
+  used.push(pick.id);
+  localStorage.setItem('qlm_angle_history', JSON.stringify(used.slice(-4)));
+  return pick;
+}
+
+function loadExclude(){ setTimeout(updateSeenCount,300); excludeList = JSON.parse(localStorage.getItem('qlm_exclude')||'[]'); renderExcludeTags(); }
 function addExclude(){
   var v = document.getElementById('ex-input').value.trim();
   if(!v || excludeList.indexOf(v)!==-1) return;
@@ -649,32 +803,46 @@ function runSearch(){
   var locationStr = loc + (radius && radius !== 'Entire region' ? ', ' + radius : '');
   var minCount = Math.min(parseInt(count), 5);
 
-  var prompt = 'You are a business development researcher for QLM (Quality Labor Management), a skilled trades staffing company in Florida.\n\n' +
-    'TASK: Search job boards right now and find companies that are ACTIVELY HIRING ' + trades + ' workers in ' + locationStr + '.\n\n' +
-    excludeNote +
-    'Search the open web for current openings. Aggregators like Indeed and ZipRecruiter often block automated access \u2014 that is expected and is NOT a reason to stop. When a site is inaccessible, use what appears in the search result snippets and move on to company career pages, Google job listings, local news about projects, and contractor association postings.\n' +
-    'Search queries to try:\n' +
-    '1. "' + trades.split(',')[0].trim() + ' jobs ' + loc + '"\n' +
-    '2. "electrician hiring ' + loc + '"\n' +
-    '3. "construction jobs ' + loc + ' Florida"\n\n' +
-    'IMPORTANT: If ' + loc + ' is a small market, expand your search to include the surrounding area (Brevard County, Central Florida, etc.) and include companies within driving distance.\n' +
-    'Target up to ' + count + ' companies. If the local market is small, return however many you can find — even 3-5 is fine. DO NOT fail just because you cannot find exactly ' + count + '.\n\n' +
-    (proj ? 'Prefer companies in: ' + proj + '\n' : '') +
+  // Pick the angle: either the user's choice or a rotation
+  var angleSel = (document.getElementById('s-angle')||{}).value || 'auto';
+  var angle = angleSel === 'auto' ? nextAngle() : (angleById(angleSel) || SEARCH_ANGLES[0]);
+
+  // Everything we have already shown or saved is off the table
+  var savedNames = leads.filter(function(l){ return l.savedAt; }).map(function(l){ return l.company; });
+  var avoid = excludeList.concat(seenCompanies(), savedNames).filter(function(v,i,a){ return v && a.indexOf(v) === i; });
+  var avoidNote = avoid.length
+    ? 'ALREADY KNOWN — do not return any of these, find different companies:\n' + avoid.slice(-60).join(', ') + '\n\n'
+    : '';
+
+  // Rotate which part of the market gets emphasis so a wide radius does not
+  // keep surfacing the same city
+  var cities = locationStr.split(/,| and /).map(function(s){ return s.trim(); }).filter(Boolean);
+  var focusCity = cities.length > 1 ? cities[Math.floor(Math.random()*cities.length)] : locationStr;
+
+  document.getElementById('res-meta').textContent = 'Searching: ' + angle.label + ' \u00b7 ' + locationStr;
+
+  var prompt = 'You are a business development researcher for QLM (Quality Labor Management), a skilled trades staffing company.\n\n' +
+    'GOAL: find companies in ' + locationStr + ' that need ' + trades + ' workers.\n' +
+    'Emphasise the ' + focusCity + ' area but include the surrounding market.\n\n' +
+    avoidNote +
+    angle.build(trades, focusCity) + '\n\n' +
+    'Aggregators like Indeed and ZipRecruiter often block automated access. That is expected and is NOT a reason to stop \u2014 work from the search snippets and from company, news, and public agency pages.\n\n' +
+    'Target up to ' + count + ' companies. Fewer is fine. Prefer companies you can point to a specific reason for: a posting, a permit, an award, an announcement.\n' +
+    (proj ? 'Prefer project types: ' + proj + '\n' : '') +
     (size ? 'Prefer company size: ' + size + '\n' : '') +
     '\nReturn ONLY this JSON array with NO other text before or after it:\n' +
-    '[{"company":"Exact Company Name","location":"City, State","trades":["Trade1"],"jobCount":3,"source":"Indeed","postingDate":"3 days ago","contactSignal":"hr@company.com","projectType":"Commercial","companySize":"GC","urgency":"High","qlmFitScore":82,"fitReason":"One sentence why QLM fits","summary":"What they are hiring and why it matters","competitorSignal":"Direct hire only","jobUrl":"https://..."}]\n\n' +
+    '[{"company":"Exact Company Name","location":"City, State","trades":["Trade1"],"jobCount":3,"source":"where you found them","postingDate":"3 days ago","contactSignal":"","projectType":"Commercial","companySize":"GC","urgency":"High","qlmFitScore":82,"fitReason":"One sentence why QLM fits","summary":"What they are doing and why they need people","competitorSignal":"Direct hire only","jobUrl":"https://...","signal":"the specific evidence: the permit, award, posting or announcement"}]\n\n' +
     'STRICT RULES:\n' +
     '- Output ONLY the JSON array starting with [ and ending with ]\n' +
-    '- No text before or after the array\n' +
-    '- No markdown, no code fences, no backticks\n' +
+    '- No text before or after the array, no markdown, no code fences\n' +
     '- No apostrophes inside values (write "does not" not "doesn\'t")\n' +
     '- jobUrl must be a real URL from the search or empty string ""\n' +
     '- qlmFitScore is 0-100 integer\n' +
-    '- Only include companies that are ACTUALLY HIRING right now based on your search\n' +
-    '- NEVER explain what you could or could not access. NEVER apologise. Output the array only.\n' +
-    '- Partial information is fine: fill what you know and leave other fields as empty strings.\n' +
-    '- If a company clearly appears in a snippet as hiring, include it even without a job URL, and lower qlmFitScore to reflect the weaker evidence.\n' +
-    '- If you truly found nothing at all, return exactly: []';
+    '- signal must state the actual evidence you found, not a generic claim\n' +
+    '- NEVER explain what you could or could not access. NEVER apologise.\n' +
+    '- Partial information is fine: leave unknown fields as empty strings\n' +
+    '- If you truly found nothing at all, return exactly: []\n' +
+    '- Search run id ' + Date.now() + ' \u2014 return companies you have not returned for this market before';
 
   leadSearchCall(prompt)
   .then(function(text){
@@ -848,6 +1016,7 @@ function leadCardHTML(lead, isSaved){
     '<div class="lc-tags">'+trades+urgTag+dupTag+compTag+(lead.projectType?'<span class="ltag ltag-type">'+lead.projectType+'</span>':'')+(lead.companySize?'<span class="ltag ltag-type">'+lead.companySize+'</span>':'')+'</div>' +
     '<div class="lc-summary">'+(lead.summary||'')+'</div>' +
     (lead.fitReason?'<div class="lc-fit">&#10022; <strong>QLM Fit:</strong> '+lead.fitReason+'</div>':'') +
+    (lead.signal?'<div style="background:#e0f4fc;border-left:3px solid #0099d8;border-radius:0 6px 6px 0;padding:7px 10px;margin:8px 0;font-size:.78rem;color:#003a52;line-height:1.5;"><strong>Signal:</strong> '+lead.signal+'</div>':'') +
     (lead.contactSignal?'<div class="lc-contact">&#128100; <span>'+lead.contactSignal+'</span> <button class="btn-lc btn-find" onclick="findContact(\''+lead.id+'\')">&#128269; Find Contact</button></div>':'') +
     (reminder?'<div class="lc-contact">'+reminder+'</div>':'') +
     (lead.notes?'<div class="lc-contact" style="font-style:italic;color:#64748b;">&#128221; '+lead.notes.substring(0,100)+(lead.notes.length>100?'...':'')+'</div>':'') +
