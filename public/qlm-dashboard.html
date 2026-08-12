@@ -124,8 +124,8 @@ header{gap:12px;}
         <button class="dfbtn" onclick="setDateFilter(0,this)">All</button>
       </div>
       <div class="view-toggle">
-        <button class="vbtn active" onclick="setView('admin',this)">&#128274; Admin</button>
-        <button class="vbtn" onclick="setView('recruiter',this)">&#128100; Recruiter</button>
+        <button class="vbtn active" onclick="setView('admin',this)">&#128274; All Activity</button>
+        <button class="vbtn" onclick="setView('recruiter',this)">&#128100; By Recruiter</button>
       </div>
       <button class="btn-export" onclick="exportAllCSV()">&#8595; Export CSV</button>
     </div>
@@ -232,11 +232,11 @@ function filterByDate(items, days){
 // ─── VIEW CONTROLS ───────────────────────────────────────────────────────
 function setView(view, el){
   currentView = view;
+  selectedRecruiter = 'all';   // always start on All Recruiters
   document.querySelectorAll('.vbtn').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active');
   document.getElementById('recruiter-bar').style.display = view==='recruiter' ? 'block' : 'none';
-  if(view==='recruiter') buildRecruiterBar();
-  render();
+  render();   // render rebuilds the chips from real data
 }
 
 function setDateFilter(days, el){
@@ -246,8 +246,8 @@ function setDateFilter(days, el){
   render();
 }
 
-function buildRecruiterBar(){
-  var all = getAssessments();
+function buildRecruiterBar(source){
+  var all = source && source.length ? source : getAssessments();
   var recruiters = ['all'];
   all.forEach(function(a){ if(a.recruiter && recruiters.indexOf(a.recruiter)===-1) recruiters.push(a.recruiter); });
   document.getElementById('recruiter-btns').innerHTML = recruiters.map(function(r){
@@ -315,8 +315,11 @@ async function render(){
   leads = filterByDate(leads, dateFilter);
   activity = filterByDate(activity, dateFilter);
 
-  if(currentView==='recruiter' && selectedRecruiter!=='all'){
-    assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
+  if(currentView==='recruiter'){
+    buildRecruiterBar(assessments);
+    if(selectedRecruiter!=='all'){
+      assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
+    }
   }
 
   renderKPIs(assessments, leads, activity);
