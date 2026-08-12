@@ -181,8 +181,17 @@
     if(g) g.remove();
   }
 
+  // Hide anything marked admin-only from non-admin users
+  async function applyRoleVisibility(){
+    var admin = false;
+    try { admin = await isAdmin(); } catch(e) {}
+    if(admin) return;
+    var sel = '.admin-only, [data-admin-only], a[href="/qlm-dashboard.html"], a[href="qlm-dashboard.html"]';
+    document.querySelectorAll(sel).forEach(function(el){ el.style.display = 'none'; });
+  }
+
   async function enforceAuth(){
-    if(!window.QLM_REQUIRE_AUTH) return;
+    if(!window.QLM_REQUIRE_AUTH && !window.QLM_REQUIRE_ADMIN) return;
     showGate();
     if(!init()){
       // SDK missing — fail closed
@@ -191,8 +200,24 @@
     }
     var u = null;
     try { u = await getUser(); } catch(e) {}
-    if(u){ hideGate(); return; }
-    location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search));
+    if(!u){
+      location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search));
+      return;
+    }
+
+    // Admin-only pages
+    if(window.QLM_REQUIRE_ADMIN){
+      var ok = false;
+      try { ok = await isAdmin(); } catch(e) {}
+      if(!ok){
+        showGate('This page is limited to administrators. Redirecting\u2026');
+        setTimeout(function(){ location.replace('/?denied=admin'); }, 1400);
+        return;
+      }
+    }
+
+    hideGate();
+    applyRoleVisibility();
   }
 
   // ─── AUTH BAR (drop-in UI) ─────────────────────────────────
@@ -244,6 +269,7 @@
     logActivity: logActivity,
     mountAuthBar: mountAuthBar,
     enforceAuth: enforceAuth,
+    applyRoleVisibility: applyRoleVisibility,
     lsGet: lsGet,
     lsSet: lsSet
   };
