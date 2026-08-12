@@ -1012,8 +1012,14 @@ function runSearch(){
   })
   .catch(function(e){
     var msg = e.message || 'Search failed';
-    if(msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')) {
-      msg = 'Search timed out — web search can take 20-30 seconds. Click Generate Leads to try again.';
+    if(/rate.?limit|overloaded/i.test(msg)) {
+      msg = 'The AI service is rate limited or busy right now. Wait a moment and try again.';
+    } else if(/credit|billing|quota/i.test(msg)) {
+      msg = 'The Anthropic account is out of credit or over its quota. Check billing at console.anthropic.com.';
+    } else if(/api.?key|authentication|401/i.test(msg)) {
+      msg = 'The ANTHROPIC_KEY in Netlify was rejected. Check that it is current and redeploy.';
+    } else if(/504|timed out|timeout/i.test(msg)) {
+      msg = 'The search ran past the 10 second function limit. Try one trade or a narrower market.';
     }
     showSt('searchStatus','error', msg);
     document.getElementById('leads-container').innerHTML = '<div class="empty"><div class="empty-icon">&#9888;&#65039;</div><p>'+msg+'</p></div>';
