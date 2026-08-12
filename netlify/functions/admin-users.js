@@ -13,6 +13,22 @@ export async function handler(event) {
   };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+
+  // Diagnostic: GET reports the shape of the configured key, never its value
+  if (event.httpMethod === 'GET') {
+    const k = process.env.SUPABASE_SERVICE_KEY || '';
+    let kind = 'not set';
+    if (k.startsWith('sb_secret_')) kind = 'service_role (new format) \u2713';
+    else if (k.startsWith('sb_publishable_')) kind = 'PUBLISHABLE key \u2717 wrong key';
+    else if (k.startsWith('eyJ')) {
+      try {
+        const role = JSON.parse(Buffer.from(k.split('.')[1], 'base64').toString()).role;
+        kind = role === 'service_role' ? 'service_role JWT \u2713' : 'JWT with role "' + role + '" \u2717 wrong key';
+      } catch (e) { kind = 'unrecognised JWT'; }
+    } else if (k) kind = 'unrecognised format';
+    return json(200, CORS, { keyConfigured: !!k, keyLength: k.length, keyType: kind });
+  }
+
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
 
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -47,11 +63,22 @@ export async function handler(event) {
       { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
     );
     const rows = await r.json();
-    if (!rows[0] || rows[0].is_admin !== true) {
-      return json(403, CORS, { ok: false, error: 'Administrator access required' });
+
+    if (!r.ok) {
+      return json(403, CORS, { ok: false,
+        error: 'The configured SUPABASE_SERVICE_KEY was rejected by Supabase (' +
+               (rows.message || rows.msg || r.status) + '). Make sure it is the service_role key, not the anon or publishable key.' });
+    }
+    if (!Array.isArray(rows) || !rows.length) {
+      return json(403, CORS, { ok: false,
+        error: 'Your profile could not be read with the configured key. This usually means SUPABASE_SERVICE_KEY holds the anon/publishable key instead of the service_role key.' });
+    }
+    if (rows[0].is_admin !== true) {
+      return json(403, CORS, { ok: false,
+        error: 'Your account (' + (caller.email || caller.id) + ') is not marked as an administrator.' });
     }
   } catch (e) {
-    return json(500, CORS, { ok: false, error: 'Permission check failed' });
+    return json(500, CORS, { ok: false, error: 'Permission check failed: ' + e.message });
   }
 
   let body;
