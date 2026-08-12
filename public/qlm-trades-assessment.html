@@ -3226,7 +3226,8 @@ function saveToHistory(record) {
   history.unshift(record);
   if (history.length > 200) history = history.slice(0, 200);
   localStorage.setItem('qlm_assessment_history', JSON.stringify(history));
-  if(window.QLM && QLM.save){
+  // In invite mode the record is written by complete_invite — do not save twice
+  if(window.QLM && QLM.save && !(typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)){
     try{
       var _last = (JSON.parse(localStorage.getItem('qlm_assessment_history')||'[]')||[])[0];
       if(_last) QLM.save('assessments', {
