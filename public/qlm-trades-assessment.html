@@ -1792,18 +1792,26 @@ function emailShareLink() {
 
 
 function showInviteThanks(){
-  // Candidates should not see recruiter tooling on the results screen
-  var foot = document.querySelector('.rc-foot');
-  if(foot) foot.style.display = 'none';
   var rs = document.getElementById('results-screen');
   if(!rs) return;
-  var banner = document.createElement('div');
-  banner.style.cssText = 'background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:22px;text-align:center;margin-bottom:18px;';
-  banner.innerHTML =
-    '<div style="font-size:2rem;margin-bottom:8px;">\u2705</div>'+
-    '<div style="font-size:1.05rem;font-weight:700;color:#15803d;margin-bottom:6px;">Assessment Submitted</div>'+
-    '<p style="font-size:.88rem;color:#166534;line-height:1.7;margin:0;">Thank you. Your results have been sent to your QLM recruiter, who will follow up with you shortly.</p>';
-  rs.insertBefore(banner, rs.firstChild);
+  // Candidates never see scores, analysis, or red flags — replace the whole screen
+  rs.innerHTML =
+    '<div style="max-width:560px;margin:50px auto;background:#fff;border:1px solid #bbf7d0;border-radius:16px;padding:44px 34px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.07);">'+
+      '<div style="width:66px;height:66px;border-radius:50%;background:#f0fdf4;border:2px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:2rem;">\u2705</div>'+
+      '<div style="font-size:1.35rem;font-weight:700;color:#15803d;margin-bottom:12px;">Assessment Submitted</div>'+
+      '<p style="font-size:.95rem;color:#2a4a5a;line-height:1.75;margin:0 0 8px;">Thank you for completing your QLM skills assessment.</p>'+
+      '<p style="font-size:.9rem;color:#64748b;line-height:1.75;margin:0;">Your responses have been sent to your recruiter for review. They will follow up with you shortly about next steps.</p>'+
+      '<div style="margin-top:26px;padding-top:20px;border-top:1px solid #f1f5f9;">'+
+        '<div style="font-size:.76rem;color:#94a3b8;letter-spacing:1px;">SAFETY \u00b7 PRODUCTIVITY \u00b7 QUALITY</div>'+
+        '<div style="font-size:.78rem;color:#94a3b8;margin-top:6px;">Quality Labor Management \u00b7 855-756-9675 \u00b7 myqlm.com</div>'+
+      '</div>'+
+      '<p style="font-size:.72rem;color:#cbd5e1;margin-top:20px;">You may now close this window.</p>'+
+    '</div>';
+  rs.style.visibility = 'visible';
+  // Remove the candidate-mode banner so the page reads as a clean confirmation
+  var b = document.getElementById('cand-mode-banner');
+  if(b) b.style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ═══════════════════════════════════════════════════
@@ -1857,7 +1865,7 @@ async function createInvite(){
     var profile = await QLM.getProfile();
     var res = await QLM.client().from('assessment_invites').insert({
       recruiter_id: user.id,
-      recruiter_name: (profile && profile.full_name) || user.email,
+      recruiter_name: (profile && profile.full_name && profile.full_name.indexOf('@') === -1) ? profile.full_name : ((user.email||'').split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, function(m){return m.toUpperCase();})),
       recruiter_email: recEmail,
       candidate_name: name,
       candidate_email: document.getElementById('inv-email').value.trim() || null,
@@ -2114,6 +2122,11 @@ function saveAndNew() {
 var _origParse = parseAndRenderResults;
 parseAndRenderResults = function(text) {
   _origParse(text);
+  // In candidate invite mode, never let the report become visible
+  if (typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN) {
+    var _rs = document.getElementById('results-screen');
+    if (_rs) _rs.style.visibility = 'hidden';
+  }
   // Save to history + fire email after a short delay so score vars are set
   setTimeout(function() {
     var record = {
