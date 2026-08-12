@@ -69,12 +69,10 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--navy);min-h
 
     <div class="divider">or</div>
     <p class="note">
-      You can use every tool without an account — data stays on this device only.
-      <br>Sign in to share leads and candidates with your team.
+      Internal QLM tools. Access is limited to authorized team members.
+      <br>Contact your administrator if you need an account.
     </p>
   </div>
-
-  <a class="skip" href="/">Continue without signing in &rarr;</a>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -123,7 +121,8 @@ async function doSubmit(){
     } else {
       await QLM.signIn(email, pass);
       showMsg('ok','Signed in. Redirecting…');
-      setTimeout(function(){ location.href = '/'; }, 700);
+      var nxt = new URLSearchParams(location.search).get('next') || '/';
+      setTimeout(function(){ location.href = nxt; }, 700);
     }
   } catch(e){
     showMsg('error', e.message || 'Something went wrong.');
@@ -140,7 +139,7 @@ document.addEventListener('keydown', function(e){
 // If already signed in, bounce to home
 window.addEventListener('DOMContentLoaded', function(){
   setTimeout(function(){
-    if(window.QLM) QLM.getUser().then(function(u){ if(u) location.href = '/'; });
+    if(window.QLM) QLM.getUser().then(function(u){ if(u) location.href = new URLSearchParams(location.search).get('next') || '/'; });
   }, 400);
 });
 </script>
