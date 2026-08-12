@@ -852,7 +852,6 @@ function leadCardHTML(lead, isSaved){
       (isSaved?'':'<button class="btn-lc btn-save" onclick="saveLead(\''+lead.id+'\')" id="save-btn-'+lead.id+'">&#128190; Save</button>') +
       '<button class="btn-lc btn-contact" onclick="moveTo(\''+lead.id+'\',\'contacted\')">&#128172; Contacted</button>' +
       '<button class="btn-lc btn-qualify" onclick="moveTo(\''+lead.id+'\',\'qualified\')">&#10003; Qualify</button>' +
-      '<button class="btn-lc btn-intake" onclick="convertToIntake(\''+lead.id+'\')">&#128203; To Intake</button>' +
       '<button class="btn-lc btn-find" onclick="openNotes(\''+lead.id+'\')">&#128221; Notes</button>' +
       (lead.jobUrl?'<a class="btn-lc btn-save" href="'+lead.jobUrl+'" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">&#128279; View</a>':'') +
     '</div>' +
@@ -889,27 +888,104 @@ function findContact(id){
   var lead = findLead(id);
   if(!lead) return;
   var btn = document.querySelector('#lc-'+id+' .btn-find');
-  if(btn){ btn.textContent='Searching...'; btn.disabled=true; }
+  if(btn){ btn.textContent='Searching the web...'; btn.disabled=true; }
 
-  var prompt = 'Find the hiring contact for this company. Search LinkedIn, their website, and job postings.\n\nCompany: '+lead.company+'\nLocation: '+(lead.location||'')+'\nIndustry: Construction / '+lead.projectType+'\n\nReturn ONLY a JSON object with no markdown:\n{"name":"Full Name or empty","title":"Job Title or empty","email":"email or empty","linkedin":"profile URL or empty","confidence":"High/Medium/Low","notes":"one sentence on how you found this"}\n\nNo apostrophes in values. Return raw JSON only.';
+  var panel = document.getElementById('contact-'+id);
+  if(!panel){
+    panel = document.createElement('div');
+    panel.id = 'contact-'+id;
+    panel.style.cssText = 'background:#e0f4fc;border:1px solid #b8dff0;border-radius:9px;padding:12px 14px;margin-top:10px;font-size:.82rem;';
+    var card = document.getElementById('lc-'+id);
+    if(card) card.appendChild(panel);
+  }
+  panel.innerHTML = '<span style="color:#0077a8;">\u23F3 Searching LinkedIn, the company website and job postings...</span>';
 
-  aiCall([{role:'user',content:prompt}], 400)
+  var company = lead.company || '';
+  var loc = lead.location || '';
+
+  var prompt =
+    'Find the person at this company who hires field labor. Use web search.\n\n' +
+    'Company: ' + company + '\n' +
+    'Location: ' + loc + '\n' +
+    'Industry: construction / ' + (lead.projectType||'commercial') + '\n\n' +
+    'Run these searches:\n' +
+    '1. "' + company + '" ' + loc + ' contact\n' +
+    '2. "' + company + '" recruiter OR "talent acquisition" OR "project manager" OR superintendent\n' +
+    '3. "' + company + '" careers OR jobs page\n\n' +
+    'Prefer, in order: talent acquisition or HR, then operations or project manager, then general company contact.\n\n' +
+    'CRITICAL RULES:\n' +
+    '- Only report a name, email or phone you actually found in the search results.\n' +
+    '- Never guess an email pattern. If you did not see the address, leave email empty.\n' +
+    '- If you only find a general company phone or info@ address, report that and say so.\n' +
+    '- It is completely acceptable to return empty fields. Do not invent anything.\n\n' +
+    'Return ONLY raw JSON, no markdown, no apostrophes in values:\n' +
+    '{"name":"","title":"","email":"","phone":"","linkedin":"","website":"","careersUrl":"","confidence":"High or Medium or Low or None","found":"one sentence on exactly what you found and where","suggestion":"one sentence on the best next step to reach them"}';
+
+  leadSearchCall(prompt)
   .then(function(text){
-    var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()
-      .replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
-    var data = JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
-    var parts = [];
-    if(data.name) parts.push(data.name+(data.title?' ('+data.title+')':''));
-    if(data.email) parts.push(data.email);
-    if(data.linkedin) parts.push('<a href="'+data.linkedin+'" target="_blank" style="color:var(--blue);">LinkedIn</a>');
-    var contact = parts.join(' \u00b7 ') || 'No contact found';
-    // Update card contact area
-    var el = document.querySelector('#lc-'+id+' .lc-contact');
-    if(el) el.innerHTML = '&#128100; <span>'+contact+'</span> <span style="font-size:.68rem;color:var(--success);">&#10003; '+data.confidence+' confidence</span>';
-    // Update stored lead
-    updateLead(id, {contactSignal: contact});
+    var data = {};
+    try{
+      var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()
+        .replace(/[\u2018\u2019]/g,"").replace(/[\u201C\u201D]/g,'"');
+      data = JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
+    }catch(e){ data = { confidence:'None', found:'Could not read the search results.' }; }
+    renderContact(id, lead, data);
   })
-  .catch(function(){ if(btn){ btn.textContent='&#128269; Find Contact'; btn.disabled=false; } });
+  .catch(function(e){
+    renderContact(id, lead, { confidence:'None', found:'Search failed: ' + e.message });
+  })
+  .then(function(){ if(btn){ btn.innerHTML='&#128269; Search Again'; btn.disabled=false; } });
+}
+
+function renderContact(id, lead, d){
+  var panel = document.getElementById('contact-'+id);
+  if(!panel) return;
+
+  var conf = (d.confidence||'None').toLowerCase();
+  var col = conf.indexOf('high') > -1 ? ['#f0fdf4','#bbf7d0','#15803d']
+          : conf.indexOf('medium') > -1 ? ['#fefce8','#fde68a','#a16207']
+          : ['#f8fafc','#e2e8f0','#64748b'];
+  panel.style.background = col[0];
+  panel.style.borderColor = col[1];
+
+  var rows = [];
+  if(d.name)  rows.push('<div style="font-weight:700;color:#003a52;font-size:.92rem;">' + d.name + (d.title ? ' <span style="font-weight:400;color:#64748b;font-size:.82rem;">\u00b7 ' + d.title + '</span>' : '') + '</div>');
+  if(d.email) rows.push('<div>&#9993;&#65039; <a href="mailto:'+d.email+'" style="color:#0077a8;font-weight:600;">'+d.email+'</a></div>');
+  if(d.phone) rows.push('<div>&#128222; <a href="tel:'+d.phone+'" style="color:#0077a8;font-weight:600;">'+d.phone+'</a></div>');
+
+  var links = [];
+  if(d.linkedin)   links.push('<a href="'+d.linkedin+'" target="_blank" rel="noopener" style="color:#0077a8;">LinkedIn profile</a>');
+  if(d.careersUrl) links.push('<a href="'+d.careersUrl+'" target="_blank" rel="noopener" style="color:#0077a8;">Careers page</a>');
+  if(d.website)    links.push('<a href="'+d.website+'" target="_blank" rel="noopener" style="color:#0077a8;">Website</a>');
+
+  // Always offer manual routes — these work even when the AI finds nothing
+  var q = encodeURIComponent(lead.company || '');
+  var manual =
+    '<div style="margin-top:10px;padding-top:9px;border-top:1px solid ' + col[1] + ';">' +
+      '<div style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">Search manually</div>' +
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;">' +
+        '<a href="https://www.linkedin.com/search/results/people/?keywords=' + q + '%20' + encodeURIComponent('recruiter OR superintendent OR project manager') + '" target="_blank" rel="noopener" class="btn-lc" style="text-decoration:none;">LinkedIn people</a>' +
+        '<a href="https://www.google.com/search?q=' + q + '+' + encodeURIComponent(lead.location||'') + '+contact+hiring' + '" target="_blank" rel="noopener" class="btn-lc" style="text-decoration:none;">Google</a>' +
+        '<a href="https://www.google.com/search?q=' + q + '+careers' + '" target="_blank" rel="noopener" class="btn-lc" style="text-decoration:none;">Careers page</a>' +
+      '</div>' +
+    '</div>';
+
+  panel.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:' + (rows.length?'8px':'4px') + ';">' +
+      '<span style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:'+col[2]+';">&#128100; Hiring Contact</span>' +
+      '<span style="font-size:.68rem;font-weight:700;color:'+col[2]+';">' + (d.confidence||'None') + ' confidence</span>' +
+    '</div>' +
+    (rows.length ? rows.join('') : '<div style="color:#64748b;">No verified contact found in the search results.</div>') +
+    (links.length ? '<div style="margin-top:7px;font-size:.8rem;">' + links.join(' &middot; ') + '</div>' : '') +
+    (d.found ? '<div style="font-size:.76rem;color:#64748b;margin-top:8px;line-height:1.6;">' + d.found + '</div>' : '') +
+    (d.suggestion ? '<div style="font-size:.76rem;color:'+col[2]+';margin-top:5px;line-height:1.6;"><strong>Next step:</strong> ' + d.suggestion + '</div>' : '') +
+    manual;
+
+  // Only store a contact we actually have something for
+  if(d.name || d.email || d.phone){
+    var summary = [d.name && d.name + (d.title?' ('+d.title+')':''), d.email, d.phone].filter(Boolean).join(' \u00b7 ');
+    updateLead(id, { contactSignal: summary, contactEmail: d.email||'', contactPhone: d.phone||'', contactName: d.name||'' });
+  }
 }
 
 // ═══════ EMAIL GENERATION ═══════
@@ -1062,12 +1138,6 @@ function updateLead(id, updates){
   // Update in store
   var store = getStore().map(function(l){ return l.id===id ? Object.assign({},l,updates) : l; });
   setStore(store);
-}
-function convertToIntake(id){
-  var lead = findLead(id);
-  if(!lead) return;
-  var url = '/qlm-intake.html?company='+encodeURIComponent(lead.company||'')+'&location='+encodeURIComponent(lead.location||'')+'&trade='+encodeURIComponent((lead.trades||[])[0]||'');
-  window.open(url, '_blank');
 }
 function findLead(id){
   return currentLeads.find(function(l){ return l.id===id; }) || getStore().find(function(l){ return l.id===id; });
