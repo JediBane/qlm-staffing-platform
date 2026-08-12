@@ -137,6 +137,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
 
 <footer>&copy; 2025 Quality Labor Management, LLC &middot; Candidate Database &middot; myqlm.com</footer>
 
+<script>window.QLM_REQUIRE_AUTH = true;</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/qlm-data.js"></script>
 <script>
@@ -256,7 +257,7 @@ function applyFilters(){
     if(FILTER==='talent_card' && c.source_tool!=='talent_card') return false;
     if(FILTER==='assessed' && !assessmentFor(c)) return false;
     if(!q) return true;
-    var hay = [c.full_name,c.trade,c.title,c.city,c.experience,c.availability,
+    var hay = [c.full_name,c.trade,c.title,c.city,c.experience,c.availability,c.phone,c.email,
                (c.skills||[]).join(' '),(c.certs||[]).join(' '),(c.companies||[]).join(' ')]
                .join(' ').toLowerCase();
     return hay.indexOf(q) > -1;
@@ -296,6 +297,9 @@ function render(rows){
         (c.availability ? '<span class="pill green">'+esc(c.availability)+'</span>' : '') +
       '</div>' +
       (c.city ? '<div class="c-line">&#128205; '+esc(c.city)+'</div>' : '') +
+      (c.phone ? '<div class="c-line">&#128222; <a href="tel:'+esc(c.phone)+'" onclick="event.stopPropagation()" style="color:#0077a8;text-decoration:none;font-weight:600;">'+esc(c.phone)+'</a></div>' : '') +
+      (c.email ? '<div class="c-line">&#9993;&#65039; <a href="mailto:'+esc(c.email)+'" onclick="event.stopPropagation()" style="color:#0077a8;text-decoration:none;word-break:break-all;">'+esc(c.email)+'</a></div>' : '') +
+      (!c.phone && !c.email ? '<div class="c-line" style="color:#cbd5e1;">&#9993;&#65039; No contact info on file</div>' : '') +
       ((c.certs||[]).length ? '<div class="c-line">&#127894; '+esc((c.certs||[]).slice(0,3).join(', '))+'</div>' : '') +
       '<div class="c-foot"><span class="c-date">'+fmtDate(c.created_at)+'</span>'+scoreChip+'</div>' +
       '<div style="display:flex;gap:6px;margin-top:9px;" onclick="event.stopPropagation()">' +
@@ -321,9 +325,13 @@ function openCandidate(i){
     return '<div class="m-tags">' + arr.map(function(t){ return '<span class="pill '+(cls||'')+'">'+esc(t)+'</span>'; }).join('') + '</div>';
   }
 
+  function contactRow(k, v, href){
+    if(!v) return '';
+    return '<div class="m-row"><span class="k">'+k+'</span><span class="v"><a href="'+href+esc(v)+'" style="color:#0077a8;text-decoration:none;font-weight:600;">'+esc(v)+'</a></span></div>';
+  }
   var body =
     '<div class="m-sec">Contact</div>' +
-    row('Phone', c.phone) + row('Email', c.email) + row('City', c.city) +
+    contactRow('Phone', c.phone, 'tel:') + contactRow('Email', c.email, 'mailto:') + row('City', c.city) +
     (!c.phone && !c.email && !c.city ? '<div style="font-size:.84rem;color:#94a3b8;">No contact details recorded.</div>' : '') +
 
     '<div class="m-sec">Trade &amp; Experience</div>' +
@@ -355,6 +363,8 @@ function openCandidate(i){
     acts.push('<button class="m-btn" onclick="createTalentCard('+i+')">&#10133; Create Talent Card</button>');
   }
   if(c.phone) acts.push('<a class="m-btn" href="tel:'+esc(c.phone)+'">&#128222; Call</a>');
+  if(c.phone) acts.push('<a class="m-btn" href="sms:'+esc(c.phone)+'">&#128241; Text</a>');
+  if(c.email) acts.push('<a class="m-btn" href="mailto:'+esc(c.email)+'">&#9993;&#65039; Email</a>');
   if(!a) acts.push('<a class="m-btn" href="/qlm-trades-assessment.html">&#9889; Send Assessment</a>');
   acts.push('<button class="m-btn" onclick="closeModal()">Close</button>');
   document.getElementById('m-actions').innerHTML = acts.join('');
@@ -377,7 +387,6 @@ function candidateToParams(c){
   if(c.title || c.trade) p.set('title', c.title || c.trade);
   if(c.experience) p.set('exp', c.experience);
   if(c.city) p.set('city', c.city);
-  if(c.phone) p.set('phone', c.phone);
   if(c.availability) p.set('avail', c.availability);
   if((c.skills||[]).length) p.set('skills', c.skills.join('|'));
   if((c.certs||[]).length) p.set('certs', c.certs.join('|'));
