@@ -259,6 +259,10 @@ function render(rows){
       (c.city ? '<div class="c-line">&#128205; '+esc(c.city)+'</div>' : '') +
       ((c.certs||[]).length ? '<div class="c-line">&#127894; '+esc((c.certs||[]).slice(0,3).join(', '))+'</div>' : '') +
       '<div class="c-foot"><span class="c-date">'+fmtDate(c.created_at)+'</span>'+scoreChip+'</div>' +
+      '<div style="display:flex;gap:6px;margin-top:9px;" onclick="event.stopPropagation()">' +
+        '<button onclick="marketCandidate('+idx+')" style="flex:1;background:#003a52;color:#fff;border:none;border-radius:7px;padding:7px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128140; Market</button>' +
+        '<button onclick="' + ((c.source_tool==='talent_card' || (c.skills||[]).length) ? 'viewTalentCard('+idx+')' : 'createTalentCard('+idx+')') + '" style="flex:1;background:#fff;color:#0077a8;border:1.5px solid #b8dff0;border-radius:7px;padding:7px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;">' + ((c.source_tool==='talent_card' || (c.skills||[]).length) ? '&#128196; Card' : '&#10133; Card') + '</button>' +
+      '</div>' +
     '</div>';
   }).join('') + '</div>';
 }
@@ -305,9 +309,14 @@ function openCandidate(i){
   document.getElementById('m-body').innerHTML = body;
 
   var acts = [];
+  acts.push('<button class="m-btn primary" onclick="marketCandidate('+i+')">&#128140; Market to Client</button>');
+  if(c.source_tool === 'talent_card' || (c.skills||[]).length){
+    acts.push('<button class="m-btn" onclick="viewTalentCard('+i+')">&#128196; View Talent Card</button>');
+  } else {
+    acts.push('<button class="m-btn" onclick="createTalentCard('+i+')">&#10133; Create Talent Card</button>');
+  }
   if(c.phone) acts.push('<a class="m-btn" href="tel:'+esc(c.phone)+'">&#128222; Call</a>');
-  if(c.email) acts.push('<a class="m-btn" href="mailto:'+esc(c.email)+'">&#128140; Email</a>');
-  if(!a) acts.push('<a class="m-btn primary" href="/qlm-trades-assessment.html">&#9889; Send Assessment</a>');
+  if(!a) acts.push('<a class="m-btn" href="/qlm-trades-assessment.html">&#9889; Send Assessment</a>');
   acts.push('<button class="m-btn" onclick="closeModal()">Close</button>');
   document.getElementById('m-actions').innerHTML = acts.join('');
 
@@ -317,6 +326,263 @@ function openCandidate(i){
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
 document.getElementById('modal').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+
+// ═══════════════════════════════════════════════════════════════
+//  TALENT CARD VIEW  +  MARKET TO CLIENT EMAIL
+// ═══════════════════════════════════════════════════════════════
+
+function candidateToParams(c){
+  var p = new URLSearchParams();
+  p.set('prefill','1');
+  if(c.full_name) p.set('name', c.full_name);
+  if(c.title || c.trade) p.set('title', c.title || c.trade);
+  if(c.experience) p.set('exp', c.experience);
+  if(c.city) p.set('city', c.city);
+  if(c.phone) p.set('phone', c.phone);
+  if(c.availability) p.set('avail', c.availability);
+  if((c.skills||[]).length) p.set('skills', c.skills.join('|'));
+  if((c.certs||[]).length) p.set('certs', c.certs.join('|'));
+  if((c.companies||[]).length) p.set('companies', c.companies.join('|'));
+  return p.toString();
+}
+
+function createTalentCard(i){
+  var c = CANDIDATES[i];
+  if(!c) return;
+  window.open('/talent-card.html?' + candidateToParams(c), '_blank');
+}
+
+// ── Render a QLM-branded talent card in a new window ──
+function viewTalentCard(i){
+  var c = CANDIDATES[i];
+  if(!c) return;
+  var a = assessmentFor(c);
+  var e = esc;
+
+  var lastInitial = (c.full_name||'').trim().split(/\s+/);
+  var displayName = lastInitial.length > 1
+    ? lastInitial[0] + ' ' + lastInitial[lastInitial.length-1][0] + '.'
+    : (c.full_name || 'Candidate');
+
+  var companies = (c.companies||[]).slice();
+  if(companies.map(function(x){return x.toLowerCase();}).indexOf('qlm') === -1) companies.unshift('QLM');
+
+  var scoreBlock = '';
+  if(a && a.score != null){
+    var col = a.score>=75 ? '#15803d' : a.score>=55 ? '#a16207' : '#b91c1c';
+    var bg  = a.score>=75 ? '#f0fdf4' : a.score>=55 ? '#fefce8' : '#fef2f2';
+    scoreBlock =
+      '<div style="background:'+bg+';border:1px solid '+col+'33;border-radius:10px;padding:14px 16px;margin-top:16px;">' +
+        '<div style="font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:'+col+';margin-bottom:6px;">Verified Skills Assessment</div>' +
+        '<div style="display:flex;align-items:center;gap:14px;">' +
+          '<div style="font-size:1.7rem;font-weight:700;color:'+col+';line-height:1;">'+a.score+'<span style="font-size:.8rem;color:#94a3b8;">/100</span></div>' +
+          '<div style="font-size:.82rem;color:#2a4a5a;line-height:1.5;">' +
+            '<strong>'+e(a.verdict||'')+'</strong> \u00b7 ' + e((a.trade||'').replace(/\b\w/g,function(m){return m.toUpperCase();})) +
+            '<br><span style="color:#64748b;font-size:.76rem;">Assessed ' + fmtDate(a.created_at) + ' by QLM</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  var html =
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Talent Card \u2014 ' + e(displayName) + '</title>' +
+'<style>' +
+'*{box-sizing:border-box;margin:0;padding:0;}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:28px 16px;line-height:1.6;}' +
+'.card{max-width:640px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 14px 46px rgba(0,58,82,.16);}' +
+'.hdr{background:#003a52;padding:26px 30px;position:relative;overflow:hidden;}' +
+'.hdr::after{content:"";position:absolute;right:-50px;top:-50px;width:190px;height:190px;border-radius:50%;background:rgba(0,153,216,.15);}' +
+'.badge{display:inline-block;background:#0099d8;color:#fff;font-weight:700;font-size:.7rem;letter-spacing:3px;padding:5px 13px;border-radius:5px;}' +
+'.hdr h1{color:#fff;font-size:1.75rem;font-weight:700;margin-top:14px;position:relative;z-index:1;}' +
+'.hdr .role{color:#0099d8;font-size:1rem;font-weight:600;margin-top:3px;position:relative;z-index:1;}' +
+'.hdr .meta{color:#b8dff0;font-size:.84rem;margin-top:8px;position:relative;z-index:1;}' +
+'.body{padding:24px 30px;}' +
+'.sec{font-size:.63rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0077a8;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid #e0f4fc;}' +
+'.sec:first-child{margin-top:0;}' +
+'.tags{display:flex;flex-wrap:wrap;gap:6px;}' +
+'.tag{font-size:.76rem;font-weight:500;padding:5px 12px;border-radius:20px;background:#e0f4fc;border:1px solid #b8dff0;color:#005a7e;}' +
+'.tag.g{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}' +
+'.tag.n{background:#f8fafc;border-color:#e2e8f0;color:#64748b;}' +
+'.summary{font-size:.9rem;line-height:1.8;color:#2a4a5a;}' +
+'.avail{display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:.78rem;font-weight:600;padding:5px 14px;border-radius:20px;}' +
+'.foot{background:#003a52;padding:16px 30px;text-align:center;}' +
+'.foot .spq{color:#0099d8;font-size:.66rem;font-weight:700;letter-spacing:2.5px;}' +
+'.foot .info{color:#b8dff0;font-size:.76rem;margin-top:5px;}' +
+'.tools{max-width:640px;margin:0 auto 14px;display:flex;gap:8px;justify-content:flex-end;}' +
+'.tools button{background:#003a52;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}' +
+'.tools button.alt{background:#fff;color:#0077a8;border:1.5px solid #b8dff0;}' +
+'@media print{body{background:#fff;padding:0;}.tools{display:none;}.card{box-shadow:none;border-radius:0;}' +
+'.hdr,.foot,.tag,.avail{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
+'</style></head><body>' +
+
+'<div class="tools">' +
+  '<button class="alt" onclick="window.print()">&#128438; Print / PDF</button>' +
+  '<button onclick="window.close()">Close</button>' +
+'</div>' +
+
+'<div class="card">' +
+  '<div class="hdr">' +
+    '<div class="badge">QLM</div>' +
+    '<h1>' + e(displayName) + '</h1>' +
+    '<div class="role">' + e(c.title || c.trade || '') + '</div>' +
+    '<div class="meta">' + [c.city, c.experience ? c.experience + ' experience' : ''].filter(Boolean).map(e).join(' &nbsp;\u00b7&nbsp; ') + '</div>' +
+  '</div>' +
+  '<div class="body">' +
+
+    (c.availability ? '<div class="avail">' + e(c.availability) + '</div>' : '') +
+
+    (c.summary ? '<div class="sec">Profile</div><div class="summary">' + e(c.summary) + '</div>' : '') +
+
+    ((c.skills||[]).length ? '<div class="sec">Core Skills</div><div class="tags">' +
+      c.skills.map(function(s){ return '<span class="tag">'+e(s)+'</span>'; }).join('') + '</div>' : '') +
+
+    ((c.certs||[]).length ? '<div class="sec">Certifications &amp; Training</div><div class="tags">' +
+      c.certs.map(function(s){ return '<span class="tag g">'+e(s)+'</span>'; }).join('') + '</div>' : '') +
+
+    (companies.length ? '<div class="sec">Experience With</div><div class="tags">' +
+      companies.map(function(s){ return '<span class="tag n">'+e(s)+'</span>'; }).join('') + '</div>' : '') +
+
+    scoreBlock +
+
+  '</div>' +
+  '<div class="foot">' +
+    '<div class="spq">SAFETY &middot; PRODUCTIVITY &middot; QUALITY</div>' +
+    '<div class="info">Quality Labor Management &middot; myqlm.com &middot; 855-756-9675</div>' +
+  '</div>' +
+'</div></body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── MARKETING EMAIL ──
+function marketCandidate(i){
+  var c = CANDIDATES[i];
+  if(!c) return;
+  var a = assessmentFor(c);
+
+  var nameParts = (c.full_name||'').trim().split(/\s+/);
+  var displayName = nameParts.length > 1
+    ? nameParts[0] + ' ' + nameParts[nameParts.length-1][0] + '.'
+    : (c.full_name || 'Candidate');
+
+  var role = c.title || c.trade || 'Skilled Tradesperson';
+
+  var lines = [];
+  lines.push('Hi —');
+  lines.push('');
+  lines.push('I have a ' + role + ' available that I think would be a strong fit for your crew.');
+  lines.push('');
+  lines.push(displayName.toUpperCase() + ' — ' + role);
+  lines.push('─────────────────────────────────');
+  if(c.experience)   lines.push('Experience:    ' + c.experience);
+  if(c.city)         lines.push('Location:      ' + c.city);
+  if(c.availability) lines.push('Availability:  ' + c.availability);
+  lines.push('');
+
+  if((c.skills||[]).length){
+    lines.push('CORE SKILLS');
+    c.skills.slice(0,8).forEach(function(s){ lines.push('  • ' + s); });
+    lines.push('');
+  }
+  if((c.certs||[]).length){
+    lines.push('CERTIFICATIONS & TRAINING');
+    c.certs.forEach(function(s){ lines.push('  • ' + s); });
+    lines.push('');
+  }
+  if((c.companies||[]).length){
+    lines.push('PRIOR EXPERIENCE WITH');
+    lines.push('  ' + c.companies.join(', '));
+    lines.push('');
+  }
+  if(c.summary){
+    lines.push('BACKGROUND');
+    lines.push('  ' + c.summary);
+    lines.push('');
+  }
+
+  if(a && a.score != null){
+    lines.push('VERIFIED SKILLS ASSESSMENT');
+    lines.push('  QLM tested this candidate on ' + (a.trade||role) + ' knowledge.');
+    lines.push('  Score:   ' + a.score + '/100  (' + (a.verdict||'') + ')');
+    lines.push('  Tested:  ' + fmtDate(a.created_at));
+    lines.push('  Our assessment covers code knowledge, safety practices, and');
+    lines.push('  real-world problem solving — not just a resume review.');
+    lines.push('  Full report available on request.');
+    lines.push('');
+  } else {
+    lines.push('SKILLS ASSESSMENT');
+    lines.push('  Available on request — QLM can test this candidate on trade');
+    lines.push('  knowledge and safety before placement.');
+    lines.push('');
+  }
+
+  lines.push('Every QLM team member is a W-2 employee. We carry workers comp,');
+  lines.push('general liability, and all payroll taxes — you get one all-inclusive');
+  lines.push('bill rate with zero employer liability.');
+  lines.push('');
+  lines.push('Want me to send them out for an interview or put them to work this week?');
+  lines.push('');
+  lines.push('Quality Labor Management');
+  lines.push('myqlm.com · 855-756-9675');
+  lines.push('Safety · Productivity · Quality');
+
+  var body = lines.join('\n');
+  var subject = 'Available Now: ' + role + ' — ' + displayName + (a && a.score != null ? ' (Assessed ' + a.score + '/100)' : '');
+
+  showMarketModal(subject, body, i);
+}
+
+function showMarketModal(subject, body, idx){
+  var m = document.getElementById('market-modal');
+  if(!m){
+    m = document.createElement('div');
+    m.id = 'market-modal';
+    m.className = 'modal';
+    m.innerHTML =
+      '<div class="modal-box" style="max-width:660px;">' +
+        '<div class="m-hdr">' +
+          '<button class="m-close" onclick="document.getElementById(\'market-modal\').classList.add(\'hidden\')">&times;</button>' +
+          '<h2>&#128140; Market This Team Member</h2>' +
+          '<div class="sub">Ready-to-send email with their profile and assessment results</div>' +
+        '</div>' +
+        '<div class="m-body">' +
+          '<label style="font-size:.64rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0077a8;">Subject</label>' +
+          '<input id="mk-subject" style="width:100%;border:1px solid #b8dff0;border-radius:8px;padding:9px 12px;font-size:.86rem;font-family:inherit;margin:6px 0 14px;outline:none;">' +
+          '<label style="font-size:.64rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0077a8;">Message</label>' +
+          '<textarea id="mk-body" style="width:100%;min-height:340px;border:1px solid #b8dff0;border-radius:8px;padding:12px;font-size:.83rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;margin-top:6px;outline:none;resize:vertical;"></textarea>' +
+        '</div>' +
+        '<div class="m-actions">' +
+          '<button class="m-btn primary" onclick="copyMarketEmail(this)">&#128203; Copy Email</button>' +
+          '<button class="m-btn" onclick="openMarketMailto()">&#128140; Open in Mail</button>' +
+          '<button class="m-btn" onclick="viewTalentCard(window._mkIdx)">&#128196; View Talent Card</button>' +
+          '<button class="m-btn" onclick="document.getElementById(\'market-modal\').classList.add(\'hidden\')">Close</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function(e){ if(e.target === m) m.classList.add('hidden'); });
+  }
+  window._mkIdx = idx;
+  document.getElementById('mk-subject').value = subject;
+  document.getElementById('mk-body').value = body;
+  m.classList.remove('hidden');
+}
+
+function copyMarketEmail(btn){
+  var s = document.getElementById('mk-subject').value;
+  var b = document.getElementById('mk-body').value;
+  navigator.clipboard.writeText('Subject: ' + s + '\n\n' + b).then(function(){
+    var o = btn.textContent; btn.textContent = '\u2713 Copied!';
+    setTimeout(function(){ btn.textContent = o; }, 2000);
+  });
+}
+
+function openMarketMailto(){
+  var s = document.getElementById('mk-subject').value;
+  var b = document.getElementById('mk-body').value;
+  window.location.href = 'mailto:?subject=' + encodeURIComponent(s) + '&body=' + encodeURIComponent(b);
+}
 
 function exportCSV(){
   if(!CANDIDATES.length){ alert('No candidates to export.'); return; }
