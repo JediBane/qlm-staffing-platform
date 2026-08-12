@@ -296,8 +296,11 @@
         <input id="f_city" placeholder="e.g. Orlando, FL"></div>
     </div>
 
-    <div class="field"><label>Phone</label>
-      <input id="f_phone" placeholder="e.g. 321-555-0100"></div>
+    <div class="field"><label>Phone <span style="color:#ef4444;">*</span></label>
+      <input id="f_phone" type="tel" placeholder="e.g. 321-555-0100"></div>
+
+    <div class="field"><label>Email <span style="color:#ef4444;">*</span></label>
+      <input id="f_email" type="email" placeholder="e.g. worker@email.com"></div>
 
     <div class="field">
       <label>Availability</label>
@@ -649,12 +652,22 @@ function generateCard() {
   const summary  = window._extractedSummary || '';
   const initials = rawName.split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
+  const rawEmail = (document.getElementById('f_email') || {}).value ? document.getElementById('f_email').value.trim() : '';
+
   if (!rawName) { showStatus('extract','error','Please enter a worker name first.'); return; }
+  if (!rawPhone && !rawEmail) {
+    showStatus('extract','error','Phone and email are required \u2014 they are how we tell team members apart in the database.');
+    (document.getElementById('f_phone')||{}).focus && document.getElementById('f_phone').focus();
+    return;
+  }
+  if (!rawPhone) { showStatus('extract','error','Phone number is required.'); document.getElementById('f_phone').focus(); return; }
+  if (!rawEmail) { showStatus('extract','error','Email address is required.'); document.getElementById('f_email').focus(); return; }
 
   if(window.QLM && QLM.save){
     QLM.save('candidates', {
       full_name: rawName, title: title, trade: title,
       city: city, experience: exp, availability: avail,
+      phone: rawPhone || null, email: rawEmail || null,
       skills: skills, certs: certs, companies: companies,
       summary: summary || null, source_tool: 'talent_card'
     });
@@ -952,6 +965,7 @@ function applyPrefill(){
   set('f_exp',   p.get('exp'));
   set('f_city',  p.get('city'));
   set('f_phone', p.get('phone'));
+  set('f_email', p.get('email'));
   var av = document.getElementById('f_avail');
   if(av && p.get('avail')){
     for(var i=0;i<av.options.length;i++){
