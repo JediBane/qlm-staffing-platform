@@ -45,6 +45,14 @@
     } catch (e) { return null; }
   }
 
+  async function accessToken(){
+    if(!init()) return null;
+    try{
+      var s = await sb.auth.getSession();
+      return (s.data && s.data.session && s.data.session.access_token) || null;
+    }catch(e){ return null; }
+  }
+
   async function isAdmin() {
     var p = await getProfile();
     return !!(p && p.is_admin);
@@ -367,6 +375,7 @@
     getUser: getUser,
     getProfile: getProfile,
     isAdmin: isAdmin,
+    accessToken: accessToken,
     signIn: signIn,
     signUp: signUp,
     signOut: signOut,
