@@ -883,6 +883,65 @@ function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 </script>
 <script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });
+
+// ── Build a profile from whatever we know when there is no resume ──
+async function buildProfileFromFacts(p){
+  var name  = p.get('name') || '';
+  var title = p.get('title') || '';
+  var exp   = p.get('exp') || '';
+  var city  = p.get('city') || '';
+  var lvl   = p.get('level') || '';
+  var score = p.get('score') || '';
+  var verd  = p.get('verdict') || '';
+  var tested= p.get('tested') || '';
+  var certs = (p.get('certs')||'').split('|').filter(Boolean);
+
+  if(!title && !exp && !score) return;   // nothing to work with
+
+  showStatus('extract','loading','No resume on file \u2014 drafting a profile from intake and assessment data\u2026');
+
+  var facts = [
+    'Name: ' + name,
+    title ? 'Trade / Title: ' + title : '',
+    exp ? 'Experience: ' + exp : '',
+    lvl ? 'Level: ' + lvl : '',
+    city ? 'Location: ' + city : '',
+    certs.length ? 'Certifications: ' + certs.join(', ') : '',
+    score ? 'QLM skills assessment score: ' + score + '/100 (' + verd + ')' + (tested ? ' on ' + tested : '') : ''
+  ].filter(Boolean).join('\n');
+
+  var prompt =
+    'You are writing a client-facing talent card for QLM, a skilled trades staffing company. ' +
+    'There is no resume for this worker \u2014 only the facts below. Write a professional profile using ONLY what is supported by these facts. ' +
+    'Do not invent employers, projects, years of experience, or certifications that are not listed.\n\n' +
+    facts + '\n\n' +
+    'Return ONLY raw JSON, no markdown:\n' +
+    '{"summary":"2-3 sentence professional summary written for a construction client. If an assessment score is provided, reference that their trade knowledge was verified by testing. Be factual and measured, never overstated.",' +
+    '"skills":["6-8 core competencies expected of this trade at this level, phrased as skill tags"]}\n\n' +
+    'No apostrophes in values. Raw JSON only.';
+
+  try{
+    var res = await fetch('/.netlify/functions/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ max_tokens: 700, messages:[{role:'user',content:prompt}] })
+    });
+    var d = await res.json();
+    if(d.error) throw new Error(d.error.message);
+    var text = (d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('');
+    var m = text.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('Could not draft a profile.');
+    var data = JSON.parse(m[0].replace(/[\u2018\u2019]/g,''));
+
+    if(data.summary) window._extractedSummary = data.summary;
+    if(Array.isArray(data.skills) && !getTags('skillsWrap').length){
+      data.skills.slice(0,8).forEach(function(s){ addTag(s,'skillsWrap','skillInp'); });
+    }
+    showStatus('extract','success','\u2713 Draft profile built from available data. Review the skills and summary, then generate the card.');
+  }catch(e){
+    showStatus('extract','error','Could not draft a profile automatically: ' + e.message + ' \u2014 fill in the fields manually.');
+  }
+}
+
 // ── PREFILL FROM CANDIDATE DATABASE (?prefill=...) ──
 function applyPrefill(){
   var p = new URLSearchParams(location.search);
@@ -902,6 +961,10 @@ function applyPrefill(){
   (p.get('skills')||'').split('|').filter(Boolean).forEach(function(s){ addTag(s,'skillsWrap','skillInp'); });
   (p.get('certs')||'').split('|').filter(Boolean).forEach(function(s){ addTag(s,'certsWrap','certInp'); });
   (p.get('companies')||'').split('|').filter(Boolean).forEach(function(s){ addTag(s,'companiesWrap','compInp'); });
+  // With no resume pasted, draft from whatever facts we have
+  var rt = document.getElementById('resumeText');
+  if(!rt || !rt.value.trim()){ buildProfileFromFacts(p); }
+
   var note = document.createElement('div');
   note.style.cssText='background:#e0f4fc;border:1px solid #b8dff0;border-radius:8px;padding:10px 13px;font-size:.8rem;color:#003a52;margin-bottom:12px;';
   note.innerHTML='&#128101; Pre-filled from the candidate database. Review, then click <strong>Generate Talent Card</strong>.';
