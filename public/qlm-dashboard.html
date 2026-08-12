@@ -248,7 +248,15 @@ function setDateFilter(days, el){
 }
 
 function buildRecruiterBar(source){
-  var all = source && source.length ? source : getAssessments();
+  if(CLOUD_MODE && TEAM.length){
+    document.getElementById('recruiter-btns').innerHTML =
+      ['all'].concat(TEAM.map(function(t){ return t.id; })).map(function(id){
+        var label = id === 'all' ? 'All Recruiters' : recruiterName(id);
+        return '<button class="rec-btn'+(id===selectedRecruiter?' active':'')+'" onclick="selectRecruiter(\''+id+'\',this)">'+label+'</button>';
+      }).join('');
+    return;
+  }
+  var all = source || [];
   var recruiters = ['all'];
   all.forEach(function(a){ if(a.recruiter && recruiters.indexOf(a.recruiter)===-1) recruiters.push(a.recruiter); });
   document.getElementById('recruiter-btns').innerHTML = recruiters.map(function(r){
@@ -271,11 +279,13 @@ async function render(){
   if(window.QLM && QLM.getUser){
     var u = await QLM.getUser();
     if(u){
+      if(!TEAM.length) await loadTeam();
       try{
         var results = await Promise.all([
           QLM.list('assessments'), QLM.list('leads'),
           QLM.list('activity', null, {limit:100}), QLM.list('candidates')
         ]);
+        CLOUD_MODE = true;
         assessments = results[0].map(function(a){
           var nm = (a.candidate_name||'').trim();
           var sp = nm.indexOf(' ');
@@ -287,16 +297,18 @@ async function render(){
             recruiter: a.recruiter,
             date: a.created_at ? new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '',
             fullText: a.ai_analysis || null,
+            owner_id: a.owner_id,
             _cloud: true
           };
         });
         leads = results[1].map(function(l){
           return { company:l.company, trades:l.trades, location:l.location,
                    qlmFitScore:l.qlm_fit_score, status:l.status, source:l.source,
-                   converted:l.converted, savedAt:l.created_at, reminderDate:l.reminder_date };
+                   converted:l.converted, savedAt:l.created_at, reminderDate:l.reminder_date,
+                   owner_id:l.owner_id };
         });
         activity = results[2].map(function(x){
-          return { type:x.type, name:x.label, trade:x.trade, city:x.city, date:x.created_at };
+          return { type:x.type, name:x.label, trade:x.trade, city:x.city, date:x.created_at, owner_id:x.owner_id };
         });
         candidates = results[3];
         document.getElementById('data-source-note').textContent = '\u2601 Team data \u00b7 live from cloud';
@@ -319,7 +331,13 @@ async function render(){
   if(currentView==='recruiter'){
     buildRecruiterBar(assessments);
     if(selectedRecruiter!=='all'){
-      assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
+      if(CLOUD_MODE){
+        assessments = assessments.filter(function(a){ return a.owner_id === selectedRecruiter; });
+        leads       = leads.filter(function(l){ return l.owner_id === selectedRecruiter; });
+        activity    = activity.filter(function(x){ return x.owner_id === selectedRecruiter; });
+      } else {
+        assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
+      }
     }
   }
 
@@ -435,6 +453,23 @@ function tradeLabel(t){
   return TRADE_LABEL[t] || String(t).replace(/_/g,' ').replace(/\b\w/g, function(m){ return m.toUpperCase(); });
 }
 var _renderedAssessments = [];
+var TEAM = [];            // real user accounts
+var CLOUD_MODE = false;
+
+async function loadTeam(){
+  if(!window.QLM || !QLM.client()) return;
+  try{
+    var res = await QLM.client().from('profiles').select('id, full_name, email, is_admin');
+    TEAM = (res.data || []).map(function(p){
+      return { id: p.id, name: (p.full_name && p.full_name.indexOf('@') === -1) ? p.full_name : p.email, admin: p.is_admin };
+    });
+  }catch(e){ TEAM = []; }
+}
+
+function recruiterName(id){
+  var t = TEAM.find(function(x){ return x.id === id; });
+  return t ? t.name : null;
+}
 function renderAssessTable(assessments){
   _renderedAssessments = assessments;
   var tbody = document.getElementById('assess-tbody');
