@@ -561,14 +561,14 @@ async function extractResume() {
   const basePrompt = `You are a resume parser for a skilled trades staffing company.
 Return ONLY a raw JSON object. No markdown. No explanation. Just JSON.
 
-{"name":"","title":"","exp":"","city":"","phone":"","initials":"","summary":"","skills":[],"companies":[],"certs":[]}
+{"name":"","title":"","exp":"","city":"","phone":"","email":"","initials":"","summary":"","skills":[],"companies":[],"certs":[]}
 
 Rules:
 - name: full name
 - title: primary job title
 - exp: total years as string like "8+ yrs"
 - city: city and state only
-- phone: if listed, else empty string
+- phone: the candidate personal phone number if listed, digits and separators only, else empty string\n- email: the candidate personal email address if listed, else empty string. Do not use a company or recruiter email.
 - initials: first letter of first + last name
 - summary: 3 sentences, third-person, professional, highlight top achievement. Never include gaps or negatives.${notes ? ' Incorporate the recruiter interview notes below into the summary to add personal insight and strengthen the candidate profile.' : ''}
 - skills: up to 8 specific trade/professional skills, short phrases
@@ -605,6 +605,7 @@ Rules:
     if(info.exp)      document.getElementById('f_exp').value   = info.exp;
     if(info.city)     document.getElementById('f_city').value  = info.city;
     if(info.phone)    document.getElementById('f_phone').value = info.phone;
+    if(info.email)    document.getElementById('f_email').value = info.email;
     if(info.skills?.length)    setTags('skillsWrap',    'skillInp', info.skills, 8);
     if(info.companies?.length) setTags('companiesWrap', 'compInp',  info.companies, 3);
     if(info.certs?.length)     setTags('certsWrap',     'certInp',  info.certs, 3);
@@ -871,7 +872,7 @@ function openCard() {
 //  RESET
 // ══════════════════════════════════════
 function resetAll() {
-  ['f_name','f_title','f_exp','f_city','f_phone','resumeText','interviewNotes'].forEach(id=>document.getElementById(id).value='');
+  ['f_name','f_title','f_exp','f_city','f_phone','f_email','resumeText','interviewNotes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f_avail').selectedIndex = 0;
   ['skillsWrap','companiesWrap','certsWrap'].forEach(w=>document.querySelectorAll('#'+w+' .tag').forEach(t=>t.remove()));
   document.getElementById('privacyToggle').checked = false;
