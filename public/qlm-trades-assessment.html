@@ -270,7 +270,7 @@ header{gap:12px;}
     <div class="logo-badge">QLM</div>
     <div class="logo-text">Quality Labor Management</div>
   </div>
-  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Assessment</a><a class="tnav" id="nav-invite" onclick="showScreen('invite')" style="cursor:pointer;">&#128279; Send Link</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span><a href="/" class="tnav">&#127968; Home</a><a href="/talent-card.html" class="tnav">&#128196; Talent Card</a><a href="/qlm-intake.html" class="tnav">&#128203; Intake</a><a href="/qlm-trades-assessment.html" class="tnav active">&#9889; Assessment</a><a href="/qlm-lead-generator.html" class="tnav">&#127919; Leads</a><a href="/qlm-hiring-insights.html" class="tnav">&#128202; Insights</a><a href="/qlm-dashboard.html" class="tnav">&#128207; Dashboard</a></div>
 </header>
 <div id="cand-mode-banner" class="cand-mode-banner hidden">&#128100; Candidate Mode — Complete all questions and submit when finished.</div>
 
@@ -278,65 +278,9 @@ header{gap:12px;}
 <!-- TRADE SELECT SCREEN -->
 
 <!-- ═══ SEND INVITE SCREEN ═══ -->
-<div id="invite-screen" style="display:none;">
-  <div class="page-title">Send Assessment Link</div>
-  <div class="page-sub">Fill in the candidate's details and the trade to test. They get a unique link with everything pre-filled — no login required. Results are emailed to you the moment they finish.</div>
-
-  <div class="candidate-info">
-    <div class="section-label" style="margin-bottom:14px;">Candidate Details</div>
-    <div class="field-row">
-      <div class="field"><label>Candidate Name *</label><input type="text" id="inv-name" placeholder="John Doe"></div>
-      <div class="field"><label>Candidate Email</label><input type="email" id="inv-email" placeholder="john@email.com"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Candidate Phone</label><input type="tel" id="inv-phone" placeholder="(555) 123-4567"></div>
-      <div class="field"><label>Experience Level</label>
-        <select id="inv-level">
-          <option value="">Any level</option>
-          <option>Entry / Helper</option><option>Journeyman</option>
-          <option>Senior / Master</option><option>Foreman</option>
-        </select>
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Trade to Test *</label>
-        <select id="inv-trade"></select>
-      </div>
-      <div class="field"><label>Email Results To *</label><input type="email" id="inv-recruiter-email" placeholder="you@myqlm.com"></div>
-    </div>
-    <div class="field"><label>Notes (internal only)</label><input type="text" id="inv-notes" placeholder="e.g. Referred by Mike, needs to start Monday"></div>
-  </div>
-
-  <div id="inviteStatus"></div>
-
-  <button class="btn-primary" id="inv-btn" onclick="createInvite()" style="width:100%;margin-top:6px;">&#128279; Generate Assessment Link</button>
-
-  <!-- Generated link result -->
-  <div id="invite-result" style="display:none;margin-top:20px;">
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;">
-      <div style="font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#15803d;margin-bottom:10px;">&#10003; Link Ready</div>
-      <div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:12px;font-family:monospace;font-size:.8rem;word-break:break-all;color:#003a52;" id="invite-url"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-        <button class="btn-secondary" onclick="copyInviteLink(this)">&#128203; Copy Link</button>
-        <button class="btn-secondary" onclick="smsInviteLink()">&#128241; Text It</button>
-        <button class="btn-secondary" onclick="emailInviteLink()">&#128140; Email It</button>
-      </div>
-      <p style="font-size:.76rem;color:#64748b;margin-top:12px;line-height:1.6;">
-        Link expires in 14 days and can only be used once. You will receive the full report by email as soon as they submit.
-      </p>
-    </div>
-  </div>
-
-  <!-- Sent invites list -->
-  <div style="margin-top:26px;">
-    <div class="section-label" style="margin-bottom:12px;">Sent Assessments</div>
-    <div id="invite-list"></div>
-  </div>
-</div>
-
 <div id="select-screen" class="screen">
   <div class="page-title">Skilled Trades Knowledge Assessment</div>
-  <div class="page-sub">Select a trade below and enter the candidate's information to begin their skills screening. Questions are scenario-based and designed to verify real hands-on knowledge.</div>
+  <div class="page-sub" id="page-sub">Enter the candidate's details, choose the trade, and generate a unique assessment link to send them. No login required on their end &mdash; the full report is emailed to you the moment they finish.</div>
 
   <div class="candidate-info">
     <div class="section-label" style="margin-bottom:14px;">Candidate Information</div>
@@ -353,6 +297,22 @@ header{gap:12px;}
       </div>
       <div class="field"><label>Claimed Certifications</label><input type="text" id="c-certs" placeholder="e.g. OSHA 30, AWS, CDL-A"></div>
       <div class="field"><label>Recruiter / Branch</label><input type="text" id="c-recruiter" placeholder="e.g. Tampa - Jane B."></div>
+    </div>
+
+    <!-- Recruiter-only: how to reach the candidate + where results go -->
+    <div id="send-fields">
+      <div class="field-row three">
+        <div class="field"><label>Candidate Email</label><input type="email" id="c-email" placeholder="john@email.com"></div>
+        <div class="field"><label>Candidate Phone</label><input type="tel" id="c-phone" placeholder="(555) 123-4567"></div>
+        <div class="field"><label>Email Results To *</label><input type="email" id="c-results-email" placeholder="you@myqlm.com"></div>
+      </div>
+      <div class="field"><label>Experience Level (optional)</label>
+        <select id="c-level">
+          <option value="">Any level</option>
+          <option>Entry / Helper</option><option>Journeyman</option>
+          <option>Senior / Master</option><option>Foreman</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -425,7 +385,29 @@ header{gap:12px;}
     </div>
   </div>
 
-  <button class="btn-start" id="start-btn" onclick="startAssessment()" disabled>Start Assessment &#8594;</button>
+  <div id="inviteStatus"></div>
+  <button class="btn-start" id="start-btn" onclick="mainAction()" disabled>&#128279; Generate Assessment Link</button>
+
+  <!-- Generated link (recruiter view) -->
+  <div id="invite-result" style="display:none;margin-top:20px;">
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#15803d;margin-bottom:10px;">&#10003; Link Ready &mdash; Send It To Your Candidate</div>
+      <div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:12px;font-family:monospace;font-size:.8rem;word-break:break-all;color:#003a52;" id="invite-url"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn-secondary" onclick="copyInviteLink(this)">&#128203; Copy Link</button>
+        <button class="btn-secondary" onclick="smsInviteLink()">&#128241; Text It</button>
+        <button class="btn-secondary" onclick="emailInviteLink()">&#128140; Email It</button>
+        <button class="btn-secondary" onclick="resetInviteForm()">+ New Candidate</button>
+      </div>
+      <p style="font-size:.76rem;color:#64748b;margin-top:12px;line-height:1.6;">Link expires in 14 days and can only be used once. The full report is emailed to you as soon as they submit.</p>
+    </div>
+  </div>
+
+  <!-- Sent assessments (recruiter view) -->
+  <div id="sent-list-wrap" style="margin-top:28px;">
+    <div class="section-label" style="margin-bottom:12px;">Sent Assessments</div>
+    <div id="invite-list"></div>
+  </div>
 </div>
 
 <!-- ASSESSMENT SCREEN -->
@@ -1193,8 +1175,15 @@ var candidateData = {};
 function selectTrade(trade) {
   selectedTrade = trade;
   document.querySelectorAll('.trade-card').forEach(function(c){ c.classList.remove('selected'); });
-  document.getElementById('t-' + trade).classList.add('selected');
-  document.getElementById('start-btn').disabled = false;
+  var card = document.getElementById('t-' + trade);
+  if(card) card.classList.add('selected');
+  var btn = document.getElementById('start-btn');
+  if(btn){
+    btn.disabled = false;
+    btn.textContent = (typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)
+      ? 'Begin My Assessment \u2192'
+      : '\u{1F517} Generate Assessment Link';
+  }
 }
 
 function startAssessment() {
@@ -1820,18 +1809,15 @@ function showInviteThanks(){
 var _lastInviteUrl = '', _lastInvitePhone = '', _lastInviteEmail = '', _lastInviteName = '';
 
 function populateInviteTrades(){
-  var sel = document.getElementById('inv-trade');
-  if(!sel || sel.options.length) return;
-  Object.keys(QUESTIONS).forEach(function(k){
-    var o = document.createElement('option');
-    o.value = k; o.textContent = TRADE_LABELS[k] || k;
-    sel.appendChild(o);
-  });
-  // Prefill recruiter email from signed-in user
+  // Prefill the results email with the signed-in recruiter
   if(window.QLM && QLM.getUser){
     QLM.getUser().then(function(u){
-      var el = document.getElementById('inv-recruiter-email');
+      var el = document.getElementById('c-results-email');
       if(u && el && !el.value) el.value = u.email;
+    });
+    QLM.getProfile && QLM.getProfile().then(function(p){
+      var r = document.getElementById('c-recruiter');
+      if(p && p.full_name && r && !r.value) r.value = p.full_name;
     });
   }
 }
@@ -1842,15 +1828,35 @@ function invSt(type, msg){
 }
 function invClear(){ document.getElementById('inviteStatus').innerHTML = ''; }
 
+async function mainAction(){
+  if (typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN) { startAssessment(); }
+  else { createInvite(); }
+}
+
+function resetInviteForm(){
+  ['c-fname','c-lname','c-certs','c-email','c-phone'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  var y = document.getElementById('c-yoe'); if(y) y.selectedIndex = 0;
+  var l = document.getElementById('c-level'); if(l) l.selectedIndex = 0;
+  document.getElementById('invite-result').style.display = 'none';
+  document.querySelectorAll('.trade-card').forEach(function(x){ x.classList.remove('selected'); });
+  selectedTrade = null;
+  document.getElementById('start-btn').disabled = true;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 async function createInvite(){
   invClear();
-  var name = document.getElementById('inv-name').value.trim();
-  var trade = document.getElementById('inv-trade').value;
-  var recEmail = document.getElementById('inv-recruiter-email').value.trim();
+  var fname = document.getElementById('c-fname').value.trim();
+  var lname = document.getElementById('c-lname').value.trim();
+  var name = (fname + ' ' + lname).trim();
+  var trade = selectedTrade;
+  var recEmail = document.getElementById('c-results-email').value.trim();
 
-  if(!name){ invSt('error','Enter the candidate name.'); return; }
-  if(!trade){ invSt('error','Select a trade to test.'); return; }
-  if(!recEmail){ invSt('error','Enter the email address that should receive results.'); return; }
+  if(!name){ invSt('error','Enter the candidate name.'); document.getElementById('c-fname').focus(); return; }
+  if(!trade){ invSt('error','Select the trade to assess.'); return; }
+  if(!recEmail){ invSt('error','Enter the email address that should receive the results.'); document.getElementById('c-results-email').focus(); return; }
 
   if(!window.QLM || !QLM.client()){
     invSt('error','Sign in to create assessment links.'); return;
@@ -1858,7 +1864,7 @@ async function createInvite(){
   var user = await QLM.getUser();
   if(!user){ invSt('error','You must be signed in to send assessment links. <a href="/login.html" style="color:#0099d8;font-weight:600;">Sign in</a>'); return; }
 
-  var btn = document.getElementById('inv-btn');
+  var btn = document.getElementById('start-btn');
   btn.disabled = true; btn.textContent = 'Generating…';
 
   try{
@@ -1868,11 +1874,11 @@ async function createInvite(){
       recruiter_name: (profile && profile.full_name && profile.full_name.indexOf('@') === -1) ? profile.full_name : ((user.email||'').split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, function(m){return m.toUpperCase();})),
       recruiter_email: recEmail,
       candidate_name: name,
-      candidate_email: document.getElementById('inv-email').value.trim() || null,
-      candidate_phone: document.getElementById('inv-phone').value.trim() || null,
+      candidate_email: document.getElementById('c-email').value.trim() || null,
+      candidate_phone: document.getElementById('c-phone').value.trim() || null,
       trade: trade,
-      level: document.getElementById('inv-level').value || null,
-      notes: document.getElementById('inv-notes').value.trim() || null
+      level: document.getElementById('c-level').value || null,
+      notes: document.getElementById('c-certs').value.trim() || null
     }).select().single();
 
     if(res.error) throw new Error(res.error.message);
@@ -2029,8 +2035,11 @@ async function checkInviteToken(){
       grid.parentNode.insertBefore(note, grid);
     }
 
+    ['send-fields','invite-result','sent-list-wrap','inviteStatus'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display = 'none';
+    });
     var st = document.getElementById('start-btn');
-    if(st) st.textContent = 'Begin My Assessment';
+    if(st){ st.textContent = 'Begin My Assessment \u2192'; st.disabled = false; }
 
     return true;
   }catch(e){
@@ -2222,6 +2231,7 @@ function updatePrintMeta() {
 window.addEventListener('DOMContentLoaded', function() {
   try { updateHistCount(); } catch(e) { console.warn(e); }
   try { checkUrlParams(); } catch(e) { console.warn('checkUrlParams failed', e); }
+  try { if(!(typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)) { populateInviteTrades(); loadInvites(); } } catch(e) { console.warn(e); }
 });
 
 function toggleSettings(){}
