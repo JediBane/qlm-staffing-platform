@@ -937,27 +937,83 @@ function findContact(id){
     '"officePhone":"","website":"","careersUrl":"","emailPattern":"","postingNote":"anything the job posting said about how to apply or who to contact",' +
     '"bestApproach":"one or two sentences on how to actually reach a decision maker here"}';
 
-  leadSearchCall(prompt)
-  .then(function(text){
-    var data = {};
+  // Two parallel routes: AI web search for people, and a direct scrape of the
+  // company site and job posting for real addresses and numbers.
+  var aiRoute = leadSearchCall(prompt).then(function(text){
     try{
       var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()
         .replace(/[\u2018\u2019]/g,"").replace(/[\u201C\u201D]/g,'"');
-      data = JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
-    }catch(e){ data = { contacts:[], bestApproach:'Could not read the search results. Use the public record links below.' }; }
-    renderContact(id, lead, data);
-  })
-  .catch(function(e){
-    renderContact(id, lead, { contacts:[], bestApproach:'Search failed: ' + e.message + '. The public record links below still work.' });
+      return JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
+    }catch(e){ return { contacts:[] }; }
+  }).catch(function(){ return { contacts:[] }; });
+
+  var scrapeRoute = fetch('/.netlify/functions/find-contact', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ company: company, location: loc, jobUrl: lead.jobUrl || '', website: lead.website || '' })
+  }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+
+  Promise.all([aiRoute, scrapeRoute]).then(function(res){
+    renderContact(id, lead, res[0] || { contacts:[] }, res[1]);
   })
   .then(function(){ if(btn){ btn.innerHTML='&#128269; Search Again'; btn.disabled=false; } });
 }
 
-function renderContact(id, lead, d){
+function shortUrl(u){
+  try{ var x = new URL(u); return x.hostname.replace(/^www\./,'') + (x.pathname.length > 1 ? x.pathname : ''); }
+  catch(e){ return u; }
+}
+
+function scrapedBlock(s, col){
+  if(!s) return '';
+  var emails = s.emails || [], phones = s.phones || [];
+  if(!emails.length && !phones.length){
+    if(!(s.pagesChecked||[]).length) return '';
+    return '<div style="margin-top:10px;padding-top:9px;border-top:1px solid '+col[1]+';font-size:.76rem;color:#94a3b8;">' +
+      'Checked ' + (s.pagesChecked||[]).length + ' page(s) on their site \u2014 no published email or phone found.</div>';
+  }
+  var kindLabel = { hiring:'hiring inbox', general:'general inbox', personal:'personal' };
+  var kindCol   = { hiring:'#15803d', general:'#64748b', personal:'#0077a8' };
+  return '<div style="margin-top:11px;padding-top:9px;border-top:1px solid '+col[1]+';">' +
+    '<div style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0077a8;margin-bottom:7px;">&#128269; Found on their site</div>' +
+    emails.map(function(e){
+      return '<div style="padding:3px 0;font-size:.82rem;">&#9993;&#65039; <a href="mailto:'+e.address+'" style="color:#0077a8;font-weight:600;">'+e.address+'</a> ' +
+        '<span style="font-size:.68rem;color:'+(kindCol[e.kind]||'#64748b')+';">'+(kindLabel[e.kind]||'')+'</span>' +
+        '<span style="font-size:.68rem;color:#94a3b8;"> \u00b7 ' + shortUrl(e.source) + '</span></div>';
+    }).join('') +
+    phones.map(function(p){
+      return '<div style="padding:3px 0;font-size:.82rem;">&#128222; <a href="tel:'+p.digits+'" style="color:#0077a8;font-weight:600;">'+p.display+'</a>' +
+        '<span style="font-size:.68rem;color:#94a3b8;"> \u00b7 ' + shortUrl(p.source) + '</span></div>';
+    }).join('') +
+    (s.emailPattern ? '<div style="font-size:.74rem;color:#a16207;margin-top:6px;">Confirmed address format on this domain: <strong>'+s.emailPattern+'</strong></div>' : '') +
+    (s.structured && s.structured.address ? '<div style="font-size:.74rem;color:#64748b;margin-top:4px;">&#128205; '+s.structured.address+'</div>' : '') +
+  '</div>';
+}
+
+function renderContact(id, lead, d, scrape){
   var panel = document.getElementById('contact-'+id);
   if(!panel) return;
 
   var contacts = (d.contacts||[]).filter(function(x){ return x && (x.name || x.email || x.phone); });
+
+  // Fold in anything we scraped straight off their site or posting — these are
+  // verified strings from a page, not model output.
+  if(scrape){
+    (scrape.people||[]).forEach(function(p){
+      if(!contacts.some(function(x){ return (x.name||'').toLowerCase() === p.name.toLowerCase(); })){
+        contacts.push({ name:p.name, title:p.title, source:'their website', confidence:'High', _scraped:true });
+      }
+    });
+    // Attach a matching email to a named person where the local part lines up
+    contacts.forEach(function(x){
+      if(x.email || !x.name) return;
+      var parts = x.name.toLowerCase().split(/\s+/);
+      var hit = (scrape.emails||[]).find(function(e){
+        var local = e.address.split('@')[0].toLowerCase();
+        return parts.length > 1 && (local.indexOf(parts[0]) > -1 && local.indexOf(parts[1]) > -1);
+      });
+      if(hit){ x.email = hit.address; x.source = (x.source||'') + ' + address from ' + shortUrl(hit.source); }
+    });
+  }
   var best = contacts[0];
   var conf = ((best && best.confidence) || 'None').toLowerCase();
   var col = conf.indexOf('high') > -1 ? ['#f0fdf4','#bbf7d0','#15803d']
@@ -1016,6 +1072,8 @@ function renderContact(id, lead, d){
     (d.postingNote ? '<div style="font-size:.76rem;color:#2a4a5a;margin-top:7px;line-height:1.6;"><strong>From their posting:</strong> ' + d.postingNote + '</div>' : '') +
     (d.bestApproach ? '<div style="font-size:.78rem;color:'+col[2]+';margin-top:7px;line-height:1.6;"><strong>Best approach:</strong> ' + d.bestApproach + '</div>' : '') +
 
+    scrapedBlock(scrape, col) +
+
     '<div style="margin-top:11px;padding-top:9px;border-top:1px solid '+col[1]+';">' +
       '<div style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:7px;">Public records &amp; manual search</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">' +
@@ -1027,6 +1085,18 @@ function renderContact(id, lead, d){
         }).join('') +
       '</div>' +
     '</div>';
+
+  if(scrape){
+    var bestEmail = (scrape.emails||[])[0];
+    var bestPhone = (scrape.phones||[])[0];
+    if(bestEmail || bestPhone){
+      updateLead(id, {
+        siteEmail: bestEmail ? bestEmail.address : '',
+        sitePhone: bestPhone ? bestPhone.display : '',
+        website: scrape.website || lead.website || ''
+      });
+    }
+  }
 
   if(best && (best.name || best.email || best.phone)){
     var summary = [best.name && best.name + (best.title?' ('+best.title+')':''), best.email, best.phone].filter(Boolean).join(' \u00b7 ');
