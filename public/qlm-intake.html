@@ -490,8 +490,7 @@ header{gap:12px;}
 
 <footer>&#169; 2025 Quality Labor Management, LLC &middot; Guided by Faith, we transform the landscape of employment while building strong communities &middot; myqlm.com</footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>window.QLM_REQUIRE_AUTH = true;</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/qlm-data.js"></script>
 <script>
 // ══ RESUME UPLOAD & AI EXTRACT ══
@@ -1003,7 +1002,7 @@ function submitForm() {
   var ctx = buildCtx(data);
 
   if(window.QLM && QLM.save){
-    QLM.save('candidates', {
+    var _payload = {
       full_name: data.name || null, trade: data.trade || null,
       title: data.title || null, city: data.city || null,
       phone: data.phone || null, email: data.email || null,
@@ -1012,6 +1011,28 @@ function submitForm() {
       skills: (data.skills||[]).map(function(s){ return s.name||s; }),
       certs: (data.certs||[]).map(function(s){ return s.name||s; }),
       source_tool: 'intake'
+    };
+    QLM.getUser().then(function(u){
+      if(u){
+        QLM.save('candidates', _payload);
+      } else if(QLM.client()){
+        // Public applicant — submit through the open application endpoint
+        QLM.client().rpc('submit_application', {
+          p_full_name: _payload.full_name,
+          p_email: _payload.email,
+          p_phone: _payload.phone,
+          p_trade: _payload.trade,
+          p_title: _payload.title,
+          p_city: _payload.city,
+          p_experience: _payload.experience,
+          p_availability: _payload.availability,
+          p_skills: _payload.skills,
+          p_certs: _payload.certs,
+          p_companies: [],
+          p_summary: null,
+          p_brief: null
+        });
+      }
     });
   }
   qlmLog('intake', {
@@ -1099,5 +1120,23 @@ function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 </script>
 <script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
+<script>
+window.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    if(!window.QLM || !QLM.getUser) return;
+    QLM.getUser().then(function(u){
+      if(u) return;   // signed-in recruiter keeps full navigation
+      document.querySelectorAll('.tool-nav a, #qlm-auth').forEach(function(el){ el.style.display = 'none'; });
+      var nav = document.querySelector('.tool-nav');
+      if(nav){
+        var tag = document.createElement('span');
+        tag.style.cssText = 'font-size:.68rem;letter-spacing:1.5px;color:#b8dff0;text-transform:uppercase;';
+        tag.textContent = 'Employment Application';
+        nav.appendChild(tag);
+      }
+    });
+  }, 250);
+});
+</script>
 </body>
 </html>
