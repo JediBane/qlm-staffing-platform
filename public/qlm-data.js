@@ -62,7 +62,10 @@
     if (!init()) throw new Error('Auth unavailable');
     var res = await sb.auth.signUp({
       email: email, password: password,
-      options: { data: { full_name: fullName || email } }
+      options: {
+        data: { full_name: fullName || email },
+        emailRedirectTo: location.origin + '/qlm-candidates.html'
+      }
     });
     if (res.error) throw new Error(res.error.message);
     return res.data.user;
