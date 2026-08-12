@@ -792,6 +792,13 @@ function runSearch(){
   var trades = selectedTrades.join(', ');
 
   document.getElementById('search-btn').disabled = true;
+  var _failSafe = setTimeout(function(){
+    var b = document.getElementById('search-btn');
+    if(b && b.disabled){
+      b.disabled = false;
+      showSt('searchStatus','error','That took too long. Try again, or narrow the market.');
+    }
+  }, 45000);
   showSt('searchStatus','loading','Searching live job boards — takes 15-30 seconds...');
   document.getElementById('leads-container').innerHTML = shimCards(3);
   document.getElementById('res-title').textContent = 'Searching live job boards...';
@@ -808,7 +815,9 @@ function runSearch(){
   var angle = angleSel === 'auto' ? nextAngle() : (angleById(angleSel) || SEARCH_ANGLES[0]);
 
   // Everything we have already shown or saved is off the table
-  var savedNames = leads.filter(function(l){ return l.savedAt; }).map(function(l){ return l.company; });
+  var savedNames = (function(){
+    try { return getStore().map(function(l){ return l.company; }); } catch(e) { return []; }
+  })();
   var avoid = excludeList.concat(seenCompanies(), savedNames).filter(function(v,i,a){ return v && a.indexOf(v) === i; });
   var avoidNote = avoid.length
     ? 'ALREADY KNOWN — do not return any of these, find different companies:\n' + avoid.slice(-60).join(', ') + '\n\n'
@@ -934,6 +943,8 @@ function runSearch(){
       return Object.assign({id:'lead_'+Date.now()+'_'+i, status:'new', savedAt:null, notes:'', reminderDate:'', isDuplicate:isDup}, l);
     });
 
+    try { rememberCompanies(currentLeads.map(function(l){ return l.company; })); updateSeenCount(); } catch(e) {}
+
     renderLeads(currentLeads);
     document.getElementById('res-title').textContent = leads.length + ' Leads Found';
     document.getElementById('res-meta').textContent = trades + ' \u00b7 ' + loc + ' \u00b7 ' + new Date().toLocaleDateString();
@@ -955,7 +966,7 @@ function runSearch(){
     document.getElementById('leads-container').innerHTML = '<div class="empty"><div class="empty-icon">&#9888;&#65039;</div><p>'+msg+'</p></div>';
     document.getElementById('res-title').textContent = 'Search failed — try again';
   })
-  .finally(function(){ document.getElementById('search-btn').disabled = false; });
+  .finally(function(){ clearTimeout(_failSafe); document.getElementById('search-btn').disabled = false; });
 }
 
 // ═══════ SOURCE TRACKING ═══════
