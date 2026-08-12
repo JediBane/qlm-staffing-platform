@@ -50,6 +50,7 @@ header{background:var(--navy);padding:0 20px;display:flex;align-items:center;jus
 .pill.blue{background:var(--blue-lt);border-color:var(--mid);color:var(--blue-md);}
 .pill.green{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
 .pill.amber{background:#fefce8;border-color:#fde68a;color:#a16207;}
+.pill.amber{background:#fefce8;border-color:#fde68a;color:#a16207;}
 .pill.purple{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9;}
 .c-line{font-size:.78rem;color:#64748b;display:flex;align-items:center;gap:5px;margin-top:3px;}
 .c-foot{display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:10px;border-top:1px solid #f1f5f9;}
@@ -140,6 +141,15 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
 <script src="/qlm-data.js"></script>
 <script>
 var CANDIDATES = [], ASSESSMENTS = [], FILTER = 'all';
+var TRADE_LABEL = {
+  electrician:'Electrician', plumber:'Plumber / Pipefitter', welder:'Welder',
+  hvac:'HVAC Technician', carpenter:'Carpenter / Framing', concrete:'Concrete / Formwork',
+  operator:'Heavy Equipment Operator', foreman:'Foreman / Superintendent',
+  solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)', ironworker:'Ironworker',
+  painter:'Painter / Coatings', instrumentation:'Instrumentation Technician',
+  general_labor:'General Labor', skilled_labor:'Skilled Labor',
+  display_tech:'Display / Electronics Technician'
+};
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function initials(n){
@@ -174,6 +184,31 @@ async function load(){
     var res = await Promise.all([ QLM.list('candidates'), QLM.list('assessments') ]);
     CANDIDATES = res[0] || [];
     ASSESSMENTS = res[1] || [];
+
+    // Anyone who only took an assessment still belongs in the roster
+    var known = {};
+    CANDIDATES.forEach(function(c){
+      var n = (c.full_name||'').trim().toLowerCase();
+      if(n) known[n] = true;
+    });
+    var seen = {};
+    ASSESSMENTS.forEach(function(a){
+      var nm = (a.candidate_name||'').trim();
+      var key = nm.toLowerCase();
+      if(!nm || known[key] || seen[key]) return;
+      seen[key] = true;
+      CANDIDATES.push({
+        id: 'asmt_' + a.id,
+        full_name: nm,
+        trade: a.trade,
+        title: (TRADE_LABEL[a.trade] || a.trade || '').replace(/_/g,' ').replace(/\b\w/g, function(m){ return m.toUpperCase(); }),
+        experience: a.level || null,
+        skills: [], certs: [], companies: [],
+        source_tool: 'assessment',
+        created_at: a.created_at,
+        _assessmentOnly: true
+      });
+    });
     document.getElementById('src-note').textContent = '\u2601 Team database \u00b7 ' + CANDIDATES.length + ' candidate' + (CANDIDATES.length===1?'':'s') + ' \u00b7 live from cloud';
     renderStats();
     applyFilters();
@@ -192,6 +227,7 @@ function assessmentFor(c){
 function renderStats(){
   var intake = CANDIDATES.filter(function(c){ return c.source_tool==='intake'; }).length;
   var cards  = CANDIDATES.filter(function(c){ return c.source_tool==='talent_card'; }).length;
+  var asmtOnly = CANDIDATES.filter(function(c){ return c.source_tool==='assessment'; }).length;
   var assessed = CANDIDATES.filter(function(c){ return !!assessmentFor(c); }).length;
   var trades = {};
   CANDIDATES.forEach(function(c){ if(c.trade) trades[c.trade] = (trades[c.trade]||0)+1; });
@@ -201,6 +237,7 @@ function renderStats(){
     '<div class="stat"><div class="stat-n">'+CANDIDATES.length+'</div><div class="stat-l">Total Candidates</div></div>' +
     '<div class="stat"><div class="stat-n">'+intake+'</div><div class="stat-l">From Intake</div></div>' +
     '<div class="stat"><div class="stat-n">'+cards+'</div><div class="stat-l">Talent Cards</div></div>' +
+    '<div class="stat"><div class="stat-n">'+asmtOnly+'</div><div class="stat-l">Assessment Only</div></div>' +
     '<div class="stat"><div class="stat-n">'+assessed+'</div><div class="stat-l">Assessed</div></div>' +
     '<div class="stat"><div class="stat-n" style="font-size:1.05rem;padding-top:6px;">'+(topTrade?esc(topTrade[0]):'\u2014')+'</div><div class="stat-l">Top Trade</div></div>';
 }
@@ -239,6 +276,8 @@ function render(rows){
     var a = assessmentFor(c);
     var srcPill = c.source_tool==='intake'
       ? '<span class="pill purple">&#128203; Intake</span>'
+      : c.source_tool==='assessment'
+      ? '<span class="pill amber">&#9889; Assessment Only</span>'
       : '<span class="pill blue">&#128196; Talent Card</span>';
     var scoreChip = '';
     if(a && a.score != null){
@@ -303,7 +342,7 @@ function openCandidate(i){
     (c.recruiter_brief ? '<div class="m-sec">Recruiter Brief</div><div style="font-size:.87rem;line-height:1.75;white-space:pre-wrap;">'+esc(c.recruiter_brief)+'</div>' : '') +
 
     '<div class="m-sec">Record</div>' +
-    row('Source', c.source_tool==='intake' ? 'Candidate Intake' : 'Talent Card') +
+    row('Source', c.source_tool==='intake' ? 'Candidate Intake' : c.source_tool==='assessment' ? 'Skills Assessment (no profile yet)' : 'Talent Card') +
     row('Added', fmtDate(c.created_at));
 
   document.getElementById('m-body').innerHTML = body;
