@@ -1223,6 +1223,7 @@ function startAssessment() {
   answers = questions.map(function(){ return null; });
   currentQ = 0;
   integrityStart();
+  window._runSaved = false;   // one save per assessment run
   loadThresholds(selectedTrade, window._testLevel || 'all');
   if (TEST_LANG === 'es') {
     document.getElementById('prog-text').textContent = 'Preparando su evaluación...';
@@ -3193,6 +3194,7 @@ function viewHistoryRecord(idx) {
   if (r.parsedResults) {
     restoreResults(r.parsedResults, r.score, r.verdict);
   } else if (r.fullText) {
+    window._runSaved = true;   // replay only, do not re-save
     parseAndRenderResults(r.fullText);
   } else {
     document.getElementById('r-analysis').textContent = 'Full report not available for this record.';
@@ -3698,6 +3700,13 @@ parseAndRenderResults = function(text) {
         qHtml: document.getElementById('r-qreview').innerHTML
       }
     };
+    if (window._runSaved) {
+      // Re-rendering a stored report (History view) — never save again
+      updatePrintMeta();
+      return;
+    }
+    window._runSaved = true;
+
     saveToHistory(record);
     updatePrintMeta();
     if (INVITE_TOKEN) {
