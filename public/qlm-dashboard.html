@@ -276,8 +276,18 @@ async function render(){
           QLM.list('activity', null, {limit:100}), QLM.list('candidates')
         ]);
         assessments = results[0].map(function(a){
-          return { candidate:a.candidate_name, trade:a.trade, score:a.score,
-                   verdict:a.verdict, recruiter:a.recruiter, date:a.created_at };
+          var nm = (a.candidate_name||'').trim();
+          var sp = nm.indexOf(' ');
+          return {
+            firstName: sp > -1 ? nm.slice(0, sp) : nm,
+            lastName:  sp > -1 ? nm.slice(sp + 1) : '',
+            candidate: nm,
+            trade: a.trade, score: a.score, verdict: a.verdict,
+            recruiter: a.recruiter,
+            date: a.created_at ? new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '',
+            fullText: a.ai_analysis || null,
+            _cloud: true
+          };
         });
         leads = results[1].map(function(l){
           return { company:l.company, trades:l.trades, location:l.location,
@@ -407,7 +417,9 @@ function renderVerdictChart(assessments){
 }
 
 // ─── ASSESSMENT TABLE ─────────────────────────────────────────────────────
+var _renderedAssessments = [];
 function renderAssessTable(assessments){
+  _renderedAssessments = assessments;
   var tbody = document.getElementById('assess-tbody');
   document.getElementById('assess-count').textContent = assessments.length + ' records';
   if(!assessments.length){
@@ -418,7 +430,7 @@ function renderAssessTable(assessments){
     var vc = (a.verdict||'').toLowerCase().includes('fail') ? 'v-fail' : (a.verdict||'').toLowerCase().includes('pass') ? 'v-pass' : 'v-review';
     var sc = (a.score||0) >= 75 ? '#15803d' : (a.score||0) >= 55 ? '#a16207' : '#b91c1c';
     return '<tr>' +
-      '<td style="font-weight:600;">'+(a.firstName||'')+' '+(a.lastName||'')+'</td>' +
+      '<td style="font-weight:600;">'+(((a.firstName||'')+' '+(a.lastName||'')).trim() || a.candidate || '\u2014')+'</td>' +
       '<td>'+(a.trade||'')+'</td>' +
       '<td><span class="score-pill" style="color:'+sc+'">'+(a.score||'—')+'</span></td>' +
       '<td><span class="verdict-badge '+vc+'">'+(a.verdict||'—')+'</span></td>' +
@@ -454,13 +466,10 @@ function renderLeadsTable(leads){
 
 // ─── VIEW ASSESSMENT DETAIL ───────────────────────────────────────────────
 function viewAssessment(btn){
-  var assessments = filterByDate(getAssessments(), dateFilter);
-  if(currentView==='recruiter' && selectedRecruiter!=='all'){
-    assessments = assessments.filter(function(a){ return a.recruiter===selectedRecruiter; });
-  }
   var idx = parseInt(btn.getAttribute('data-idx'));
-  var a = assessments[idx];
-  if(!a || !a.fullText) return alert('Full report not available for this record.');
+  var a = _renderedAssessments[idx];
+  if(!a) return alert('Record not found.');
+  if(!a.fullText) return alert('The full write-up is not stored for this record. Score, verdict, and candidate details are shown in the table.');
   var win = window.open('','_blank');
   win.document.write('<html><head><title>Assessment Report</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#2a4a5a;line-height:1.7;}h1{color:#003a52;}pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:.85rem;}</style></head><body>');
   win.document.write('<h1>'+a.firstName+' '+a.lastName+' &mdash; '+a.trade+'</h1>');
