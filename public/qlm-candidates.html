@@ -368,7 +368,7 @@ function openCandidate(i){
   if(c.phone) acts.push('<a class="m-btn" href="tel:'+esc(c.phone)+'">&#128222; Call</a>');
   if(c.phone) acts.push('<a class="m-btn" href="sms:'+esc(c.phone)+'">&#128241; Text</a>');
   if(c.email) acts.push('<a class="m-btn" href="mailto:'+esc(c.email)+'">&#9993;&#65039; Email</a>');
-  if(!a) acts.push('<a class="m-btn" href="/qlm-trades-assessment.html">&#9889; Send Assessment</a>');
+  acts.push('<a class="m-btn" href="'+assessmentLinkFor(c)+'">&#9889; '+(a ? 'Re-assess' : 'Send Assessment')+'</a>');
   acts.push('<button class="m-btn" onclick="closeModal()">Close</button>');
   document.getElementById('m-actions').innerHTML = acts.join('');
 
@@ -588,6 +588,23 @@ function viewCandidateReport(i){
     date: fmtDate(a.created_at),
     fullText: a.ai_analysis
   });
+}
+
+
+function assessmentLinkFor(c){
+  var p = new URLSearchParams();
+  p.set('cand','1');
+  var nm = (c.full_name||'').trim();
+  var sp = nm.indexOf(' ');
+  p.set('fname', sp > -1 ? nm.slice(0, sp) : nm);
+  if(sp > -1) p.set('lname', nm.slice(sp + 1));
+  if(c.email) p.set('email', c.email);
+  if(c.phone) p.set('phone', c.phone);
+  if(c.experience) p.set('level', c.experience);
+  if((c.certs||[]).length) p.set('certs', c.certs.join(', '));
+  // Only preselect a trade when it maps to a real assessment
+  if(c.trade && TRADE_LABEL[c.trade]) p.set('trade', c.trade);
+  return '/qlm-trades-assessment.html?' + p.toString();
 }
 
 function candidateToParams(c){
