@@ -273,8 +273,14 @@ header{gap:12px;}
     <div class="pcard">
       <div class="pcard-title">&#128269; Search Parameters</div>
       <div class="fl">
-        <label>Location / Market</label>
+        <label>Search By</label>
+        <div style="display:flex;gap:6px;margin-bottom:7px;">
+          <button type="button" id="mode-market" onclick="setSearchMode('market')" style="flex:1;padding:6px 10px;border-radius:7px;font-size:.72rem;font-weight:600;border:1.5px solid #0099d8;background:#0099d8;color:#fff;cursor:pointer;font-family:inherit;">City / Region</button>
+          <button type="button" id="mode-zip" onclick="setSearchMode('zip')" style="flex:1;padding:6px 10px;border-radius:7px;font-size:.72rem;font-weight:600;border:1.5px solid #b8dff0;background:#fff;color:#64748b;cursor:pointer;font-family:inherit;">ZIP Code</button>
+        </div>
         <input type="text" id="s-loc" placeholder="e.g. Tampa, FL or Brevard County" value="Florida">
+        <input type="text" id="s-zip" inputmode="numeric" placeholder="e.g. 32937 or 32937, 32901, 32780" style="display:none;">
+        <div id="zip-hint" style="font-size:.7rem;color:#94a3b8;line-height:1.5;margin-top:4px;display:none;">Enter one or several ZIPs separated by commas. Combine with a radius to cover the surrounding area.</div>
       </div>
       <div class="fl">
         <label>Radius (optional)</label>
@@ -302,8 +308,21 @@ header{gap:12px;}
           <span class="ttag" onclick="toggleTrade(this,'Foreman')">Foreman</span>
         </div>
       </div>
-      <div class="fl"><label>Project Type</label>
-        <select id="s-proj"><option value="">All types</option><option>Commercial Construction</option><option>Industrial / Manufacturing</option><option>Infrastructure / Civil</option><option>Oil and Gas / Petrochemical</option><option>Data Center / Tech</option><option>Healthcare / Institutional</option></select>
+      <div class="fl"><label>Company Type</label>
+        <select id="s-proj">
+          <option value="">All company types</option>
+          <option>General Contractor</option>
+          <option>Specialty / Trade Subcontractor</option>
+          <option>Mechanical / Electrical / Plumbing</option>
+          <option>Industrial &amp; Manufacturing</option>
+          <option>Civil / Heavy Highway</option>
+          <option>Utility Solar / Energy</option>
+          <option>Marine / Shipyard</option>
+          <option>Data Center / Mission Critical</option>
+          <option>Healthcare / Institutional</option>
+          <option>Oil and Gas / Petrochemical</option>
+          <option>Facilities / Maintenance</option>
+        </select>
       </div>
       <div class="fl"><label>Company Size</label>
         <select id="s-size"><option value="">Any size</option><option>Small (1-50 employees)</option><option>Mid-size (50-500 employees)</option><option>Large (500+ employees)</option><option>GC / Prime Contractor</option><option>Subcontractor</option></select>
@@ -679,6 +698,26 @@ var SEARCH_ANGLES = [
   }
 ];
 
+var SEARCH_MODE = 'market';
+
+function setSearchMode(m){
+  SEARCH_MODE = m;
+  var mk = document.getElementById('mode-market'), zp = document.getElementById('mode-zip');
+  var on = 'border:1.5px solid #0099d8;background:#0099d8;color:#fff;';
+  var off = 'border:1.5px solid #b8dff0;background:#fff;color:#64748b;';
+  var base = 'flex:1;padding:6px 10px;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;';
+  mk.style.cssText = base + (m === 'market' ? on : off);
+  zp.style.cssText = base + (m === 'zip' ? on : off);
+  document.getElementById('s-loc').style.display = m === 'market' ? '' : 'none';
+  document.getElementById('s-zip').style.display = m === 'zip' ? '' : 'none';
+  document.getElementById('zip-hint').style.display = m === 'zip' ? 'block' : 'none';
+}
+
+function zipList(){
+  var raw = (document.getElementById('s-zip')||{}).value || '';
+  return raw.split(/[^0-9]+/).filter(function(z){ return /^\d{5}$/.test(z); });
+}
+
 function describeAngle(){
   var v = (document.getElementById('s-angle')||{}).value || 'auto';
   var el = document.getElementById('angle-hint');
@@ -755,13 +794,15 @@ function saveCurrentSearch(){
   var name = prompt('Name this search:', document.getElementById('s-loc').value + ' - ' + selectedTrades.slice(0,2).join('/'));
   if(!name) return;
   var searches = getSavedSearches();
-  searches.push({ name:name, loc:document.getElementById('s-loc').value, trades:selectedTrades.slice(), proj:document.getElementById('s-proj').value, size:document.getElementById('s-size').value, count:document.getElementById('s-count').value });
+  searches.push({ name:name, loc:document.getElementById('s-loc').value, zip:(document.getElementById('s-zip')||{}).value||'', mode:SEARCH_MODE, trades:selectedTrades.slice(), proj:document.getElementById('s-proj').value, size:document.getElementById('s-size').value, count:document.getElementById('s-count').value });
   localStorage.setItem('qlm_saved_searches', JSON.stringify(searches));
   renderSavedSearches();
 }
 function loadSavedSearch(s){
   document.getElementById('s-loc').value = s.loc;
   document.getElementById('s-proj').value = s.proj || '';
+  if(document.getElementById('s-zip')) document.getElementById('s-zip').value = s.zip || '';
+  setSearchMode(s.mode || 'market');
   document.getElementById('s-size').value = s.size || '';
   document.getElementById('s-count').value = s.count || '15';
   selectedTrades = s.trades.slice();
@@ -784,7 +825,14 @@ function renderSavedSearches(){
 // ═══════ MAIN SEARCH ═══════
 function runSearch(){
   if(!selectedTrades.length){ alert('Select at least one trade.'); return; }
-  var loc = document.getElementById('s-loc').value.trim()||'Florida';
+  var zips = (typeof SEARCH_MODE !== 'undefined' && SEARCH_MODE === 'zip') ? zipList() : [];
+  if(SEARCH_MODE === 'zip' && !zips.length){
+    alert('Enter at least one 5-digit ZIP code.');
+    return;
+  }
+  var loc = zips.length
+    ? 'ZIP ' + zips.join(', ')
+    : (document.getElementById('s-loc').value.trim() || 'Florida');
   var radius = document.getElementById('s-radius').value;
   var proj = document.getElementById('s-proj').value;
   var size = document.getElementById('s-size').value;
@@ -830,14 +878,22 @@ function runSearch(){
 
   document.getElementById('res-meta').textContent = 'Searching: ' + angle.label + ' \u00b7 ' + locationStr;
 
+  var zipNote = zips.length
+    ? 'The market is defined by ZIP code' + (zips.length > 1 ? 's' : '') + ': ' + zips.join(', ') + '.\n' +
+      'First work out which cities and counties these ZIP codes cover, then search those place names \u2014 ' +
+      'contractors advertise by city, not by ZIP. Include companies headquartered nearby that regularly work in these ZIPs.\n' +
+      'In the location field of each result, return the city and state, not the ZIP.\n\n'
+    : '';
+
   var prompt = 'You are a business development researcher for QLM (Quality Labor Management), a skilled trades staffing company.\n\n' +
     'GOAL: find companies in ' + locationStr + ' that need ' + trades + ' workers.\n' +
+    zipNote +
     'Emphasise the ' + focusCity + ' area but include the surrounding market.\n\n' +
     avoidNote +
     angle.build(trades, focusCity) + '\n\n' +
     'Aggregators like Indeed and ZipRecruiter often block automated access. That is expected and is NOT a reason to stop \u2014 work from the search snippets and from company, news, and public agency pages.\n\n' +
     'Target up to ' + count + ' companies. Fewer is fine. Prefer companies you can point to a specific reason for: a posting, a permit, an award, an announcement.\n' +
-    (proj ? 'Prefer project types: ' + proj + '\n' : '') +
+    (proj ? 'Company type to prioritise: ' + proj + '. Return companies that are this kind of business.\n' : '') +
     (size ? 'Prefer company size: ' + size + '\n' : '') +
     '\nReturn ONLY this JSON array with NO other text before or after it:\n' +
     '[{"company":"Exact Company Name","location":"City, State","trades":["Trade1"],"jobCount":3,"source":"where you found them","postingDate":"3 days ago","contactSignal":"","projectType":"Commercial","companySize":"GC","urgency":"High","qlmFitScore":82,"fitReason":"One sentence why QLM fits","summary":"What they are doing and why they need people","competitorSignal":"Direct hire only","jobUrl":"https://...","signal":"the specific evidence: the permit, award, posting or announcement"}]\n\n' +
@@ -1058,7 +1114,7 @@ function showScoreBreakdown(id){
     {label:'Workforce Need', val:sb.workforceNeed||0, max:30},
     {label:'Trade Match', val:sb.tradeMatch||0, max:25},
     {label:'Urgency', val:sb.urgency||0, max:25},
-    {label:'Project Type', val:sb.projectType||0, max:20},
+    {label:'Company Type', val:sb.projectType||0, max:20},
   ];
   document.getElementById('sm-breakdown').innerHTML = rows.map(function(r){
     return '<div class="sb-row"><span class="sb-label">'+r.label+' (max '+r.max+')</span><div class="sb-bar-wrap"><div class="sb-bar" style="width:'+Math.round(r.val/r.max*100)+'%"></div></div><span class="sb-val">'+r.val+'</span></div>';
@@ -1307,7 +1363,7 @@ function generateEmail(id){
   var persLevel = PERS_LABELS[parseInt(document.getElementById('pers-slider').value)-1];
   var recruiter = document.getElementById('recruiter-name').value || 'Your QLM Recruiter';
   var prompt = 'Write a 3-touch outreach email sequence + SMS for a construction staffing company reaching out to a company hiring skilled trades workers. Sign emails as: ' + recruiter + ', QLM.\n\n' +
-    'Company: '+lead.company+'\nLocation: '+(lead.location||'')+'\nTrades needed: '+(lead.trades||[]).join(', ')+'\nProject type: '+(lead.projectType||'commercial')+'\nContext: '+lead.summary+'\nContact: '+(lead.contactSignal||'unknown')+'\n\n' +
+    'Company: '+lead.company+'\nLocation: '+(lead.location||'')+'\nTrades needed: '+(lead.trades||[]).join(', ')+'\nCompany type: '+(lead.projectType||'commercial')+'\nContext: '+lead.summary+'\nContact: '+(lead.contactSignal||'unknown')+'\n\n' +
     'Personalization level: ' + persLevel + '\n\n' +
     'QLM value prop: Pre-screened skilled trades workers with safety certs and skills assessments. Fast placement on commercial and industrial job sites in Florida.\n\n' +
     'Return ONLY raw JSON (no markdown):\n{"email1":{"subject":"","body":""},"email2":{"subject":"Day 3 follow-up subject","body":"Short 100-word follow-up"},"email3":{"subject":"Day 7 value-add subject","body":"Value-add email with a tip or resource"},"sms":"160 char max SMS"}\n\nNo apostrophes in values. Raw JSON only.';
@@ -1557,7 +1613,7 @@ function updateStats(){
 function exportCSV(){
   var leads = currentLeads.length ? currentLeads : getStore();
   if(!leads.length){ alert('No leads to export.'); return; }
-  var hdrs = ['Company','Location','Trades','Job Count','Source','Posting Date','Project Type','Company Size','Urgency','QLM Fit Score','Contact','Summary','Competitor Signal','Status','Notes','Reminder Date','Job URL'];
+  var hdrs = ['Company','Location','Trades','Job Count','Source','Posting Date','Company Type','Company Size','Urgency','QLM Fit Score','Contact','Summary','Competitor Signal','Status','Notes','Reminder Date','Job URL'];
   var rows = leads.map(function(l){
     return [l.company,l.location,(l.trades||[]).join(';'),l.jobCount,l.source,l.postingDate,l.projectType,l.companySize,l.urgency,l.qlmFitScore,l.contactSignal,(l.summary||'').replace(/,/g,' '),l.competitorSignal,l.status,l.notes,l.reminderDate,l.jobUrl||''].map(function(v){ return '"'+(v||'')+'"'; }).join(',');
   });
