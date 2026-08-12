@@ -9,6 +9,21 @@ export async function handler(event) {
   };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+
+  if (event.httpMethod === 'GET') {
+    const k = process.env.ANTHROPIC_KEY || '';
+    return {
+      statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ok: true,
+        anthropicKeyConfigured: !!k,
+        keyLength: k.length,
+        keyPrefix: k ? k.slice(0, 7) : null,
+        node: process.version,
+      }),
+    };
+  }
+
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
 
   const key = process.env.ANTHROPIC_KEY;
@@ -48,8 +63,18 @@ export async function handler(event) {
     });
 
     const data = await resp.json();
-    if (data.error) {
-      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: data.error }) };
+    if (!resp.ok || data.error) {
+      return {
+        statusCode: 200,
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: {
+            message: (data.error && (data.error.message || data.error.type)) ||
+                     ('Anthropic API returned HTTP ' + resp.status),
+            status: resp.status,
+          },
+        }),
+      };
     }
 
     let text = (data.content || [])
@@ -96,8 +121,9 @@ export async function handler(event) {
     };
   } catch (e) {
     return {
-      statusCode: 500, headers: CORS,
-      body: JSON.stringify({ error: { message: e.message } })
+      statusCode: 200,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: { message: 'Function error: ' + e.message } })
     };
   }
 }
