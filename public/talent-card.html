@@ -881,6 +881,34 @@ function resetAll() {
 function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 </script>
-<script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
+<script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });
+// ── PREFILL FROM CANDIDATE DATABASE (?prefill=...) ──
+function applyPrefill(){
+  var p = new URLSearchParams(location.search);
+  if(!p.get('prefill')) return;
+  function set(id, v){ var el = document.getElementById(id); if(el && v) el.value = v; }
+  set('f_name',  p.get('name'));
+  set('f_title', p.get('title'));
+  set('f_exp',   p.get('exp'));
+  set('f_city',  p.get('city'));
+  set('f_phone', p.get('phone'));
+  var av = document.getElementById('f_avail');
+  if(av && p.get('avail')){
+    for(var i=0;i<av.options.length;i++){
+      if(av.options[i].value === p.get('avail')){ av.selectedIndex = i; break; }
+    }
+  }
+  (p.get('skills')||'').split('|').filter(Boolean).forEach(function(s){ addTag(s,'skillsWrap','skillInp'); });
+  (p.get('certs')||'').split('|').filter(Boolean).forEach(function(s){ addTag(s,'certsWrap','certInp'); });
+  (p.get('companies')||'').split('|').filter(Boolean).forEach(function(s){ addTag(s,'companiesWrap','compInp'); });
+  var note = document.createElement('div');
+  note.style.cssText='background:#e0f4fc;border:1px solid #b8dff0;border-radius:8px;padding:10px 13px;font-size:.8rem;color:#003a52;margin-bottom:12px;';
+  note.innerHTML='&#128101; Pre-filled from the candidate database. Review, then click <strong>Generate Talent Card</strong>.';
+  var form = document.getElementById('f_name');
+  if(form && form.closest('.field')) form.closest('.field').parentNode.insertBefore(note, form.closest('.field'));
+}
+window.addEventListener('DOMContentLoaded', function(){ setTimeout(applyPrefill, 250); });
+
+</script>
 </body>
 </html>
