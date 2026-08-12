@@ -593,6 +593,13 @@ function viewCandidateReport(i){
 function candidateToParams(c){
   var p = new URLSearchParams();
   p.set('prefill','1');
+  var _a = assessmentFor(c);
+  if(_a){
+    if(_a.score != null) p.set('score', _a.score);
+    if(_a.verdict) p.set('verdict', _a.verdict);
+    if(_a.trade) p.set('tested', TRADE_LABEL[_a.trade] || _a.trade);
+  }
+  if(c.experience) p.set('level', c.experience);
   if(c.full_name) p.set('name', c.full_name);
   if(c.title || c.trade) p.set('title', c.title || c.trade);
   if(c.experience) p.set('exp', c.experience);
