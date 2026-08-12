@@ -334,6 +334,11 @@ header{gap:12px;}
       <div class="trade-name">Skilled Labor</div>
       <div class="trade-sub">Multi-Trade / Industrial</div>
     </div>
+    <div class="trade-card" onclick="selectTrade('display_tech')" id="t-display_tech">
+      <div class="trade-icon">&#128250;</div>
+      <div class="trade-name">Display / Electronics Tech</div>
+      <div class="trade-sub">Flat Panel / Digital Signage</div>
+    </div>
     <div class="trade-card" onclick="selectTrade('electrician')" id="t-electrician">
       <div class="trade-icon">⚡</div>
       <div class="trade-name">Electrician</div>
@@ -1653,7 +1658,8 @@ var TRADE_LABELS = {
   operator:'Heavy Equipment Operator', foreman:'Foreman / Superintendent',
   solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)',
   ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician',
-  general_labor:'General Labor', skilled_labor:'Skilled Labor'
+  general_labor:'General Labor', skilled_labor:'Skilled Labor',
+  display_tech:'Display / Electronics Technician'
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1664,6 +1670,119 @@ var TRADE_LABELS = {
 //  GENERAL LABOR & SKILLED LABOR
 //  Commercial / Industrial construction — cross-trade assessments
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  DISPLAY / ELECTRONIC ASSEMBLY TECHNICIAN
+//  Commercial flat panel displays, digital menu boards, LED/LCD
+// ═══════════════════════════════════════════════════════════════
+var DISPLAY_QUESTIONS = {
+
+display_tech: [
+  // ── EASY ──
+  { id:'d-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'Before opening the back of any flat panel display, you must:',
+    choices:['Wear gloves','Unplug it and allow time for capacitors to discharge','Turn the brightness down','Remove the stand'],
+    correct:1, explain:'Power supply capacitors hold a dangerous charge after unplugging. Always disconnect and allow discharge.' },
+  { id:'d-x2', cat:'technical', diff:'easy', type:'mc',
+    q:'An ESD wrist strap is worn to:',
+    choices:['Keep your hands clean','Prevent static discharge from damaging sensitive components','Ground the display chassis','Reduce fatigue'],
+    correct:1, explain:'Static discharge you cannot feel will destroy driver ICs and boards.' },
+  { id:'d-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'A commercial digital menu board differs from a consumer TV primarily in that it is:',
+    choices:['Cheaper','Rated for extended or continuous operation with higher brightness','Always smaller','Battery powered'],
+    correct:1, explain:'Commercial panels are rated for 16 to 24 hour duty cycles and higher nit output for visibility.' },
+  { id:'d-x4', cat:'safety', diff:'easy', type:'mc',
+    q:'When handling a large flat panel display, the correct method is:',
+    choices:['Carry it flat under one arm','Two people carrying it vertically by the edges, never pressing on the screen','Lay it face down on any surface','Carry it by the top bezel alone'],
+    correct:1, explain:'Panels flex and crack. Vertical two-person handling with no face pressure is standard.' },
+
+  // ── MID ──
+  { id:'d-1', cat:'technical', diff:'mid', type:'mc',
+    q:'A display shows a spiderweb or star pattern radiating from a point on the screen. This indicates:',
+    choices:['A failed T-CON board','Physical damage to the LCD panel itself — not repairable','A loose ribbon cable','Bad firmware'],
+    correct:1, explain:'Radiating cracks mean the glass substrate is broken. The panel must be replaced, not repaired.' },
+  { id:'d-2', cat:'technical', diff:'mid', type:'mc',
+    q:'A display has audio and the power LED is on, but the screen is completely black. Shining a flashlight at an angle reveals a faint image. This indicates:',
+    choices:['Failed main board','Backlight failure — the panel is working but not illuminated','Cracked panel','Bad input cable'],
+    correct:1, explain:'A visible image under flashlight means the LCD is driving correctly and the LED backlight or its driver has failed.' },
+  { id:'d-3', cat:'technical', diff:'mid', type:'mc',
+    q:'Vertical colored lines running the full height of the screen most commonly indicate:',
+    choices:['Bad HDMI cable','A source resolution problem','Failed column driver or a loose panel ribbon connection','Backlight failure'],
+    correct:2, explain:'Full-height lines point to the column drivers along the panel edge or the ribbon bonding to them.' },
+  { id:'d-4', cat:'safety', diff:'mid', type:'mc',
+    q:'The inverter or LED driver section of a display power supply can carry:',
+    choices:['Low voltage only','Several hundred volts, dangerous even after power is removed','No hazard','Only DC at 12V'],
+    correct:1, explain:'Backlight drivers produce high voltage and the caps retain charge. Treat as live until verified.' },
+  { id:'d-5', cat:'technical', diff:'mid', type:'mc',
+    q:'When reseating an LVDS ribbon cable between the T-CON and main board, you must:',
+    choices:['Pull it straight out with pliers','Release the connector latch, handle only by the reinforced edge, and reseat fully square','Clean it with alcohol first','Bend it to improve contact'],
+    correct:1, explain:'Ribbon conductors are fragile. Forcing or angling the cable damages the connector and traces.' },
+  { id:'d-6', cat:'technical', diff:'mid', type:'mc',
+    q:'A menu board display shows correct content but the colors are inverted or washed out on one section only. The likely cause is:',
+    choices:['Media player failure','A localized panel or driver problem, not the source','Wrong aspect ratio','Network outage'],
+    correct:1, explain:'Source problems affect the whole screen. Localized defects point to the panel or its drivers.' },
+  { id:'d-7', cat:'scenario', diff:'mid', type:'open',
+    q:'A restaurant reports their menu board goes black intermittently, sometimes for hours, then works again. Describe how you would diagnose this.' },
+
+  // ── HARD ──
+  { id:'d-8', cat:'technical', diff:'hard', type:'mc',
+    q:'A shipment of commercial displays arrives and one shows no visible carton damage, but the screen is cracked. The correct action is:',
+    choices:['Discard the box and file a claim','Retain all packaging, photograph the carton, packing material, and panel, and document before removal','Install it anyway','Return it without documentation'],
+    correct:1, explain:'Concealed damage claims require the original packaging and photo evidence. Discarding the carton usually voids the claim.' },
+  { id:'d-9', cat:'trap', diff:'hard', type:'mc',
+    q:'A technician says: "A cracked LCD panel can be repaired if the crack is small." This is:',
+    choices:['Correct for small cracks','Incorrect — the panel is a sealed assembly and any glass damage requires panel or unit replacement','Correct with adhesive','Correct on LED panels only'],
+    correct:1, explain:'LCD panels are bonded glass assemblies with liquid crystal between layers. Cracks are not repairable.' },
+  { id:'d-10', cat:'technical', diff:'hard', type:'mc',
+    q:'On a display with an LED backlight, one dark band across the bottom third of an otherwise working image usually means:',
+    choices:['A cracked panel','One LED string or its driver channel has failed','A source resolution issue','Failed speakers'],
+    correct:1, explain:'Backlights are divided into strings. One failed string darkens its zone while the rest illuminates.' },
+  { id:'d-11', cat:'technical', diff:'hard', type:'mc',
+    q:'Before condemning a main board on a non-working display, you should verify:',
+    choices:['The warranty status','Standby and operating voltage rails from the power supply are present and correct','The serial number','The panel model'],
+    correct:1, explain:'A missing rail from the power supply mimics main board failure. Verify power before replacing boards.' },
+  { id:'d-12', cat:'safety', diff:'hard', type:'mc',
+    q:'Installing a 65-inch commercial display on a wall mount in a restaurant requires verifying:',
+    choices:['Only that the bracket fits','The mount rating exceeds display weight and the anchors match the wall construction and structure behind it','That it looks level','The screen is centered'],
+    correct:1, explain:'Falling displays cause serious injury. Anchor type must match substrate and hit structure, not just drywall.' },
+  { id:'d-13', cat:'technical', diff:'hard', type:'mc',
+    q:'Image retention or burn-in on a commercial menu board is best prevented by:',
+    choices:['Lowering the resolution','Content rotation, pixel shift features, and avoiding prolonged static images','Turning it off nightly only','Increasing brightness'],
+    correct:1, explain:'Static menu content is the classic burn-in cause. Rotation and built-in panel protections mitigate it.' },
+  { id:'d-14', cat:'scenario', diff:'hard', type:'open',
+    q:'A customer received six commercial displays and claims all are defective. On inspection, three have cracked panels and three power on with no image. Walk me through how you assess and document these, and how you determine what caused each failure.' },
+
+  // ── EXPERT ──
+  { id:'d-15', cat:'trap', diff:'expert', type:'mc',
+    q:'A customer insists a display failed on its own, but you find an impact point on the bezel corner and a crack radiating from it. Your report should:',
+    choices:['State it failed on its own to keep the customer happy','Objectively document the physical evidence and let the findings stand','Say the cause is unknown','Blame the shipper'],
+    correct:1, explain:'Failure analysis must be objective. Warranty and freight claims depend on accurate, evidence-based reporting.' },
+  { id:'d-16', cat:'technical', diff:'expert', type:'mc',
+    q:'When replacing a T-CON board, matching the exact part revision matters because:',
+    choices:['It only affects appearance','Panel timing and gamma data are revision specific and a mismatch causes distortion or no image','Any board of the same size works','Revisions are cosmetic'],
+    correct:1, explain:'T-CON boards are matched to the specific panel and revision. Mismatches produce artifacts or a dead display.' },
+  { id:'d-17', cat:'leadership', diff:'hard', type:'mc',
+    q:'You are on site at a busy restaurant during lunch rush to service a menu board. The best approach is:',
+    choices:['Work immediately regardless of traffic','Coordinate with the manager on timing and stage your work to minimize disruption','Refuse to work during business hours','Work only after closing without asking'],
+    correct:1, explain:'Commercial service work is judged as much on customer disruption as on the repair itself.' },
+  { id:'d-18', cat:'scenario', diff:'expert', type:'open',
+    q:'You are diagnosing a display that powers on, shows the manufacturer logo, then goes black while audio continues. Describe your full troubleshooting sequence and what you would measure at each step.' },
+  { id:'d-19', cat:'technical', diff:'mid', type:'mc',
+    q:'Best practice when storing commercial displays before installation is:',
+    choices:['Stacked flat, screens facing up','Upright in original packaging, in a climate-controlled area, never stacked flat','Leaned against a wall unpacked','Any dry location'],
+    correct:1, explain:'Flat stacking causes panel cracking from point loads. Upright in original cartons is standard.' },
+  { id:'d-20', cat:'scenario', diff:'mid', type:'open',
+    q:'Describe your process for verifying a display is fully functional before you leave a customer site.' }
+]
+
+};
+
+// Merge display bank into the main question set
+(function(){
+  Object.keys(DISPLAY_QUESTIONS).forEach(function(t){
+    QUESTIONS[t] = (QUESTIONS[t] || []).concat(DISPLAY_QUESTIONS[t]);
+  });
+})();
+
 var LABOR_QUESTIONS = {
 
 general_labor: [
