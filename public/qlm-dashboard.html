@@ -100,6 +100,7 @@ header{gap:12px;}
   .logo-text{display:none;}
   .tnav{padding:4px 8px;font-size:.62rem;}
 }
+@media(max-width:900px){.dash-two{grid-template-columns:1fr!important;}}
 </style>
 </head>
 <body>
@@ -153,6 +154,35 @@ header{gap:12px;}
   </div>
 
 
+
+
+  <!-- LEADERBOARD + INTEGRITY -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;" class="dash-two">
+    <div class="table-card" style="margin:0;">
+      <div class="table-head"><div class="table-title">&#127942; Recruiter Leaderboard</div>
+        <div style="font-size:.72rem;color:#94a3b8;">Selected period</div></div>
+      <div id="leaderboard" style="padding:4px;"></div>
+    </div>
+    <div class="table-card" style="margin:0;">
+      <div class="table-head"><div class="table-title">&#128737; Assessments Needing Review</div>
+        <div style="font-size:.72rem;color:#94a3b8;">Integrity flags</div></div>
+      <div id="integrity-list" style="padding:4px;"></div>
+    </div>
+  </div>
+
+  <!-- STALE CANDIDATES + QUESTION ANALYTICS -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;" class="dash-two">
+    <div class="table-card" style="margin:0;">
+      <div class="table-head"><div class="table-title">&#9203; Idle Available Talent</div>
+        <div style="font-size:.72rem;color:#94a3b8;">No activity in 30+ days</div></div>
+      <div id="stale-list" style="padding:4px;"></div>
+    </div>
+    <div class="table-card" style="margin:0;">
+      <div class="table-head"><div class="table-title">&#128202; Question Analytics</div>
+        <div style="font-size:.72rem;color:#94a3b8;">Hardest items</div></div>
+      <div id="qstats-list" style="padding:4px;"></div>
+    </div>
+  </div>
 
   <!-- TEAM MANAGEMENT (admin only) -->
   <div class="table-card admin-only" id="team-card">
@@ -316,8 +346,10 @@ async function render(){
       try{
         var results = await Promise.all([
           QLM.list('assessments'), QLM.list('leads'),
-          QLM.list('activity', null, {limit:100}), QLM.list('candidates')
+          QLM.list('activity', null, {limit:100}), QLM.list('candidates'),
+          QLM.client().from('question_difficulty').select('*').then(function(r){ return r.data || []; })
         ]);
+        QSTATS = results[4] || [];
         CLOUD_MODE = true;
         assessments = results[0].map(function(a){
           var nm = (a.candidate_name||'').trim();
@@ -344,6 +376,9 @@ async function render(){
           return { type:x.type, name:x.label, trade:x.trade, city:x.city, date:x.created_at, owner_id:x.owner_id };
         });
         candidates = results[3];
+        ALL_CANDIDATES = candidates;
+        ALL_ASSESSMENTS = results[0] || [];
+        ALL_LEADS = results[1] || [];
         document.getElementById('data-source-note').textContent = '\u2601 Team data \u00b7 live from cloud';
       }catch(e){ console.warn('cloud read failed', e); }
     }
@@ -380,12 +415,48 @@ async function render(){
   renderAssessTable(assessments);
   renderLeadsTable(leads);
   renderActivity(activity);
+  renderLeaderboard(assessments, leads, activity, candidates);
+  renderIntegrity();
+  renderStale();
+  renderQStats();
   loadTeamList();
 }
 
 // ─── KPI CARDS ───────────────────────────────────────────────────────────
+function periodDelta(rows, dateKey){
+  // Compare the selected window against the equally long window before it
+  if(dateFilter === 'all' || !rows || !rows.length) return null;
+  var days = parseInt(dateFilter);
+  if(!days) return null;
+  var now = Date.now();
+  var start = now - days*86400000;
+  var prevStart = start - days*86400000;
+  var cur = 0, prev = 0;
+  rows.forEach(function(r){
+    var t = new Date(r[dateKey] || r.date || r.created_at || 0).getTime();
+    if(!t) return;
+    if(t >= start) cur++;
+    else if(t >= prevStart) prev++;
+  });
+  if(prev === 0 && cur === 0) return null;
+  var pct = prev === 0 ? 100 : Math.round(((cur - prev) / prev) * 100);
+  return { cur: cur, prev: prev, pct: pct };
+}
+
+function deltaChip(d){
+  if(!d) return '';
+  var up = d.pct >= 0;
+  var col = up ? '#15803d' : '#b91c1c';
+  var arrow = up ? '\u2191' : '\u2193';
+  return '<span style="font-size:.66rem;font-weight:700;color:'+col+';margin-left:7px;">'+arrow+' '+Math.abs(d.pct)+'%</span>';
+}
+
 function renderKPIs(assessments, leads, activity){
   activity = activity || [];
+  var dAssess = periodDelta(ALL_ASSESSMENTS.length ? ALL_ASSESSMENTS : assessments, 'created_at');
+  var dLeads  = periodDelta(ALL_LEADS.length ? ALL_LEADS : leads, 'created_at');
+  var dAssess = periodDelta(ALL_ASSESSMENTS.length ? ALL_ASSESSMENTS : assessments, 'created_at');
+  var dLeads  = periodDelta(ALL_LEADS.length ? ALL_LEADS : leads, 'created_at');
   var intakes = activity.filter(function(a){ return a.type==='intake'; }).length;
   var cards   = activity.filter(function(a){ return a.type==='talent_card'; }).length;
   var reports = activity.filter(function(a){ return a.type==='insight'; }).length;
@@ -396,11 +467,11 @@ function renderKPIs(assessments, leads, activity){
   var contacted = leads.filter(function(l){ return l.status==='contacted'; }).length;
 
   document.getElementById('stat-grid').innerHTML = [
-    { color:'blue',  num: assessments.length, label:'Assessments Run',   sub: dateFilter ? 'Last '+dateFilter+' days' : 'All time' },
+    { color:'blue',  num: assessments.length, label:'Assessments Run',   sub: (dateFilter ? 'Last '+dateFilter+' days' : 'All time') + deltaChip(dAssess) },
     { color:'green', num: passes,             label:'Passed',            sub: assessments.length ? Math.round(passes/assessments.length*100)+'% pass rate' : '' },
     { color:'red',   num: fails,              label:'Failed',            sub: assessments.length ? Math.round(fails/assessments.length*100)+'% fail rate' : '' },
     { color:'blue',  num: avgScore||'—',      label:'Avg Score',         sub: 'Across all assessments' },
-    { color:'purple',num: leads.length,       label:'Total Leads',       sub: 'In lead database' },
+    { color:'purple',num: leads.length,       label:'Total Leads',       sub: 'In lead database' + deltaChip(dLeads)},
     { color:'green', num: qualified,          label:'Qualified Leads',   sub: contacted + ' contacted' },
     { color:'purple',num: intakes,            label:'Candidate Intakes', sub: 'Applications submitted' },
     { color:'blue',  num: cards,              label:'Talent Cards',      sub: 'Generated for clients' },
@@ -488,6 +559,7 @@ function tradeLabel(t){
 }
 var _renderedAssessments = [];
 var TEAM = [];            // real user accounts
+var QSTATS = [], ALL_CANDIDATES = [], ALL_ASSESSMENTS = [], ALL_LEADS = [];
 var CLOUD_MODE = false;
 
 async function loadTeam(){
@@ -744,6 +816,146 @@ function openReportWindow(a){
 }
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────
+
+
+// ═══════════════════════════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════════════════════════
+function renderLeaderboard(assessments, leads, activity, candidates){
+  var el = document.getElementById('leaderboard');
+  if(!el) return;
+  if(!CLOUD_MODE || !TEAM.length){
+    el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:12px 0;">Sign in to see team performance.</p>';
+    return;
+  }
+  var rows = TEAM.map(function(t){
+    var a = assessments.filter(function(x){ return x.owner_id === t.id; });
+    var passed = a.filter(function(x){ return (x.verdict||'').toUpperCase().indexOf('PASS') > -1; }).length;
+    return {
+      name: t.name,
+      assessments: a.length,
+      passed: passed,
+      candidates: (candidates||[]).filter(function(x){ return x.owner_id === t.id; }).length,
+      leads: leads.filter(function(x){ return x.owner_id === t.id; }).length,
+      converted: leads.filter(function(x){ return x.owner_id === t.id && x.converted; }).length
+    };
+  }).sort(function(x,y){
+    return (y.assessments + y.candidates + y.leads) - (x.assessments + x.candidates + x.leads);
+  });
+
+  var any = rows.some(function(r){ return r.assessments || r.candidates || r.leads; });
+  if(!any){
+    el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:12px 0;">No activity in this period yet.</p>';
+    return;
+  }
+
+  var medals = ['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
+  el.innerHTML = '<table class="data-table"><thead><tr>' +
+    '<th>Recruiter</th><th style="text-align:center;">Assessed</th><th style="text-align:center;">Candidates</th><th style="text-align:center;">Leads</th>' +
+    '</tr></thead><tbody>' +
+    rows.map(function(r,i){
+      var total = r.assessments + r.candidates + r.leads;
+      return '<tr>' +
+        '<td style="font-weight:600;color:#003a52;">' + (i<3 && total>0 ? medals[i]+' ' : '') + r.name + '</td>' +
+        '<td style="text-align:center;">' + r.assessments + (r.passed ? ' <span style="color:#15803d;font-size:.72rem;">('+r.passed+' pass)</span>' : '') + '</td>' +
+        '<td style="text-align:center;">' + r.candidates + '</td>' +
+        '<td style="text-align:center;">' + r.leads + (r.converted ? ' <span style="color:#15803d;font-size:.72rem;">('+r.converted+' placed)</span>' : '') + '</td>' +
+      '</tr>';
+    }).join('') + '</tbody></table>';
+}
+
+// ═══════════════════════════════════════════════════
+//  INTEGRITY FLAGS
+// ═══════════════════════════════════════════════════
+function renderIntegrity(){
+  var el = document.getElementById('integrity-list');
+  if(!el) return;
+  var flagged = (ALL_ASSESSMENTS||[]).filter(function(a){
+    return a.integrity_flag === 'review' || a.integrity_flag === 'minor';
+  }).slice(0,8);
+
+  if(!flagged.length){
+    el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:12px 0;">\u2705 No integrity concerns flagged. Paste attempts and window switching are monitored on every assessment.</p>';
+    return;
+  }
+  el.innerHTML = flagged.map(function(a){
+    var review = a.integrity_flag === 'review';
+    var col = review ? ['#fef2f2','#fecaca','#b91c1c','\uD83D\uDEA9 Review'] : ['#fefce8','#fde68a','#a16207','\u26A0 Minor'];
+    var concerns = (a.integrity && a.integrity.concerns) || [];
+    return '<div style="background:'+col[0]+';border:1px solid '+col[1]+';border-radius:9px;padding:11px 13px;margin-bottom:8px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">' +
+        '<span style="font-weight:600;color:#003a52;font-size:.86rem;">' + (a.candidate_name||'Unnamed') + '</span>' +
+        '<span style="font-size:.66rem;font-weight:700;color:'+col[2]+';">' + col[3] + '</span>' +
+      '</div>' +
+      '<div style="font-size:.74rem;color:#64748b;margin-top:3px;">' + tradeLabel(a.trade) + ' \u00b7 scored ' + (a.score!=null?a.score:'\u2014') + '</div>' +
+      (concerns.length ? '<ul style="margin:6px 0 0;padding-left:17px;font-size:.76rem;color:'+col[2]+';line-height:1.6;">' +
+        concerns.slice(0,3).map(function(x){ return '<li>'+x+'</li>'; }).join('') + '</ul>' : '') +
+    '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  IDLE AVAILABLE TALENT
+// ═══════════════════════════════════════════════════
+function renderStale(){
+  var el = document.getElementById('stale-list');
+  if(!el) return;
+  var cutoff = Date.now() - 30*86400000;
+  var stale = (ALL_CANDIDATES||[]).filter(function(c){
+    var avail = (c.availability||'').toLowerCase();
+    if(avail.indexOf('immediate') === -1 && avail.indexOf('2 weeks') === -1) return false;
+    var t = new Date(c.updated_at || c.created_at || 0).getTime();
+    return t && t < cutoff;
+  }).sort(function(a,b){
+    return new Date(a.updated_at||a.created_at) - new Date(b.updated_at||b.created_at);
+  }).slice(0,8);
+
+  if(!stale.length){
+    el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:12px 0;">No idle talent. Everyone marked available has been touched in the last 30 days.</p>';
+    return;
+  }
+  el.innerHTML = stale.map(function(c){
+    var days = Math.floor((Date.now() - new Date(c.updated_at||c.created_at).getTime())/86400000);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;">' +
+      '<div><div style="font-weight:600;color:#003a52;font-size:.86rem;">' + (c.full_name||'Unnamed') + '</div>' +
+      '<div style="font-size:.74rem;color:#94a3b8;">' + tradeLabel(c.trade) + (c.city ? ' \u00b7 ' + c.city : '') + '</div></div>' +
+      '<span style="font-size:.74rem;font-weight:700;color:'+(days>60?'#b91c1c':'#a16207')+';white-space:nowrap;">' + days + ' days</span>' +
+    '</div>';
+  }).join('') +
+  '<div style="margin-top:10px;"><a href="/qlm-candidates.html" style="font-size:.78rem;color:#0099d8;font-weight:600;text-decoration:none;">Open candidate database &rarr;</a></div>';
+}
+
+// ═══════════════════════════════════════════════════
+//  QUESTION ANALYTICS
+// ═══════════════════════════════════════════════════
+function renderQStats(){
+  var el = document.getElementById('qstats-list');
+  if(!el) return;
+  var rows = (QSTATS||[]).filter(function(q){ return q.times_asked >= 2; })
+    .sort(function(a,b){ return (a.pct_correct||0) - (b.pct_correct||0); })
+    .slice(0,8);
+
+  if(!rows.length){
+    el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:12px 0;">Not enough data yet. Once a question has been asked a few times, the hardest items and possible problem questions appear here.</p>';
+    return;
+  }
+  el.innerHTML = '<table class="data-table"><thead><tr>' +
+    '<th>Question</th><th>Trade</th><th style="text-align:center;">Correct</th><th style="text-align:center;">Asked</th>' +
+    '</tr></thead><tbody>' +
+    rows.map(function(q){
+      var pct = q.pct_correct == null ? 0 : q.pct_correct;
+      var col = pct < 30 ? '#b91c1c' : pct < 60 ? '#a16207' : '#15803d';
+      var suspect = pct <= 10 && q.times_asked >= 4;
+      return '<tr>' +
+        '<td style="font-family:ui-monospace,monospace;font-size:.78rem;color:#003a52;">' + q.question_id +
+          (suspect ? ' <span style="font-size:.66rem;color:#b91c1c;font-weight:700;">check wording</span>' : '') + '</td>' +
+        '<td style="font-size:.78rem;color:#64748b;">' + tradeLabel(q.trade) + '</td>' +
+        '<td style="text-align:center;font-weight:700;color:'+col+';">' + pct + '%</td>' +
+        '<td style="text-align:center;color:#64748b;">' + q.times_asked + '</td>' +
+      '</tr>';
+    }).join('') + '</tbody></table>' +
+    '<p style="font-size:.72rem;color:#94a3b8;margin-top:9px;">Items almost nobody gets right may be ambiguous or miskeyed \u2014 worth reviewing.</p>';
+}
 
 // ═══════════════════════════════════════════════════
 //  TEAM MANAGEMENT
