@@ -888,7 +888,7 @@ function findContact(id){
   var lead = findLead(id);
   if(!lead) return;
   var btn = document.querySelector('#lc-'+id+' .btn-find');
-  if(btn){ btn.textContent='Searching the web...'; btn.disabled=true; }
+  if(btn){ btn.textContent='Searching...'; btn.disabled=true; }
 
   var panel = document.getElementById('contact-'+id);
   if(!panel){
@@ -898,28 +898,40 @@ function findContact(id){
     var card = document.getElementById('lc-'+id);
     if(card) card.appendChild(panel);
   }
-  panel.innerHTML = '<span style="color:#0077a8;">\u23F3 Searching LinkedIn, the company website and job postings...</span>';
+  panel.innerHTML = '<span style="color:#0077a8;">\u23F3 Checking the job posting, business registration and licensing records...</span>';
 
   var company = lead.company || '';
   var loc = lead.location || '';
+  var state = (loc.match(/,\s*([A-Z]{2})\b/) || [])[1] || '';
 
+  // Construction companies leave a public paper trail most industries do not:
+  // corporate registration, contractor licensing, permits, and the posting itself.
   var prompt =
-    'Find the person at this company who hires field labor. Use web search.\n\n' +
+    'You are finding the human who can authorize labor at a construction company. Use web search aggressively.\n\n' +
     'Company: ' + company + '\n' +
     'Location: ' + loc + '\n' +
-    'Industry: construction / ' + (lead.projectType||'commercial') + '\n\n' +
-    'Run these searches:\n' +
-    '1. "' + company + '" ' + loc + ' contact\n' +
-    '2. "' + company + '" recruiter OR "talent acquisition" OR "project manager" OR superintendent\n' +
-    '3. "' + company + '" careers OR jobs page\n\n' +
-    'Prefer, in order: talent acquisition or HR, then operations or project manager, then general company contact.\n\n' +
-    'CRITICAL RULES:\n' +
-    '- Only report a name, email or phone you actually found in the search results.\n' +
-    '- Never guess an email pattern. If you did not see the address, leave email empty.\n' +
-    '- If you only find a general company phone or info@ address, report that and say so.\n' +
-    '- It is completely acceptable to return empty fields. Do not invent anything.\n\n' +
+    'They are currently hiring: ' + ((lead.trades||[]).join(', ') || 'skilled trades') + '\n\n' +
+    'Search in this order and stop early only when you have a named person with a way to reach them:\n\n' +
+    '1. THE JOB POSTING ITSELF. Search: "' + company + '" ' + ((lead.trades||[])[0]||'') + ' ' + loc + ' job posting. ' +
+       'Many construction postings name the recruiter or say to call or text a number directly. Read the posting text in the results.\n' +
+    '2. CORPORATE REGISTRATION. Search: "' + company + '" sunbiz OR "registered agent" OR "officer" ' + state + '. ' +
+       'State corporation filings list officers, managers and a registered agent with an address. These are real names.\n' +
+    '3. CONTRACTOR LICENSE. Search: "' + company + '" contractor license ' + state + ' qualifier. ' +
+       'The qualifying agent on a contractor license is a named individual, usually an owner or senior manager.\n' +
+    '4. GOOGLE BUSINESS AND WEBSITE. Search: "' + company + '" ' + loc + ' phone contact. ' +
+       'Get the office line and any named staff on an about or team page.\n' +
+    '5. PEOPLE. Search: "' + company + '" (superintendent OR "project manager" OR recruiter OR "talent acquisition" OR owner) LinkedIn.\n' +
+    '6. ASSOCIATIONS. Search: "' + company + '" (ABC OR AGC OR "associated builders") member. Member directories often list a contact.\n\n' +
+    'Return a LADDER of contacts, best first. Include the general office line even if you find a person.\n\n' +
+    'ABSOLUTE RULES:\n' +
+    '- Report only what appears in the search results. Never construct an email from a name pattern.\n' +
+    '- If you find an email on the company domain, you may note the pattern it implies, but mark it inferred.\n' +
+    '- Empty fields are fine. Fabricating a contact is worse than finding nothing.\n' +
+    '- Every contact must have a source describing where it came from.\n\n' +
     'Return ONLY raw JSON, no markdown, no apostrophes in values:\n' +
-    '{"name":"","title":"","email":"","phone":"","linkedin":"","website":"","careersUrl":"","confidence":"High or Medium or Low or None","found":"one sentence on exactly what you found and where","suggestion":"one sentence on the best next step to reach them"}';
+    '{"contacts":[{"name":"","title":"","email":"","phone":"","linkedin":"","source":"where this came from","confidence":"High or Medium or Low"}],' +
+    '"officePhone":"","website":"","careersUrl":"","emailPattern":"","postingNote":"anything the job posting said about how to apply or who to contact",' +
+    '"bestApproach":"one or two sentences on how to actually reach a decision maker here"}';
 
   leadSearchCall(prompt)
   .then(function(text){
@@ -928,11 +940,11 @@ function findContact(id){
       var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()
         .replace(/[\u2018\u2019]/g,"").replace(/[\u201C\u201D]/g,'"');
       data = JSON.parse(clean.match(/\{[\s\S]*\}/)[0]);
-    }catch(e){ data = { confidence:'None', found:'Could not read the search results.' }; }
+    }catch(e){ data = { contacts:[], bestApproach:'Could not read the search results. Use the public record links below.' }; }
     renderContact(id, lead, data);
   })
   .catch(function(e){
-    renderContact(id, lead, { confidence:'None', found:'Search failed: ' + e.message });
+    renderContact(id, lead, { contacts:[], bestApproach:'Search failed: ' + e.message + '. The public record links below still work.' });
   })
   .then(function(){ if(btn){ btn.innerHTML='&#128269; Search Again'; btn.disabled=false; } });
 }
@@ -941,50 +953,80 @@ function renderContact(id, lead, d){
   var panel = document.getElementById('contact-'+id);
   if(!panel) return;
 
-  var conf = (d.confidence||'None').toLowerCase();
+  var contacts = (d.contacts||[]).filter(function(x){ return x && (x.name || x.email || x.phone); });
+  var best = contacts[0];
+  var conf = ((best && best.confidence) || 'None').toLowerCase();
   var col = conf.indexOf('high') > -1 ? ['#f0fdf4','#bbf7d0','#15803d']
           : conf.indexOf('medium') > -1 ? ['#fefce8','#fde68a','#a16207']
           : ['#f8fafc','#e2e8f0','#64748b'];
   panel.style.background = col[0];
   panel.style.borderColor = col[1];
 
-  var rows = [];
-  if(d.name)  rows.push('<div style="font-weight:700;color:#003a52;font-size:.92rem;">' + d.name + (d.title ? ' <span style="font-weight:400;color:#64748b;font-size:.82rem;">\u00b7 ' + d.title + '</span>' : '') + '</div>');
-  if(d.email) rows.push('<div>&#9993;&#65039; <a href="mailto:'+d.email+'" style="color:#0077a8;font-weight:600;">'+d.email+'</a></div>');
-  if(d.phone) rows.push('<div>&#128222; <a href="tel:'+d.phone+'" style="color:#0077a8;font-weight:600;">'+d.phone+'</a></div>');
+  function contactBlock(x, i){
+    var bits = [];
+    if(x.email) bits.push('<a href="mailto:'+x.email+'" style="color:#0077a8;font-weight:600;">'+x.email+'</a>');
+    if(x.phone) bits.push('<a href="tel:'+x.phone+'" style="color:#0077a8;font-weight:600;">'+x.phone+'</a>');
+    if(x.linkedin) bits.push('<a href="'+x.linkedin+'" target="_blank" rel="noopener" style="color:#0077a8;">LinkedIn</a>');
+    return '<div style="padding:8px 0;' + (i ? 'border-top:1px solid '+col[1]+';' : '') + '">' +
+      '<div style="font-weight:700;color:#003a52;">' + (x.name||'Contact') +
+        (x.title ? ' <span style="font-weight:400;color:#64748b;font-size:.8rem;">\u00b7 ' + x.title + '</span>' : '') +
+        (x.confidence ? ' <span style="font-size:.66rem;font-weight:700;color:'+col[2]+';">' + x.confidence + '</span>' : '') +
+      '</div>' +
+      (bits.length ? '<div style="margin-top:3px;">' + bits.join(' &middot; ') + '</div>' : '') +
+      (x.source ? '<div style="font-size:.72rem;color:#94a3b8;margin-top:3px;">via ' + x.source + '</div>' : '') +
+    '</div>';
+  }
 
-  var links = [];
-  if(d.linkedin)   links.push('<a href="'+d.linkedin+'" target="_blank" rel="noopener" style="color:#0077a8;">LinkedIn profile</a>');
-  if(d.careersUrl) links.push('<a href="'+d.careersUrl+'" target="_blank" rel="noopener" style="color:#0077a8;">Careers page</a>');
-  if(d.website)    links.push('<a href="'+d.website+'" target="_blank" rel="noopener" style="color:#0077a8;">Website</a>');
-
-  // Always offer manual routes — these work even when the AI finds nothing
+  // Public-record deep links — construction leaves a trail most industries do not
   var q = encodeURIComponent(lead.company || '');
-  var manual =
-    '<div style="margin-top:10px;padding-top:9px;border-top:1px solid ' + col[1] + ';">' +
-      '<div style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">Search manually</div>' +
-      '<div style="display:flex;gap:7px;flex-wrap:wrap;">' +
-        '<a href="https://www.linkedin.com/search/results/people/?keywords=' + q + '%20' + encodeURIComponent('recruiter OR superintendent OR project manager') + '" target="_blank" rel="noopener" class="btn-lc" style="text-decoration:none;">LinkedIn people</a>' +
-        '<a href="https://www.google.com/search?q=' + q + '+' + encodeURIComponent(lead.location||'') + '+contact+hiring' + '" target="_blank" rel="noopener" class="btn-lc" style="text-decoration:none;">Google</a>' +
-        '<a href="https://www.google.com/search?q=' + q + '+careers' + '" target="_blank" rel="noopener" class="btn-lc" style="text-decoration:none;">Careers page</a>' +
+  var loc = lead.location || '';
+  var state = (loc.match(/,\s*([A-Z]{2})\b/) || [])[1] || 'FL';
+  var county = loc.split(',')[0] || '';
+
+  var sources = [
+    { label:'Sunbiz / State registry', url:'https://www.google.com/search?q=' + q + '+' + encodeURIComponent(state === 'FL' ? 'sunbiz registered agent officers' : state + ' secretary of state business search registered agent'), note:'Officers and registered agent — real names' },
+    { label:'Contractor license',      url:'https://www.google.com/search?q=' + q + '+' + encodeURIComponent('contractor license qualifier ' + state), note:'The qualifying agent is a named person' },
+    { label:'Building permits',        url:'https://www.google.com/search?q=' + q + '+' + encodeURIComponent(county + ' building permit contractor'), note:'Permits list the contractor contact' },
+    { label:'LinkedIn people',         url:'https://www.linkedin.com/search/results/people/?keywords=' + q + '%20' + encodeURIComponent('superintendent OR project manager OR recruiter'), note:'Field leadership and hiring staff' },
+    { label:'Google Business',         url:'https://www.google.com/search?q=' + q + '+' + encodeURIComponent(loc + ' phone'), note:'Office line and hours' },
+    { label:'Their job posting',       url:'https://www.google.com/search?q=' + q + '+' + encodeURIComponent(((lead.trades||[])[0]||'') + ' ' + loc + ' hiring'), note:'Postings often name a recruiter or a text number' }
+  ];
+
+  panel.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;">' +
+      '<span style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:'+col[2]+';">&#128100; Who To Call</span>' +
+      (contacts.length ? '<span style="font-size:.68rem;color:#64748b;">' + contacts.length + ' found</span>' : '') +
+    '</div>' +
+
+    (contacts.length ? contacts.slice(0,4).map(contactBlock).join('')
+      : '<div style="color:#64748b;padding:4px 0;">No named contact confirmed in search results. Use the public records below \u2014 for construction they are usually faster than LinkedIn anyway.</div>') +
+
+    ((d.officePhone || d.website || d.careersUrl) ?
+      '<div style="margin-top:8px;padding-top:8px;border-top:1px solid '+col[1]+';font-size:.8rem;">' +
+        (d.officePhone ? '&#127970; <a href="tel:'+d.officePhone+'" style="color:#0077a8;font-weight:600;">'+d.officePhone+'</a> ' : '') +
+        (d.website ? ' &middot; <a href="'+d.website+'" target="_blank" rel="noopener" style="color:#0077a8;">Website</a>' : '') +
+        (d.careersUrl ? ' &middot; <a href="'+d.careersUrl+'" target="_blank" rel="noopener" style="color:#0077a8;">Careers</a>' : '') +
+      '</div>' : '') +
+
+    (d.emailPattern ? '<div style="font-size:.75rem;color:#a16207;margin-top:7px;">Email pattern on this domain looks like <strong>' + d.emailPattern + '</strong> \u2014 inferred, verify before sending.</div>' : '') +
+    (d.postingNote ? '<div style="font-size:.76rem;color:#2a4a5a;margin-top:7px;line-height:1.6;"><strong>From their posting:</strong> ' + d.postingNote + '</div>' : '') +
+    (d.bestApproach ? '<div style="font-size:.78rem;color:'+col[2]+';margin-top:7px;line-height:1.6;"><strong>Best approach:</strong> ' + d.bestApproach + '</div>' : '') +
+
+    '<div style="margin-top:11px;padding-top:9px;border-top:1px solid '+col[1]+';">' +
+      '<div style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:7px;">Public records &amp; manual search</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;">' +
+        sources.map(function(s){
+          return '<a href="'+s.url+'" target="_blank" rel="noopener" style="display:block;background:#fff;border:1px solid #b8dff0;border-radius:7px;padding:7px 10px;text-decoration:none;">' +
+            '<div style="font-size:.76rem;font-weight:600;color:#0077a8;">' + s.label + '</div>' +
+            '<div style="font-size:.68rem;color:#94a3b8;line-height:1.4;margin-top:1px;">' + s.note + '</div>' +
+          '</a>';
+        }).join('') +
       '</div>' +
     '</div>';
 
-  panel.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:' + (rows.length?'8px':'4px') + ';">' +
-      '<span style="font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:'+col[2]+';">&#128100; Hiring Contact</span>' +
-      '<span style="font-size:.68rem;font-weight:700;color:'+col[2]+';">' + (d.confidence||'None') + ' confidence</span>' +
-    '</div>' +
-    (rows.length ? rows.join('') : '<div style="color:#64748b;">No verified contact found in the search results.</div>') +
-    (links.length ? '<div style="margin-top:7px;font-size:.8rem;">' + links.join(' &middot; ') + '</div>' : '') +
-    (d.found ? '<div style="font-size:.76rem;color:#64748b;margin-top:8px;line-height:1.6;">' + d.found + '</div>' : '') +
-    (d.suggestion ? '<div style="font-size:.76rem;color:'+col[2]+';margin-top:5px;line-height:1.6;"><strong>Next step:</strong> ' + d.suggestion + '</div>' : '') +
-    manual;
-
-  // Only store a contact we actually have something for
-  if(d.name || d.email || d.phone){
-    var summary = [d.name && d.name + (d.title?' ('+d.title+')':''), d.email, d.phone].filter(Boolean).join(' \u00b7 ');
-    updateLead(id, { contactSignal: summary, contactEmail: d.email||'', contactPhone: d.phone||'', contactName: d.name||'' });
+  if(best && (best.name || best.email || best.phone)){
+    var summary = [best.name && best.name + (best.title?' ('+best.title+')':''), best.email, best.phone].filter(Boolean).join(' \u00b7 ');
+    updateLead(id, { contactSignal: summary, contactName: best.name||'', contactEmail: best.email||'', contactPhone: best.phone||'', contactsAll: contacts });
   }
 }
 
