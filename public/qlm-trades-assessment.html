@@ -324,6 +324,16 @@ header{gap:12px;}
 
   <div class="section-label" style="margin-bottom:14px;">Select Trade to Assess</div>
   <div class="trade-grid" id="trade-grid">
+    <div class="trade-card" onclick="selectTrade('general_labor')" id="t-general_labor">
+      <div class="trade-icon">&#128119;</div>
+      <div class="trade-name">General Labor</div>
+      <div class="trade-sub">Commercial / Industrial</div>
+    </div>
+    <div class="trade-card" onclick="selectTrade('skilled_labor')" id="t-skilled_labor">
+      <div class="trade-icon">&#128736;&#65039;</div>
+      <div class="trade-name">Skilled Labor</div>
+      <div class="trade-sub">Multi-Trade / Industrial</div>
+    </div>
     <div class="trade-card" onclick="selectTrade('electrician')" id="t-electrician">
       <div class="trade-icon">⚡</div>
       <div class="trade-name">Electrician</div>
@@ -1642,13 +1652,197 @@ var TRADE_LABELS = {
   hvac:'HVAC Technician', carpenter:'Carpenter / Framing', concrete:'Concrete / Formwork',
   operator:'Heavy Equipment Operator', foreman:'Foreman / Superintendent',
   solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)',
-  ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician'
+  ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician',
+  general_labor:'General Labor', skilled_labor:'Skilled Labor'
 };
 
 // ═══════════════════════════════════════════════════════════════
 //  EASY TIER — fair baseline questions for entry / helper level
 //  Merged into QUESTIONS at load so the bank has a real low end.
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  GENERAL LABOR & SKILLED LABOR
+//  Commercial / Industrial construction — cross-trade assessments
+// ═══════════════════════════════════════════════════════════════
+var LABOR_QUESTIONS = {
+
+general_labor: [
+  // ── EASY ──
+  { id:'gl-x1', cat:'safety', diff:'easy', type:'mc',
+    q:'The minimum PPE required on virtually every commercial construction site is:',
+    choices:['Hard hat only','Hard hat, safety glasses, high-visibility vest, and work boots','Gloves and boots','Whatever the worker prefers'],
+    correct:1, explain:'Hard hat, eye protection, hi-vis, and sturdy boots are the baseline on nearly every commercial site.' },
+  { id:'gl-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'You are asked to do a task you have never done before. The right response is:',
+    choices:['Figure it out as you go','Tell your supervisor you need instruction before starting','Watch someone else once and start','Skip it and do something else'],
+    correct:1, explain:'Asking is expected. Guessing on an unfamiliar task is how people get hurt.' },
+  { id:'gl-x3', cat:'safety', diff:'easy', type:'mc',
+    q:'When lifting a heavy object by hand, you should:',
+    choices:['Bend at the waist and lift with your back','Keep the load close, bend your knees, and lift with your legs','Twist as you lift to save time','Hold your breath and pull'],
+    correct:1, explain:'Legs lift, back does not. Twisting under load is a leading cause of injury.' },
+  { id:'gl-x4', cat:'technical', diff:'easy', type:'mc',
+    q:'Housekeeping on a jobsite matters because:',
+    choices:['It only affects appearance','Slips, trips, and falls from debris are among the most common injuries','It is only needed before inspections','It is the cleanup crew responsibility'],
+    correct:1, explain:'Poor housekeeping causes injuries and slows every trade on site.' },
+
+  // ── MID ──
+  { id:'gl-1', cat:'safety', diff:'mid', type:'mc',
+    q:'You see a coworker about to enter a trench about 6 feet deep with no shoring or sloping. You should:',
+    choices:['Say nothing, it is not your crew','Stop him and notify the supervisor immediately','Wait to see if anything happens','Offer to hold the ladder'],
+    correct:1, explain:'Cave-ins kill quickly. Every worker has the responsibility to stop unsafe entry.' },
+  { id:'gl-2', cat:'safety', diff:'mid', type:'mc',
+    q:'A red tag or danger tag on a piece of equipment means:',
+    choices:['It needs cleaning','Do not operate — it is locked out or unsafe','It is scheduled for maintenance next week','It belongs to another contractor'],
+    correct:1, explain:'Never operate or remove a tag placed by someone else.' },
+  { id:'gl-3', cat:'technical', diff:'mid', type:'mc',
+    q:'When staging material on an elevated deck, the primary concern is:',
+    choices:['Keeping it organized','Not exceeding the load capacity of the deck and keeping egress paths clear','Keeping it out of the rain','Keeping it near the hoist'],
+    correct:1, explain:'Concentrated material loads have collapsed decks. Distribute loads and keep paths clear.' },
+  { id:'gl-4', cat:'safety', diff:'mid', type:'mc',
+    q:'An extension cord on site with the ground pin missing should be:',
+    choices:['Used only for lights','Removed from service and tagged','Taped and used carefully','Used with a GFCI only'],
+    correct:1, explain:'Damaged cords are removed from service, not worked around.' },
+  { id:'gl-5', cat:'technical', diff:'mid', type:'mc',
+    q:'A wheelbarrow of concrete weighs roughly 300 pounds. Moving it across a plank ramp requires:',
+    choices:['Speed to get across quickly','A ramp rated for the load, a clear path, and controlled movement','Two people pulling','No special consideration'],
+    correct:1, explain:'Overloaded planks fail. Control and a rated path matter more than speed.' },
+  { id:'gl-6', cat:'safety', diff:'mid', type:'mc',
+    q:'Silica dust exposure during concrete cutting or grinding is controlled primarily by:',
+    choices:['Working faster','Wet methods or vacuum dust collection plus respiratory protection','Opening a door','Wearing a bandana'],
+    correct:1, explain:'OSHA silica rule requires engineering controls first, then respiratory protection.' },
+
+  // ── HARD ──
+  { id:'gl-7', cat:'safety', diff:'hard', type:'mc',
+    q:'You are directed to work on a scaffold that is missing a guardrail on one end. The correct action is:',
+    choices:['Work carefully away from that end','Stop and have a competent person correct the scaffold before use','Tie off to the scaffold and proceed','Ask a coworker to spot you'],
+    correct:1, explain:'Scaffolds must be inspected and corrected by a competent person before use.' },
+  { id:'gl-8', cat:'trap', diff:'hard', type:'mc',
+    q:'A coworker says: "You only need fall protection above 10 feet." In general construction, the threshold is:',
+    choices:['4 feet','6 feet','10 feet','15 feet'],
+    correct:1, explain:'OSHA construction requires fall protection at 6 feet. Ten feet applies to scaffolds.' },
+  { id:'gl-9', cat:'safety', diff:'hard', type:'mc',
+    q:'Before entering an area marked as a confined space, a general laborer must:',
+    choices:['Bring a flashlight','Not enter unless trained, permitted, and part of the entry procedure','Have a coworker watch the opening','Test the air by smell'],
+    correct:1, explain:'Confined space entry requires permits, atmospheric testing, an attendant, and rescue plan.' },
+  { id:'gl-10', cat:'technical', diff:'hard', type:'mc',
+    q:'When acting as a spotter for a backing truck or equipment, the most important rule is:',
+    choices:['Stand behind the vehicle','Stay in the operator line of sight at all times and never in the travel path','Use a whistle only','Direct from the blind side'],
+    correct:1, explain:'If the operator cannot see you, stop. Spotters are killed by the machines they direct.' },
+  { id:'gl-11', cat:'safety', diff:'hard', type:'mc',
+    q:'Working beneath another trade performing overhead work requires:',
+    choices:['A hard hat is sufficient','Coordination to avoid the area, barricades, or overhead protection','Working quickly','Verbal warning only'],
+    correct:1, explain:'Superimposed work is controlled by scheduling and barricades, not just PPE.' },
+  { id:'gl-12', cat:'scenario', diff:'hard', type:'open',
+    q:'You are told to move material into an area where another crew is working overhead. Describe what you do before starting.' },
+
+  // ── EXPERT / JUDGMENT ──
+  { id:'gl-13', cat:'trap', diff:'expert', type:'mc',
+    q:'A foreman tells you to remove a guardrail to move material, saying he will "watch you." The correct response is:',
+    choices:['Comply, since he is supervising','Request an alternate method or approved fall protection before removing the guardrail','Remove it and replace it quickly','Do it during break when nobody is around'],
+    correct:1, explain:'Removing fall protection requires a controlled plan and equivalent protection, not supervision alone.' },
+  { id:'gl-14', cat:'scenario', diff:'expert', type:'open',
+    q:'You notice a condition on site you believe is unsafe, you reported it, and nothing has changed. What do you do next?' },
+  { id:'gl-15', cat:'leadership', diff:'hard', type:'mc',
+    q:'A new laborer on your crew is doing a task incorrectly. The best response is:',
+    choices:['Let the foreman catch it','Show him the correct method directly and respectfully','Do it for him','Report him'],
+    correct:1, explain:'Peer correction is how crews build competence. Do it directly and without embarrassing him.' },
+  { id:'gl-16', cat:'scenario', diff:'mid', type:'open',
+    q:'Describe a time you had to work with a trade or crew you had never worked with before. How did you make sure the work went smoothly?' }
+],
+
+skilled_labor: [
+  // ── EASY ──
+  { id:'sl-x1', cat:'technical', diff:'easy', type:'mc',
+    q:'On a set of construction drawings, the detail that governs when the plan and the specification conflict is:',
+    choices:['Always the drawing','Whatever the specification section states, resolved through an RFI','Always the specification','Whichever is newer'],
+    correct:1, explain:'Conflicts are resolved through an RFI, not by the field picking one.' },
+  { id:'sl-x2', cat:'safety', diff:'easy', type:'mc',
+    q:'A ladder used to access an upper level must extend above the landing by at least:',
+    choices:['1 foot','3 feet','5 feet','It does not need to extend'],
+    correct:1, explain:'Three feet above the landing gives a handhold for safe transition.' },
+  { id:'sl-x3', cat:'technical', diff:'easy', type:'mc',
+    q:'A tape measure reading of 3 feet 7 and 3/8 inches converted to inches is:',
+    choices:['43 3/8 inches','39 3/8 inches','45 3/8 inches','36 7/8 inches'],
+    correct:0, explain:'3 feet equals 36 inches, plus 7 3/8 equals 43 3/8 inches.' },
+  { id:'sl-x4', cat:'safety', diff:'easy', type:'mc',
+    q:'A ladder should be set at an angle of approximately:',
+    choices:['1 foot out for every 2 feet of height','1 foot out for every 4 feet of height','Straight vertical','1 foot out for every 8 feet of height'],
+    correct:1, explain:'The 4 to 1 rule keeps the ladder stable without kicking out.' },
+
+  // ── MID ──
+  { id:'sl-1', cat:'technical', diff:'mid', type:'mc',
+    q:'A dimension on a drawing reads 24 feet 6 inches but the field measurement is 24 feet 4 inches. You should:',
+    choices:['Build to the drawing','Build to the field measurement','Verify the discrepancy and submit an RFI before proceeding','Split the difference'],
+    correct:2, explain:'Field conditions that conflict with drawings get documented and answered before you build.' },
+  { id:'sl-2', cat:'technical', diff:'mid', type:'mc',
+    q:'Layout from a control line rather than measuring off adjacent work is preferred because:',
+    choices:['It is faster','It prevents accumulated error from compounding across the building','It uses less string','It looks more professional'],
+    correct:1, explain:'Measuring off previous work stacks small errors into large ones.' },
+  { id:'sl-3', cat:'safety', diff:'mid', type:'mc',
+    q:'Before using any powder-actuated tool, an operator must:',
+    choices:['Read the manual once','Be trained and certified on that specific tool','Have five years experience','Wear gloves'],
+    correct:1, explain:'Powder-actuated tools require tool-specific certification by law.' },
+  { id:'sl-4', cat:'technical', diff:'mid', type:'mc',
+    q:'An elevation marked as 100 feet 0 inches on drawings usually represents:',
+    choices:['Actual height above sea level','An assumed benchmark datum for the project','The height of the building','The roof level'],
+    correct:1, explain:'Projects commonly use an assumed datum, often the finished floor of the first level.' },
+  { id:'sl-5', cat:'safety', diff:'mid', type:'mc',
+    q:'A hot work permit is required when:',
+    choices:['Any welding occurs','Welding, cutting, or grinding occurs outside a designated area','Only for welding on tanks','Only in occupied buildings'],
+    correct:1, explain:'Any spark-producing work outside a designated hot work area needs a permit and fire watch.' },
+  { id:'sl-6', cat:'technical', diff:'mid', type:'mc',
+    q:'Anchors installed into concrete must be:',
+    choices:['Any anchor that fits the hole','Installed per the manufacturer instructions for hole size, depth, and cleaning','Set with construction adhesive','Torqued as tight as possible'],
+    correct:1, explain:'Anchor capacity depends entirely on correct hole prep and installation. Uncleaned holes cut strength drastically.' },
+
+  // ── HARD ──
+  { id:'sl-7', cat:'technical', diff:'hard', type:'mc',
+    q:'Penetrations through a 2-hour rated wall must be:',
+    choices:['Sealed with any caulk','Firestopped with a tested and listed system matching the wall rating and penetrant type','Left open for airflow','Filled with insulation'],
+    correct:1, explain:'Firestopping is a listed assembly. Wrong product or install voids the rating and fails inspection.' },
+  { id:'sl-8', cat:'trap', diff:'hard', type:'mc',
+    q:'A coworker says: "Cutting a few inches out of a bar joist bottom chord for a duct is fine, it is only a small piece." This is:',
+    choices:['Acceptable if small','Never acceptable without engineering approval — it is a primary structural member','Fine if welded back later','Acceptable near the end of the joist'],
+    correct:1, explain:'Cutting structural members requires engineering. Joist chords carry the entire load path.' },
+  { id:'sl-9', cat:'technical', diff:'hard', type:'mc',
+    q:'A wall that must be plumb within 1/4 inch over 10 feet is a specification for:',
+    choices:['Aesthetics only','Construction tolerance that the work must be verified against','A suggestion','The inspector preference'],
+    correct:1, explain:'Tolerances are contractual. Work outside tolerance gets rejected and rebuilt.' },
+  { id:'sl-10', cat:'safety', diff:'hard', type:'mc',
+    q:'You are cutting into an existing wall in an occupied industrial facility. The most important step first is:',
+    choices:['Set up a saw','Verify what is inside the wall and obtain permits and utility isolation','Cover the floor','Notify the tenant afterward'],
+    correct:1, explain:'Unknown embedded conduit, gas, or process lines make blind cutting extremely dangerous.' },
+  { id:'sl-11', cat:'scenario', diff:'hard', type:'open',
+    q:'You discover that work installed by another trade will prevent your work from fitting. Walk me through exactly what you do, in order.' },
+  { id:'sl-12', cat:'technical', diff:'hard', type:'mc',
+    q:'When a punch list item is issued against your work, the correct response is:',
+    choices:['Argue that it met the drawings','Review it against the contract documents and correct or clarify through proper channels','Fix everything without documentation','Wait for a second notice'],
+    correct:1, explain:'Verify against documents, then correct or clarify. Both silence and arguing cost money.' },
+
+  // ── EXPERT / JUDGMENT ──
+  { id:'sl-13', cat:'trap', diff:'expert', type:'mc',
+    q:'A superintendent directs you to install work in a way you believe violates code. You should:',
+    choices:['Follow direction, it is his responsibility','Raise the concern, request written direction, and escalate if unresolved','Install it your way quietly','Refuse and leave the site'],
+    correct:1, explain:'You may still bear responsibility. Document the concern and get direction in writing.' },
+  { id:'sl-14', cat:'scenario', diff:'expert', type:'open',
+    q:'You are working in an occupied industrial plant and your work will require a brief shutdown of a production line. Describe how you plan and coordinate that.' },
+  { id:'sl-15', cat:'leadership', diff:'hard', type:'mc',
+    q:'A change to your scope is directed verbally in the field. Before performing it you should:',
+    choices:['Just do it to be a team player','Get it documented in writing as a change order or written directive','Do half of it','Bill for it later'],
+    correct:1, explain:'Verbal changes routinely go unpaid. Documentation protects both parties.' },
+  { id:'sl-16', cat:'scenario', diff:'mid', type:'open',
+    q:'Describe the last commercial or industrial project you worked on — the scope, your specific role, and the biggest challenge you dealt with.' }
+]
+
+};
+
+// Merge labor banks into the main question set
+(function(){
+  Object.keys(LABOR_QUESTIONS).forEach(function(t){
+    QUESTIONS[t] = (QUESTIONS[t] || []).concat(LABOR_QUESTIONS[t]);
+  });
+})();
+
 var EASY_QUESTIONS = {
 electrician: [
   { id:'e-x1', cat:'safety', diff:'easy', type:'mc',
