@@ -335,6 +335,11 @@ header{gap:12px;}
       <div class="trade-name">Skilled Labor</div>
       <div class="trade-sub">Multi-Trade / Industrial</div>
     </div>
+    <div class="trade-card" onclick="selectTrade('qlm_orientation')" id="t-qlm_orientation">
+      <div class="trade-icon">&#127959;&#65039;</div>
+      <div class="trade-name">QLM Orientation</div>
+      <div class="trade-sub">Culture / Mission / SPQ</div>
+    </div>
     <div class="trade-card" onclick="selectTrade('display_tech')" id="t-display_tech">
       <div class="trade-icon">&#128250;</div>
       <div class="trade-name">Display / Electronics Tech</div>
@@ -1662,7 +1667,8 @@ var TRADE_LABELS = {
   solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)',
   ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician',
   general_labor:'General Labor', skilled_labor:'Skilled Labor',
-  display_tech:'Display / Electronics Technician'
+  display_tech:'Display / Electronics Technician',
+  qlm_orientation:'QLM Orientation'
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1677,6 +1683,103 @@ var TRADE_LABELS = {
 //  DISPLAY / ELECTRONIC ASSEMBLY TECHNICIAN
 //  Commercial flat panel displays, digital menu boards, LED/LCD
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  QLM ORIENTATION — company knowledge check
+//  Culture, mission, philosophy, and how QLM operates
+// ═══════════════════════════════════════════════════════════════
+var ORIENTATION_QUESTIONS = {
+
+qlm_orientation: [
+  // ── EASY ──
+  { id:'q-o1', cat:'technical', diff:'easy', type:'mc',
+    q:'What does SPQ stand for at QLM?',
+    choices:['Skilled, Professional, Qualified','Safety, Productivity, and Quality','Service, Performance, Quality','Standards, Process, Quality'],
+    correct:1, explain:'SPQ is Safety, Productivity, and Quality — it is the foundation of everything QLM does.' },
+  { id:'q-o2', cat:'technical', diff:'easy', type:'mc',
+    q:'Complete the QLM tagline: "Safety, Productivity, and Quality —"',
+    choices:['Building America','Quality beyond the job site','Workers you can trust','Always improving'],
+    correct:1, explain:'Quality beyond the job site. The commitment does not stop when the shift ends.' },
+  { id:'q-o3', cat:'technical', diff:'easy', type:'mc',
+    q:'QLM places skilled tradespeople as:',
+    choices:['1099 independent contractors','W-2 employees of QLM','Subcontractors','Volunteers'],
+    correct:1, explain:'Team members are QLM employees. QLM carries workers comp, payroll taxes, and liability so the client does not have to.' },
+  { id:'q-o4', cat:'technical', diff:'easy', type:'mc',
+    q:'At QLM, the people we place are referred to as:',
+    choices:['Temps','Team members','Laborers','Contractors'],
+    correct:1, explain:'They are team members. The language reflects how they are treated.' },
+
+  // ── MID ──
+  { id:'q-o5', cat:'technical', diff:'mid', type:'mc',
+    q:'QLM\u2019s mission statement begins with which phrase?',
+    choices:['Driven by profit','Guided by Faith','Powered by technology','Built on speed'],
+    correct:1, explain:'Guided by Faith, we transform the landscape of employment, while building strong communities.' },
+  { id:'q-o6', cat:'technical', diff:'mid', type:'mc',
+    q:'Which of these is one of QLM\u2019s four stated beliefs?',
+    choices:['We believe in being the lowest cost provider','We believe in changing lives through employment','We believe in growth at any cost','We believe in filling orders fastest'],
+    correct:1, explain:'Changing lives through employment is the first belief in the QLM philosophy.' },
+  { id:'q-o7', cat:'leadership', diff:'mid', type:'mc',
+    q:'QLM\u2019s philosophy includes a moral obligation to always lead with:',
+    choices:['Authority and structure','Love and respect','Data and metrics','Speed and urgency'],
+    correct:1, explain:'We believe in the moral obligation to always lead with love and respect.' },
+  { id:'q-o8', cat:'technical', diff:'mid', type:'mc',
+    q:'QLM describes its role with clients as being:',
+    choices:['A vendor','A seamless extension of our clients','A staffing broker','An outside agency'],
+    correct:1, explain:'We believe in being a seamless extension of our clients — that framing drives how team members show up.' },
+  { id:'q-o9', cat:'technical', diff:'mid', type:'mc',
+    q:'Which of these is NOT one of the industries QLM serves?',
+    choices:['Utility Solar','Marine','Residential landscaping','Mission Critical'],
+    correct:2, explain:'QLM serves Construction, Heavy Industrial, Marine, Utility Solar, Mission Critical, and Civil.' },
+  { id:'q-o10', cat:'technical', diff:'mid', type:'mc',
+    q:'Approximately how many states does QLM place tradespeople across?',
+    choices:['3 states','14 states','30 states','All 50 states'],
+    correct:1, explain:'QLM has placed tradespeople across 14 states with branches nationwide.' },
+  { id:'q-o11', cat:'safety', diff:'mid', type:'mc',
+    q:'When a team member raises a safety concern on a client site, the expectation is:',
+    choices:['Handle it quietly to avoid upsetting the client','Take it seriously and address it — safety comes first, always','Wait for the client to bring it up','Only escalate if someone is injured'],
+    correct:1, explain:'Safety First Always. A client relationship is never worth a team member getting hurt.' },
+  { id:'q-o12', cat:'technical', diff:'mid', type:'mc',
+    q:'QLM\u2019s main contact number is:',
+    choices:['855-756-9675','800-555-0100','407-555-2200','888-QLM-JOBS'],
+    correct:0, explain:'855-756-9675 — worth knowing by heart when you are talking to clients or candidates.' },
+
+  // ── HARD ──
+  { id:'q-o13', cat:'technical', diff:'hard', type:'mc',
+    q:'QLM Direct refers to:',
+    choices:['The company newsletter','QLM\u2019s direct hire and long-term labor management offering','A payroll app','A safety training course'],
+    correct:1, explain:'QLM Direct supports clients who need direct placement and longer-term labor management rather than temporary staffing.' },
+  { id:'q-o14', cat:'technical', diff:'hard', type:'mc',
+    q:'The QLM Contractors Cup is:',
+    choices:['An internal sales competition','A long-running charity event supporting local non-profits','A safety certification','A client appreciation golf discount'],
+    correct:1, explain:'QLM hosted the Contractors Cup for 25 years to raise awareness and support for local non-profits, partnering with Jane\u2019s Saving Grace.' },
+  { id:'q-o15', cat:'scenario', diff:'hard', type:'open',
+    q:'A client tells you they can get workers cheaper from another agency. Using what you know about how QLM operates, how would you respond?' },
+  { id:'q-o16', cat:'scenario', diff:'hard', type:'open',
+    q:'QLM believes in changing lives through employment. Describe what that means to you in practical terms, and one thing you personally do that reflects it.' },
+  { id:'q-o17', cat:'leadership', diff:'hard', type:'mc',
+    q:'A team member you placed is struggling in their first week on a job site. The best first move is:',
+    choices:['Replace them immediately to protect the client relationship','Talk to both the team member and the site lead to understand what is happening','Wait and see if it resolves itself','Tell the team member to figure it out'],
+    correct:1, explain:'Understand before acting. Many first-week problems are expectation or communication gaps, not capability gaps.' },
+  { id:'q-o18', cat:'technical', diff:'hard', type:'mc',
+    q:'QLM\u2019s stated client retention rate is approximately:',
+    choices:['62%','75%','85%','98%'],
+    correct:3, explain:'98% client retention — a direct result of sending crews that are safe, productive, and on schedule from day one.' },
+  { id:'q-o19', cat:'scenario', diff:'mid', type:'open',
+    q:'In your own words, what does "quality beyond the job site" mean, and how would you explain it to a candidate on their first day?' },
+  { id:'q-o20', cat:'technical', diff:'mid', type:'mc',
+    q:'QLM is headquartered in which state?',
+    choices:['Texas','Florida','Georgia','North Carolina'],
+    correct:1, explain:'QLM is headquartered in Florida with branches across the Southeast, Gulf Coast, and Southwest.' }
+]
+
+};
+
+// Merge orientation bank into the main question set
+(function(){
+  Object.keys(ORIENTATION_QUESTIONS).forEach(function(t){
+    QUESTIONS[t] = (QUESTIONS[t] || []).concat(ORIENTATION_QUESTIONS[t]);
+  });
+})();
+
 var DISPLAY_QUESTIONS = {
 
 display_tech: [
