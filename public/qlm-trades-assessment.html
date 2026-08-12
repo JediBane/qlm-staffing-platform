@@ -1610,14 +1610,14 @@ function saveToHistory(record) {
     try{
       var _last = (JSON.parse(localStorage.getItem('qlm_assessment_history')||'[]')||[])[0];
       if(_last) QLM.save('assessments', {
-        candidate_name: _last.candidate || _last.name || null,
+        candidate_name: ((_last.firstName||'') + ' ' + (_last.lastName||'')).trim() || _last.candidate || _last.name || null,
         trade: _last.trade || 'Unknown',
         score: parseInt(_last.score)||null,
         verdict: _last.verdict || null,
         recruiter: _last.recruiter || null,
         category_scores: _last.categories || null,
         red_flags: _last.redFlags || null,
-        ai_analysis: _last.analysis || null
+        ai_analysis: _last.fullText || _last.analysis || null
       });
     }catch(e){}
   }
