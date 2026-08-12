@@ -296,7 +296,8 @@ header{gap:12px;}
         </select>
       </div>
       <div class="field"><label>Claimed Certifications</label><input type="text" id="c-certs" placeholder="e.g. OSHA 30, AWS, CDL-A"></div>
-      <div class="field"><label>Recruiter / Branch</label><input type="text" id="c-recruiter" placeholder="e.g. Tampa - Jane B."></div>
+      <div class="field"><label>Recruiter <span style="color:#ef4444;">*</span></label>
+        <select id="c-recruiter"><option value="">Loading team...</option></select></div>
     </div>
 
     <!-- Recruiter-only: how to reach the candidate + where results go -->
@@ -3350,6 +3351,7 @@ function applyCandidatePrefill(){
   set('c-email', p.get('email'));
   set('c-phone', p.get('phone'));
   set('c-certs', p.get('certs'));
+  // recruiter stays as the signed-in user's default
 
   var lvl = (p.get('level')||'').toLowerCase();
   var sel = document.getElementById('c-level');
@@ -3377,6 +3379,31 @@ function applyCandidatePrefill(){
 //  ASSESSMENT INVITES (recruiter side)
 // ═══════════════════════════════════════════════════
 var _lastInviteUrl = '', _lastInvitePhone = '', _lastInviteEmail = '', _lastInviteName = '';
+
+async function populateRecruiters(){
+  var sel = document.getElementById('c-recruiter');
+  if(!sel) return;
+  if(!window.QLM || !QLM.client()){
+    sel.innerHTML = '<option value="">Sign in to load the team</option>';
+    return;
+  }
+  try{
+    var u = await QLM.getUser();
+    var res = await QLM.client().from('profiles').select('id, full_name, email').order('full_name');
+    var rows = res.data || [];
+    if(!rows.length){
+      sel.innerHTML = '<option value="">No team members found</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Select recruiter...</option>' + rows.map(function(p){
+      var label = (p.full_name && p.full_name.indexOf('@') === -1) ? p.full_name : p.email;
+      var isMe = u && p.id === u.id;
+      return '<option value="'+label.replace(/"/g,'&quot;')+'"'+(isMe?' selected':'')+'>'+label+(isMe?' (you)':'')+'</option>';
+    }).join('');
+  }catch(e){
+    sel.innerHTML = '<option value="">Could not load team</option>';
+  }
+}
 
 function populateInviteTrades(){
   // Prefill the results email with the signed-in recruiter
@@ -3436,6 +3463,12 @@ async function createInvite(){
   }
   if(!candEmail){ invSt('error','Candidate email is required.'); document.getElementById('c-email').focus(); return; }
   if(!candPhone){ invSt('error','Candidate phone is required.'); document.getElementById('c-phone').focus(); return; }
+
+  var recSel = document.getElementById('c-recruiter');
+  if(recSel && !recSel.value){
+    invSt('error','Select the recruiter this assessment belongs to.');
+    recSel.focus(); return;
+  }
 
   if(!window.QLM || !QLM.client()){
     invSt('error','Sign in to create assessment links.'); return;
@@ -3595,9 +3628,14 @@ async function checkInviteToken(){
     document.getElementById('c-fname').value = parts[0] || '';
     document.getElementById('c-lname').value = parts.slice(1).join(' ');
     document.getElementById('c-recruiter').value = inv.recruiter_name || '';
-    ['c-fname','c-lname','c-recruiter'].forEach(function(id){
+    ['c-fname','c-lname'].forEach(function(id){
       var el = document.getElementById(id); if(el){ el.readOnly = true; el.style.background = '#f1f5f9'; }
     });
+    var recEl = document.getElementById('c-recruiter');
+    if(recEl){
+      recEl.innerHTML = '<option>' + (inv.recruiter_name || '') + '</option>';
+      recEl.disabled = true; recEl.style.background = '#f1f5f9';
+    }
 
     if(inv.notes && /lang=es/.test(inv.notes)) { TEST_LANG = 'es'; }
     selectTrade(inv.trade);
@@ -3825,7 +3863,7 @@ function updatePrintMeta() {
 window.addEventListener('DOMContentLoaded', function() {
   try { updateHistCount(); } catch(e) { console.warn(e); }
   try { checkUrlParams(); } catch(e) { console.warn('checkUrlParams failed', e); }
-  try { if(!(typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)) { populateInviteTrades(); loadInvites(); applyCandidatePrefill(); } } catch(e) { console.warn(e); }
+  try { if(!(typeof INVITE_TOKEN !== 'undefined' && INVITE_TOKEN)) { populateInviteTrades(); populateRecruiters(); loadInvites(); applyCandidatePrefill(); } } catch(e) { console.warn(e); }
 });
 
 function toggleSettings(){}
