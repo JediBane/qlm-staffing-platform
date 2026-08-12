@@ -153,6 +153,39 @@ header{gap:12px;}
   </div>
 
 
+
+  <!-- TEAM MANAGEMENT (admin only) -->
+  <div class="table-card admin-only" id="team-card">
+    <div class="table-head">
+      <div class="table-title">&#128101; Team Management</div>
+      <button class="btn-export" onclick="toggleInvite()" id="invite-toggle">+ Invite User</button>
+    </div>
+
+    <div id="invite-form" style="display:none;padding:14px 4px 6px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Full Name</label>
+          <input id="inv-name" placeholder="Jane Brooks" style="width:100%;border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Email</label>
+          <input id="inv-email" type="email" placeholder="jane@myqlm.com" style="width:100%;border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">Role</label>
+          <select id="inv-role" style="border:1px solid #b8dff0;border-radius:7px;padding:8px 11px;font-size:.85rem;font-family:inherit;outline:none;margin-top:4px;">
+            <option value="recruiter">Recruiter</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button onclick="sendInvite()" id="inv-send" style="background:#003a52;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;">Send Invite</button>
+      </div>
+      <div id="invite-status" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="team-list" style="padding:4px;"></div>
+  </div>
+
   <!-- RECENT ACTIVITY FEED -->
   <div class="table-card">
     <div class="table-head">
@@ -347,6 +380,7 @@ async function render(){
   renderAssessTable(assessments);
   renderLeadsTable(leads);
   renderActivity(activity);
+  loadTeamList();
 }
 
 // ─── KPI CARDS ───────────────────────────────────────────────────────────
@@ -710,6 +744,126 @@ function openReportWindow(a){
 }
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════
+//  TEAM MANAGEMENT
+// ═══════════════════════════════════════════════════
+function toggleInvite(){
+  var f = document.getElementById('invite-form');
+  var open = f.style.display !== 'none';
+  f.style.display = open ? 'none' : 'block';
+  document.getElementById('invite-toggle').textContent = open ? '+ Invite User' : 'Cancel';
+}
+
+function invStatus(type, msg){
+  var colors = type === 'error' ? ['#fef2f2','#fecaca','#b91c1c']
+             : type === 'ok'    ? ['#f0fdf4','#bbf7d0','#15803d']
+             : ['#e0f4fc','#b8dff0','#0077a8'];
+  document.getElementById('invite-status').innerHTML =
+    '<div style="background:'+colors[0]+';border:1px solid '+colors[1]+';color:'+colors[2]+
+    ';border-radius:8px;padding:10px 13px;font-size:.83rem;line-height:1.6;">'+msg+'</div>';
+}
+
+async function adminCall(payload){
+  var token = await QLM.accessToken();
+  var res = await fetch('/.netlify/functions/admin-users', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(token||'')},
+    body: JSON.stringify(Object.assign({ origin: location.origin }, payload))
+  });
+  return res.json();
+}
+
+async function sendInvite(){
+  var name  = document.getElementById('inv-name').value.trim();
+  var email = document.getElementById('inv-email').value.trim();
+  var role  = document.getElementById('inv-role').value;
+  if(!email){ invStatus('error','Enter an email address.'); return; }
+
+  var btn = document.getElementById('inv-send');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  invStatus('info','Sending invitation...');
+  try{
+    var r = await adminCall({ action:'invite', email:email, full_name:name, is_admin: role === 'admin' });
+    if(r.needsSetup){
+      invStatus('error', r.error + '<br><br><strong>Meanwhile:</strong> have them sign up at <a href="/login.html" style="color:#0077a8;">/login.html</a> and you can set their role here once they appear.');
+    } else if(r.ok){
+      invStatus('ok','\u2713 Invitation sent to ' + email + '. They will receive an email to set their password.');
+      document.getElementById('inv-name').value = '';
+      document.getElementById('inv-email').value = '';
+      setTimeout(loadTeamList, 1200);
+    } else {
+      invStatus('error', r.error || 'Could not send the invitation.');
+    }
+  }catch(e){ invStatus('error', e.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Send Invite'; }
+}
+
+async function loadTeamList(){
+  var el = document.getElementById('team-list');
+  if(!el || !window.QLM || !QLM.client()) return;
+  try{
+    var me = await QLM.getUser();
+    var res = await QLM.client().from('profiles').select('id, full_name, email, is_admin, created_at').order('full_name');
+    var rows = res.data || [];
+    if(!rows.length){ el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;padding:12px 0;">No team members yet.</p>'; return; }
+
+    el.innerHTML =
+      '<table class="data-table"><thead><tr>' +
+        '<th>Name</th><th>Email</th><th style="width:150px;">Role</th><th style="width:190px;">Actions</th>' +
+      '</tr></thead><tbody>' +
+      rows.map(function(p){
+        var isMe = me && p.id === me.id;
+        var name = (p.full_name && p.full_name.indexOf('@') === -1) ? p.full_name : (p.email || '\u2014');
+        return '<tr>' +
+          '<td style="font-weight:600;color:#003a52;">' + name + (isMe ? ' <span style="font-size:.68rem;color:#0099d8;font-weight:700;">(you)</span>' : '') + '</td>' +
+          '<td style="color:#64748b;font-size:.82rem;">' + (p.email||'') + '</td>' +
+          '<td>' +
+            '<select onchange="setRole(\'' + p.id + '\', this.value, this)"' + (isMe ? ' disabled title="You cannot change your own role"' : '') +
+              ' style="border:1px solid #b8dff0;border-radius:6px;padding:5px 9px;font-size:.8rem;font-family:inherit;' + (isMe?'background:#f1f5f9;':'') + '">' +
+              '<option value="recruiter"' + (!p.is_admin ? ' selected' : '') + '>Recruiter</option>' +
+              '<option value="admin"' + (p.is_admin ? ' selected' : '') + '>Admin</option>' +
+            '</select>' +
+          '</td>' +
+          '<td>' +
+            '<button class="btn-view" onclick="resetUser(\'' + (p.email||'') + '\',this)">Reset Password</button> ' +
+            (isMe ? '' : '<button class="btn-view" style="color:#b91c1c;border-color:#fecaca;" onclick="removeUser(\'' + p.id + '\',\'' + name.replace(/'/g,"") + '\')">Remove</button>') +
+          '</td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }catch(e){
+    el.innerHTML = '<p style="color:#b91c1c;font-size:.85rem;">Could not load the team: ' + e.message + '</p>';
+  }
+}
+
+async function setRole(id, role, sel){
+  sel.disabled = true;
+  try{
+    var res = await QLM.client().from('profiles').update({ is_admin: role === 'admin' }).eq('id', id);
+    if(res.error) throw new Error(res.error.message);
+    sel.style.borderColor = '#22c55e';
+    setTimeout(function(){ sel.style.borderColor = '#b8dff0'; }, 1400);
+  }catch(e){
+    alert('Could not change the role: ' + e.message);
+  }finally{ sel.disabled = false; }
+}
+
+async function resetUser(email, btn){
+  if(!email) return;
+  var o = btn.textContent; btn.textContent = 'Sending...'; btn.disabled = true;
+  var r = await adminCall({ action:'reset', email:email });
+  btn.textContent = r.ok ? '\u2713 Sent' : 'Failed';
+  if(!r.ok && r.error) alert(r.error);
+  setTimeout(function(){ btn.textContent = o; btn.disabled = false; }, 2200);
+}
+
+async function removeUser(id, name){
+  if(!confirm('Remove ' + name + '?\n\nTheir account is deleted but their assessments, candidates and leads are kept in the database.')) return;
+  var r = await adminCall({ action:'delete', id:id });
+  if(r.ok){ loadTeamList(); TEAM = []; await loadTeam(); render(); }
+  else alert(r.error || 'Could not remove the user.');
+}
+
 // ─── RECENT ACTIVITY FEED ────────────────────────────────────────────────
 function renderActivity(activity){
   var el = document.getElementById('activity-feed');
