@@ -1385,67 +1385,121 @@ function openSavedReport(i){
 function clientOnePager(){
   if(!reportRaw){ alert('Generate a report first.'); return; }
   var d = reportRaw;
-  var market = (document.getElementById('r-market')||{}).value || '';
-  var trade  = (document.getElementById('r-drill-trade')||{}).value || '';
+  var market  = (document.getElementById('r-market')||{}).value || '';
+  var trade   = (document.getElementById('r-drill-trade')||{}).value || '';
+  var level   = (document.getElementById('r-drill-level')||{}).value || '';
   var company = (document.getElementById('r-company')||{}).value || '';
   var e = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   var today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
-  var points = (d.talkingPoints||[]).slice(0,6);
-  var rate = d.recommendedBillRate || d.billRate || '';
-  var payRange = d.marketPayRange || '';
-  var fill = d.weeksToFillSelfManaged || d.fillTimeSelfManaged || '';
-  var diff = d.fillDifficultyScore != null ? d.fillDifficultyScore : '';
+  // Pull from the actual report structure, tolerating both report modes
+  var pay  = d.payRateAnalysis || {};
+  var bill = d.billRateAnalysis || {};
+  var fill = d.fillTimeData || {};
+  var snap = d.marketSnapshot || {};
+  var turn = d.turnoverCostData || {};
+
+  var payRange   = pay.marketPayRange || snap.marketPayRange || '';
+  var competing  = pay.competingOffers || '';
+  var selfManaged= fill.clientSelfManagedAvg || d.weeksToFillSelfManaged || '';
+  var qlmAvg     = fill.qlmAvg || '';
+  var diffScore  = d.difficultyScore != null ? d.difficultyScore : (d.fillDifficultyScore != null ? d.fillDifficultyScore : '');
+  var diffLabel  = d.difficultyLabel || '';
+  var postings   = snap.activeJobPostings || '';
+  var candidates = snap.estimatedActiveCandidates || '';
+  var trend      = snap.demandTrend || '';
+  var vacancy    = fill.costOfVacancy || '';
+  var replaceCost= turn.costToReplaceWorker || '';
+  var tempBenefit= turn.tempToHireBenefit || d.tempToHireBenefit || '';
+  var screening  = turn.qlmScreeningValue || d.qlmScreeningValue || '';
+
+  // Talking points can be strings or objects
+  var points = (d.talkingPoints||[]).map(function(p){
+    return typeof p === 'string' ? p : (p.text || p.point || '');
+  }).filter(Boolean).slice(0,6);
+
+  // Proposal paragraphs make good closing copy — opening + market context only
+  var props = d.proposalParagraphs || {};
+  var opening = props.opening || '';
+  var context = props.marketContext || '';
+
+  function stat(v, label){
+    if(!v && v !== 0) return '';
+    return '<div class="st"><div class="v">' + e(v) + '</div><div class="l">' + label + '</div></div>';
+  }
+  function block(title, bodyHtml){
+    if(!bodyHtml) return '';
+    return '<div class="sec">' + title + '</div>' + bodyHtml;
+  }
+  function para(t){ return t ? '<div class="note">' + e(t) + '</div>' : ''; }
+
+  var statsHtml =
+    stat(payRange, 'Market pay range') +
+    stat(selfManaged, 'Time to fill on your own') +
+    stat((diffScore !== '' ? diffScore + ' / 10' : '') + (diffLabel ? ' · ' + diffLabel : ''), 'Difficulty to fill') +
+    stat(postings, 'Open postings in market') +
+    stat(candidates, 'Available candidates') +
+    stat(trend, 'Demand trend');
 
   var html =
-'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Market Brief — ' + e(trade) + ' — ' + e(market) + '</title>' +
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Market Brief \u2014 ' + e(trade) + ' \u2014 ' + e(market) + '</title>' +
 '<style>' +
 '*{box-sizing:border-box;margin:0;padding:0;}' +
-'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:26px 16px;line-height:1.6;}' +
-'.pg{max-width:760px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,58,82,.14);}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:26px 16px;line-height:1.65;}' +
+'.pg{max-width:780px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,58,82,.14);}' +
 '.hd{background:#003a52;padding:26px 32px;}' +
 '.badge{display:inline-block;background:#0099d8;color:#fff;font-weight:700;font-size:.7rem;letter-spacing:3px;padding:5px 13px;border-radius:5px;}' +
-'.hd h1{color:#fff;font-size:1.5rem;font-weight:700;margin-top:13px;}' +
-'.hd .sub{color:#b8dff0;font-size:.88rem;margin-top:5px;}' +
+'.hd h1{color:#fff;font-size:1.45rem;font-weight:700;margin-top:13px;line-height:1.3;}' +
+'.hd .sub{color:#b8dff0;font-size:.86rem;margin-top:6px;}' +
 '.bd{padding:26px 32px;}' +
-'.sec{font-size:.64rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0077a8;margin:22px 0 11px;padding-bottom:6px;border-bottom:1px solid #e0f4fc;}' +
+'.sec{font-size:.63rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0077a8;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #e0f4fc;}' +
 '.sec:first-child{margin-top:0;}' +
-'.stats{display:flex;gap:11px;flex-wrap:wrap;}' +
-'.st{flex:1;min-width:150px;background:#e0f4fc;border:1px solid #b8dff0;border-radius:10px;padding:15px 16px;}' +
-'.st .v{font-size:1.35rem;font-weight:700;color:#003a52;}' +
-'.st .l{font-size:.64rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#0077a8;margin-top:3px;}' +
+'.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;}' +
+'.st{background:#e0f4fc;border:1px solid #b8dff0;border-radius:10px;padding:14px 15px;}' +
+'.st .v{font-size:1.05rem;font-weight:700;color:#003a52;line-height:1.35;}' +
+'.st .l{font-size:.62rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#0077a8;margin-top:4px;}' +
 'ul{margin:0;padding-left:19px;}' +
-'li{font-size:.92rem;line-height:1.85;margin-bottom:5px;}' +
-'.note{font-size:.86rem;line-height:1.8;color:#2a4a5a;}' +
+'li{font-size:.9rem;line-height:1.85;margin-bottom:6px;}' +
+'.note{font-size:.9rem;line-height:1.85;color:#2a4a5a;margin-bottom:9px;}' +
 '.ft{background:#003a52;padding:18px 32px;text-align:center;}' +
 '.ft .spq{color:#0099d8;font-size:.66rem;font-weight:700;letter-spacing:2.5px;}' +
 '.ft .info{color:#b8dff0;font-size:.78rem;margin-top:5px;}' +
-'.tools{max-width:760px;margin:0 auto 13px;display:flex;gap:8px;justify-content:flex-end;}' +
+'.tools{max-width:780px;margin:0 auto 13px;display:flex;gap:8px;justify-content:flex-end;}' +
 '.tools button{background:#003a52;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}' +
 '.tools button.alt{background:#fff;color:#0077a8;border:1.5px solid #b8dff0;}' +
 '@media print{body{background:#fff;padding:0;}.tools{display:none;}.pg{box-shadow:none;border-radius:0;}' +
-'.hd,.ft,.st{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
+'.hd,.ft,.st{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.sec{break-after:avoid;}}' +
 '</style></head><body>' +
 '<div class="tools"><button class="alt" onclick="window.print()">&#128438; Print / PDF</button><button onclick="window.close()">Close</button></div>' +
 '<div class="pg">' +
   '<div class="hd">' +
     '<div class="badge">QLM</div>' +
-    '<h1>' + e(trade || 'Skilled Trades') + ' Labor Market Brief</h1>' +
+    '<h1>' + e((level && level !== 'Any level' ? level + ' ' : '') + (trade || 'Skilled Trades')) + ' Labor Market Brief</h1>' +
     '<div class="sub">' + e(market) + (company ? ' &nbsp;&middot;&nbsp; Prepared for ' + e(company) : '') + ' &nbsp;&middot;&nbsp; ' + today + '</div>' +
   '</div>' +
   '<div class="bd">' +
-    '<div class="sec">Current Market Conditions</div>' +
-    '<div class="stats">' +
-      (payRange ? '<div class="st"><div class="v">' + e(payRange) + '</div><div class="l">Market pay range</div></div>' : '') +
-      (fill ? '<div class="st"><div class="v">' + e(fill) + '</div><div class="l">Typical time to fill on your own</div></div>' : '') +
-      (diff !== '' ? '<div class="st"><div class="v">' + e(diff) + ' / 10</div><div class="l">Difficulty to fill</div></div>' : '') +
-    '</div>' +
-    (points.length ? '<div class="sec">What This Means For Your Project</div><ul>' +
-      points.map(function(p){ return '<li>' + e(typeof p === 'string' ? p : (p.point||p.text||'')) + '</li>'; }).join('') +
-      '</ul>' : '') +
-    (d.qlmAdvantage || d.whyQlm ? '<div class="sec">Working With QLM</div><div class="note">' + e(d.qlmAdvantage || d.whyQlm) + '</div>' : '') +
+
+    (statsHtml ? '<div class="sec">Current Market Conditions</div><div class="stats">' + statsHtml + '</div>' : '') +
+
+    block('What This Means For Your Project',
+      (points.length ? '<ul>' + points.map(function(p){ return '<li>' + e(p) + '</li>'; }).join('') + '</ul>' : '') ||
+      (context ? para(context) : '')) +
+
+    block('Hiring On Your Own',
+      (competing ? para('Competing offers right now: ' + competing) : '') +
+      (selfManaged ? para('Employers filling this role themselves are averaging ' + selfManaged + '.') : '') +
+      (vacancy ? para('Cost of leaving the position open: ' + vacancy) : '') +
+      (replaceCost ? para('Cost to replace a worker who does not stay: ' + replaceCost) : '')) +
+
+    block('Working With QLM',
+      (qlmAvg ? para('QLM typically fills this role in ' + qlmAvg + '.') : '') +
+      (tempBenefit ? para(tempBenefit) : '') +
+      (screening ? para(screening) : '') +
+      (opening ? para(opening) : '')) +
+
     '<div class="sec">What Is Included</div>' +
     '<div class="note">Every QLM team member is our W-2 employee. Workers compensation, general liability, payroll taxes and unemployment are carried by QLM and are included in one all-inclusive hourly rate. You approve hours; we handle the rest. No employer liability, no payroll administration, and no cost when the work stops.</div>' +
+
   '</div>' +
   '<div class="ft"><div class="spq">SAFETY &middot; PRODUCTIVITY &middot; QUALITY</div>' +
   '<div class="info">Quality Labor Management &middot; myqlm.com &middot; 855-756-9675</div></div>' +
