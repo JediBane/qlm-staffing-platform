@@ -867,8 +867,14 @@ function angleById(id){
 }
 
 // Remember every company we have already surfaced so runs do not repeat
+// Scoped per market so a search in Tampa does not exclude companies in Orlando
+function seenKey(){
+  var loc = ((document.getElementById('s-zip')||{}).value || (document.getElementById('s-loc')||{}).value || '')
+              .toLowerCase().replace(/\s+/g,'').slice(0,40);
+  return 'qlm_seen_' + (loc || 'default');
+}
 function seenCompanies(){
-  try{ return JSON.parse(localStorage.getItem('qlm_seen_companies')||'[]'); }catch(e){ return []; }
+  try{ return JSON.parse(localStorage.getItem(seenKey())||'[]'); }catch(e){ return []; }
 }
 function rememberCompanies(list){
   var seen = seenCompanies();
@@ -876,11 +882,16 @@ function rememberCompanies(list){
     var n = (c||'').trim();
     if(n && seen.indexOf(n) === -1) seen.push(n);
   });
-  localStorage.setItem('qlm_seen_companies', JSON.stringify(seen.slice(-300)));
+  // Keep it short — a long exclusion list starves the search
+  localStorage.setItem(seenKey(), JSON.stringify(seen.slice(-40)));
 }
 function clearSeen(){
+  localStorage.removeItem(seenKey());
+  try{
+    Object.keys(localStorage).forEach(function(k){ if(k.indexOf('qlm_seen_') === 0) localStorage.removeItem(k); });
+  }catch(e){}
   localStorage.removeItem('qlm_seen_companies');
-  alert('Cleared. The next search can surface companies you have already seen.');
+  alert('Search history cleared for all markets.');
 }
 
 // Rotate through angles so consecutive searches differ
@@ -996,7 +1007,8 @@ function runSearch(){
   })();
   var avoid = excludeList.concat(seenCompanies(), savedNames).filter(function(v,i,a){ return v && a.indexOf(v) === i; });
   var avoidNote = avoid.length
-    ? 'ALREADY KNOWN — do not return any of these, find different companies:\n' + avoid.slice(-60).join(', ') + '\n\n'
+    ? 'Already contacted or seen (prefer different companies, but if one of these is the strongest current match you may still include it):\n' +
+      avoid.slice(-25).join(', ') + '\n\n'
     : '';
 
   // Rotate which part of the market gets emphasis so a wide radius does not
@@ -1034,11 +1046,12 @@ function runSearch(){
     '- signal must state the actual evidence you found, not a generic claim\n' +
     '- NEVER explain what you could or could not access. NEVER apologise.\n' +
     '- Partial information is fine: leave unknown fields as empty strings\n' +
-    '- If you truly found nothing at all, return exactly: []\n' +
+    '- Returning an empty array is almost never correct. Every market of any size has contractors hiring trades.\n' +
+    '- If exact matches are thin, widen: nearby cities, the wider county, related trades, or companies that regularly employ these trades even without a live posting. Lower qlmFitScore to reflect the weaker signal and say why in the summary.\n' +
+    '- Only return [] if the location itself appears to be invalid.\n' +
     '- Search run id ' + Date.now() + ' \u2014 return companies you have not returned for this market before';
 
-  leadSearchCall(prompt)
-  .then(function(text){
+  var handleLeadResponse = function(text){
     // Step 1: strip markdown fences
     var clean = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
 
@@ -1129,7 +1142,34 @@ function runSearch(){
 
     try { rememberCompanies(currentLeads.map(function(l){ return l.company; })); updateSeenCount(); } catch(e) {}
 
+    // Empty result: one automatic broader retry before giving up
+    if(!currentLeads.length && !window._leadRetry){
+      window._leadRetry = true;
+      showSt('searchStatus','loading','Nothing on that angle \u2014 trying a broader search...');
+      document.getElementById('res-title').textContent = 'Widening the search...';
+      var broadPrompt = prompt
+        .replace(avoidNote, '')
+        .replace(angle.build(trades, focusCity),
+          'ANGLE: any company in this market that employs ' + trades + '.\n' +
+          'Search: "' + trades + ' contractor ' + locationStr + '", "commercial construction companies ' + locationStr + '", ' +
+          '"' + trades + ' company near ' + focusCity + '".\n' +
+          'Include established firms even without a live job posting \u2014 note that in the summary and score them lower.');
+      return leadSearchCall(broadPrompt).then(handleLeadResponse);
+    }
+    window._leadRetry = false;
+
     renderLeads(currentLeads);
+    if(!currentLeads.length){
+      document.getElementById('leads-container').innerHTML =
+        '<div class="empty"><div class="empty-icon">&#128269;</div>' +
+        '<p style="font-size:.92rem;line-height:1.7;">No companies came back for <strong>' + angle.label.toLowerCase() + '</strong> in ' + locationStr + '.</p>' +
+        '<p style="font-size:.83rem;color:#94a3b8;line-height:1.7;margin-top:8px;">This is usually the angle, not the market. Try:<br>' +
+        '\u2022 A different Lead Angle on the left<br>' +
+        '\u2022 A broader location, or remove the radius<br>' +
+        '\u2022 Fewer trades \u2014 one at a time searches better<br>' +
+        '\u2022 Reset history if you have searched this market repeatedly</p>' +
+        '<button onclick="runSearch()" style="margin-top:12px;background:#0099d8;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;">Try another angle</button></div>';
+    }
     document.getElementById('res-title').textContent = leads.length + ' Leads Found';
     document.getElementById('res-meta').textContent = trades + ' \u00b7 ' + loc + ' \u00b7 ' + new Date().toLocaleDateString();
     document.getElementById('btn-export').style.display = '';
@@ -1140,7 +1180,11 @@ function runSearch(){
 
     // Track search in source analytics
     trackSourceSearch(leads);
-  })
+  };
+
+  window._leadRetry = false;
+  leadSearchCall(prompt)
+  .then(handleLeadResponse)
   .catch(function(e){
     var msg = e.message || 'Search failed';
     if(/rate.?limit|overloaded/i.test(msg)) {
