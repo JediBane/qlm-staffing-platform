@@ -98,6 +98,13 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
   </div>
   <div class="src" id="src-note"></div>
 
+  <div style="position:relative;margin-bottom:14px;">
+    <input id="gsearch" placeholder="&#128269;  Search everything — candidates, job orders, companies, contacts, placements"
+           oninput="globalSearch()" autocomplete="off"
+           style="width:100%;border:1px solid var(--mid);border-radius:10px;padding:11px 15px;font-size:.9rem;font-family:inherit;outline:none;background:#fff;">
+    <div id="gresults" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--mid);border-radius:11px;box-shadow:0 12px 34px rgba(0,58,82,.16);margin-top:5px;max-height:390px;overflow-y:auto;z-index:50;"></div>
+  </div>
+
   <div class="tabs">
     <button class="tab on" id="tab-today"  onclick="setTab('today')">&#9203; Today</button>
     <button class="tab" id="tab-jobs"      onclick="setTab('jobs')">&#128188; Job Orders</button>
@@ -105,6 +112,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
     <button class="tab" id="tab-companies" onclick="setTab('companies')">&#127970; Companies</button>
     <button class="tab" id="tab-client"    onclick="setTab('clients')">&#127919; Leads</button>
     <button class="tab" id="tab-place"     onclick="setTab('placements')">&#9989; Placements</button>
+    <button class="tab" id="tab-metrics"   onclick="setTab('metrics')">&#128200; Metrics</button>
   </div>
 
   <div class="kpis" id="kpis"></div>
@@ -348,6 +356,7 @@ function openJob(i){
 
   document.getElementById('m-acts').innerHTML =
     '<button class="mbtn primary" onclick="saveJob('+i+')">Save</button>' +
+    '<button class="mbtn" onclick="submittalPacket('+i+')">&#128196; Submittal packet</button>' +
     '<button class="mbtn" onclick="closeModal()">Close</button>';
   document.getElementById('modal').classList.remove('hidden');
 }
@@ -767,7 +776,290 @@ function renderToday(){
     '<div class="col"><div class="col-h"><span class="col-t">Upcoming</span><span class="col-n">'+upcoming.length+'</span></div>' +
       (upcoming.length?upcoming.slice(0,15).map(taskRow).join(''):'<div class="col-empty">Nothing scheduled</div>')+'</div>' +
     '<div class="col"><div class="col-h"><span class="col-t">New applications</span><span class="col-n">'+newApps+'</span></div>' +
-      (newApps?CANDIDATES.filter(c=>c.stage==='applied').slice(0,15).map(candCard).join(''):'<div class="col-empty">None waiting</div>')+'</div>';
+      (newApps?CANDIDATES.filter(c=>c.stage==='applied').slice(0,15).map(candCard).join(''):'<div class="col-empty">None waiting</div>')+'</div>' +
+    (function(){
+      var al = alertRows();
+      return '<div class="col"><div class="col-h"><span class="col-t">Alerts</span><span class="col-n">'+al.length+'</span></div>' +
+        (al.length ? al.slice(0,15).map(function(a){
+          return '<div class="card" onclick="'+a.fn+'">' +
+            '<div class="card-n" style="'+(a.urgent?'color:#b91c1c;':'')+'">'+esc(a.txt)+'</div>' +
+            '<div class="card-s">'+esc(a.sub)+'</div></div>';
+        }).join('') : '<div class="col-empty">Nothing needs attention</div>') + '</div>';
+    })();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GLOBAL SEARCH  ·  SUBMITTAL PACKET  ·  METRICS  ·  ALERTS
+// ═══════════════════════════════════════════════════════════════
+
+// ── Global search: one box across every record type ──
+function globalSearch(){
+  var q = (document.getElementById('gsearch').value||'').toLowerCase().trim();
+  var box = document.getElementById('gresults');
+  if(q.length < 2){ box.style.display = 'none'; return; }
+
+  var hits = [];
+  CANDIDATES.forEach(function(c,i){
+    var hay = [c.full_name,c.trade,c.title,c.city,c.email,c.phone,(c.skills||[]).join(' ')].join(' ').toLowerCase();
+    if(hay.indexOf(q) > -1) hits.push({ t:'Candidate', n:c.full_name, s:[prettyTrade(c.trade),c.city].filter(Boolean).join(' \u00b7 '), fn:'openCandidate('+i+')', icon:'\uD83D\uDC64' });
+  });
+  JOBS.forEach(function(j,i){
+    var hay = [j.title,companyName(j.company_id),j.city,prettyTrade(j.trade)].join(' ').toLowerCase();
+    if(hay.indexOf(q) > -1) hits.push({ t:'Job Order', n:j.title, s:companyName(j.company_id), fn:'openJob('+i+')', icon:'\uD83D\uDCBC' });
+  });
+  COMPANIES.forEach(function(c,i){
+    if([c.name,c.city,c.industry].join(' ').toLowerCase().indexOf(q) > -1)
+      hits.push({ t:'Company', n:c.name, s:[c.city,c.status].filter(Boolean).join(' \u00b7 '), fn:'openCompany('+i+')', icon:'\uD83C\uDFE2' });
+  });
+  CONTACTS.forEach(function(x){
+    if([x.name,x.title,x.email,x.phone].join(' ').toLowerCase().indexOf(q) > -1){
+      var ci = COMPANIES.findIndex(c=>c.id===x.company_id);
+      hits.push({ t:'Contact', n:x.name, s:[x.title,companyName(x.company_id)].filter(Boolean).join(' \u00b7 '), fn:'openCompany('+ci+')', icon:'\uD83D\uDCC7' });
+    }
+  });
+  PLACEMENTS.forEach(function(p,i){
+    if([candName(p.candidate_id),companyName(p.company_id)].join(' ').toLowerCase().indexOf(q) > -1)
+      hits.push({ t:'Placement', n:candName(p.candidate_id), s:companyName(p.company_id), fn:'openPlacement('+i+')', icon:'\u2705' });
+  });
+  LEADS.forEach(function(l,i){
+    if([l.company,l.location].join(' ').toLowerCase().indexOf(q) > -1)
+      hits.push({ t:'Lead', n:l.company, s:l.location, fn:'openLead('+i+')', icon:'\uD83C\uDFAF' });
+  });
+
+  if(!hits.length){
+    box.innerHTML = '<div style="padding:14px;color:#94a3b8;font-size:.85rem;">No matches for "' + esc(q) + '"</div>';
+  } else {
+    box.innerHTML = hits.slice(0,20).map(function(h){
+      return '<div onclick="closeSearch();' + h.fn + '" style="display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid #f1f5f9;cursor:pointer;">' +
+        '<span style="font-size:1rem;">' + h.icon + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:.86rem;font-weight:600;color:#003a52;">' + esc(h.n||'') + '</div>' +
+          '<div style="font-size:.72rem;color:#94a3b8;">' + esc(h.s||'') + '</div>' +
+        '</div>' +
+        '<span style="font-size:.64rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#0077a8;">' + h.t + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  box.style.display = 'block';
+}
+function closeSearch(){
+  document.getElementById('gresults').style.display = 'none';
+  document.getElementById('gsearch').value = '';
+}
+
+// ── Submit a candidate to a job order from their own record ──
+async function submitCandidateToJob(candId){
+  var open = JOBS.filter(j=>['open','filling','on_hold'].indexOf(j.status)>-1);
+  if(!open.length){ alert('No open job orders. Create one from the Job Orders tab.'); return; }
+  var list = open.slice(0,30).map(function(j,i){
+    var placed = subsFor(j.id).filter(s=>s.status==='placed').length;
+    return (i+1) + '. ' + j.title + ' \u2014 ' + companyName(j.company_id) + ' (' + placed + '/' + (j.openings||1) + ')';
+  }).join('\n');
+  var pick = prompt('Submit to which job order?\n\n' + list + '\n\nEnter the number:');
+  var idx = parseInt(pick) - 1;
+  if(isNaN(idx) || !open[idx]) return;
+  var job = open[idx];
+  var u = await QLM.getUser();
+  var r = await QLM.client().from('submissions').insert({
+    owner_id: u?u.id:null, job_order_id: job.id, candidate_id: candId,
+    status:'submitted', pay_rate: job.pay_rate, bill_rate: job.bill_rate
+  }).select().single();
+  if(r.error){ alert(r.error.message.indexOf('duplicate')>-1 ? 'Already submitted to that job order.' : r.error.message); return; }
+  SUBS.unshift(r.data);
+  await logActivity('candidate', candId, 'stage', 'Submitted to ' + job.title + ' at ' + companyName(job.company_id));
+  await loadAll();
+  alert('Submitted to ' + job.title + '.');
+}
+
+// ── Client submittal packet: candidates presented for a job order ──
+function submittalPacket(jobIndex){
+  var j = JOBS[jobIndex];
+  if(!j) return;
+  var subs = subsFor(j.id).filter(s=>['submitted','client_review','interview','offer','placed'].indexOf(s.status)>-1);
+  if(!subs.length){ alert('No candidates have been submitted on this job order yet.'); return; }
+
+  var co = COMPANIES.find(x=>x.id===j.company_id) || {};
+  var today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  var e = esc;
+
+  var cards = subs.map(function(s){
+    var c = CANDIDATES.find(x=>x.id===s.candidate_id) || {};
+    var a = assessmentFor(c);
+    var nm = (c.full_name||'').trim().split(/\s+/);
+    var display = nm.length > 1 ? nm[0] + ' ' + nm[nm.length-1][0] + '.' : (c.full_name||'Candidate');
+    var scoreBlock = '';
+    if(a && a.score != null){
+      var col = a.score>=75?'#15803d':a.score>=55?'#a16207':'#b91c1c';
+      var bg  = a.score>=75?'#f0fdf4':a.score>=55?'#fefce8':'#fef2f2';
+      scoreBlock = '<div style="background:'+bg+';border:1px solid '+col+'33;border-radius:8px;padding:9px 12px;margin-top:9px;">' +
+        '<span style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:'+col+';">Verified skills assessment</span>' +
+        '<div style="font-size:.88rem;color:#2a4a5a;margin-top:3px;"><strong style="color:'+col+';font-size:1.05rem;">'+a.score+'/100</strong> \u00b7 ' +
+        e(a.verdict||'') + ' \u00b7 tested on ' + e(prettyTrade(a.trade)) + '</div></div>';
+    }
+    return '<div style="border:1px solid #b8dff0;border-radius:11px;padding:16px 18px;margin-bottom:12px;break-inside:avoid;">' +
+      '<div style="font-size:1.05rem;font-weight:700;color:#003a52;">' + e(display) + '</div>' +
+      '<div style="font-size:.85rem;color:#0077a8;">' + e(prettyTrade(c.title||c.trade)) +
+        (c.experience?' \u00b7 '+e(c.experience):'') + (c.city?' \u00b7 '+e(c.city):'') + '</div>' +
+      (c.availability?'<div style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:7px;">'+e(c.availability)+'</div>':'') +
+      (c.summary?'<div style="font-size:.87rem;line-height:1.75;margin-top:9px;color:#2a4a5a;">'+e(c.summary)+'</div>':'') +
+      ((c.skills||[]).length?'<div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:5px;">' +
+        c.skills.slice(0,8).map(function(x){ return '<span style="font-size:.72rem;background:#e0f4fc;border:1px solid #b8dff0;color:#005a7e;padding:3px 9px;border-radius:20px;">'+e(x)+'</span>'; }).join('') + '</div>':'') +
+      ((c.certs||[]).length?'<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;">' +
+        c.certs.map(function(x){ return '<span style="font-size:.72rem;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;padding:3px 9px;border-radius:20px;">'+e(x)+'</span>'; }).join('') + '</div>':'') +
+      scoreBlock +
+    '</div>';
+  }).join('');
+
+  var html =
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Submittal \u2014 ' + e(j.title) + '</title>' +
+'<style>' +
+'*{box-sizing:border-box;margin:0;padding:0;}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:26px 16px;line-height:1.7;}' +
+'.pg{max-width:780px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,58,82,.14);}' +
+'.hd{background:#003a52;padding:26px 32px;}' +
+'.badge{display:inline-block;background:#0099d8;color:#fff;font-weight:700;font-size:.7rem;letter-spacing:3px;padding:5px 13px;border-radius:5px;}' +
+'.hd h1{color:#fff;font-size:1.4rem;font-weight:700;margin-top:13px;}' +
+'.hd .sub{color:#b8dff0;font-size:.86rem;margin-top:5px;}' +
+'.bd{padding:24px 32px;}' +
+'.sec{font-size:.63rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0077a8;margin:0 0 13px;padding-bottom:7px;border-bottom:1px solid #e0f4fc;}' +
+'.note{font-size:.9rem;line-height:1.8;margin-bottom:16px;}' +
+'.ft{background:#003a52;padding:18px 32px;text-align:center;}' +
+'.ft .s{color:#0099d8;font-size:.66rem;font-weight:700;letter-spacing:2.5px;}' +
+'.ft .i{color:#b8dff0;font-size:.78rem;margin-top:5px;}' +
+'.tools{max-width:780px;margin:0 auto 13px;display:flex;gap:8px;justify-content:flex-end;}' +
+'.tools button{background:#003a52;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}' +
+'.tools button.alt{background:#fff;color:#0077a8;border:1.5px solid #b8dff0;}' +
+'@media print{body{background:#fff;padding:0;}.tools{display:none;}.pg{box-shadow:none;border-radius:0;}' +
+'.hd,.ft{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
+'</style></head><body>' +
+'<div class="tools"><button class="alt" onclick="window.print()">&#128438; Print / PDF</button><button onclick="window.close()">Close</button></div>' +
+'<div class="pg">' +
+  '<div class="hd"><div class="badge">QLM</div>' +
+    '<h1>Candidate Submittal \u2014 ' + e(j.title) + '</h1>' +
+    '<div class="sub">' + e(co.name||'') + (j.city?' \u00b7 '+e(j.city):'') + ' \u00b7 ' + today + '</div></div>' +
+  '<div class="bd">' +
+    '<div class="note">The following ' + subs.length + ' candidate' + (subs.length>1?'s have':' has') +
+      ' been screened and are ready for your review. Each has completed QLM trade knowledge assessment, reference verification, and safety onboarding. All are W-2 employees of QLM.</div>' +
+    '<div class="sec">Candidates presented</div>' + cards +
+    '<div class="sec" style="margin-top:22px;">Next step</div>' +
+    '<div class="note">Let us know who you would like to interview or put to work and we will coordinate the start. ' +
+      (j.bill_rate ? 'Rate for this role is $' + j.bill_rate + ' per hour, all inclusive \u2014 wages, workers compensation, general liability, payroll taxes and administration.' : '') + '</div>' +
+  '</div>' +
+  '<div class="ft"><div class="s">SAFETY &middot; PRODUCTIVITY &middot; QUALITY</div>' +
+  '<div class="i">Quality Labor Management &middot; myqlm.com &middot; 855-756-9675</div></div>' +
+'</div></body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── Metrics tab ──
+function renderMetrics(){
+  var placedSubs = SUBS.filter(s=>s.status==='placed');
+  var sent = SUBS.filter(s=>['submitted','client_review','interview','offer','placed','rejected'].indexOf(s.status)>-1);
+  var interviews = SUBS.filter(s=>['interview','offer','placed'].indexOf(s.status)>-1);
+  var subToPlace = sent.length ? Math.round((placedSubs.length / sent.length) * 100) : 0;
+  var intToPlace = interviews.length ? Math.round((placedSubs.length / interviews.length) * 100) : 0;
+
+  // Average days from job order creation to first placement
+  var fillDays = [];
+  JOBS.forEach(function(j){
+    var p = subsFor(j.id).filter(s=>s.status==='placed')
+      .sort((a,b)=>new Date(a.stage_changed_at)-new Date(b.stage_changed_at))[0];
+    if(p) fillDays.push(Math.max(0, Math.round((new Date(p.stage_changed_at) - new Date(j.created_at))/86400000)));
+  });
+  var avgFill = fillDays.length ? Math.round(fillDays.reduce((a,b)=>a+b,0)/fillDays.length) : null;
+
+  var active = PLACEMENTS.filter(p=>p.status==='active');
+  var weeklyGp = active.reduce(function(s,p){
+    var burden = (p.pay_rate||0)*0.139;
+    return s + (((p.bill_rate||0)-(p.pay_rate||0)-burden)*(p.hours_per_week||40));
+  },0);
+
+  document.getElementById('kpis').innerHTML =
+    kpi(subToPlace + '%','Submission to placement', sent.length + ' sent') +
+    kpi(intToPlace + '%','Interview to placement') +
+    kpi(avgFill != null ? avgFill + 'd' : '\u2014','Average time to fill') +
+    kpi(active.length,'Active placements') +
+    kpi(weeklyGp?money(weeklyGp):'\u2014','Weekly gross profit') +
+    kpi(weeklyGp?money(weeklyGp*52):'\u2014','Annualised GP');
+
+  // Per recruiter
+  var rows = TEAM.map(function(t){
+    var mySubs = SUBS.filter(s=>s.owner_id===t.id);
+    var myPlaced = mySubs.filter(s=>s.status==='placed').length;
+    var myJobs = JOBS.filter(j=>j.owner_id===t.id);
+    var myActs = ACTS.filter(a=>a.owner_id===t.id && ['call','email','text','meeting'].indexOf(a.type)>-1);
+    var myGp = PLACEMENTS.filter(p=>p.owner_id===t.id && p.status==='active').reduce(function(s,p){
+      var b=(p.pay_rate||0)*0.139;
+      return s+(((p.bill_rate||0)-(p.pay_rate||0)-b)*(p.hours_per_week||40));
+    },0);
+    return { name:t.name, subs:mySubs.length, placed:myPlaced, jobs:myJobs.length, touches:myActs.length, gp:myGp };
+  }).sort((a,b)=>b.placed-a.placed || b.subs-a.subs);
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = '1fr';
+  board.innerHTML =
+    '<div class="col" style="background:#fff;border:1px solid #b8dff0;">' +
+      '<div class="col-h"><span class="col-t">Recruiter Performance</span></div>' +
+      '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.85rem;">' +
+      '<thead><tr>' +
+        ['Recruiter','Job orders','Submissions','Placed','Ratio','Client touches','Weekly GP'].map(function(h){
+          return '<th style="text-align:left;padding:9px 11px;font-size:.62rem;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;border-bottom:1px solid #e0f4fc;">'+h+'</th>';
+        }).join('') + '</tr></thead><tbody>' +
+      (rows.length ? rows.map(function(r){
+        var ratio = r.subs ? Math.round((r.placed/r.subs)*100) + '%' : '\u2014';
+        return '<tr>' +
+          '<td style="padding:9px 11px;font-weight:600;color:#003a52;border-bottom:1px solid #f5f8fa;">'+esc(r.name)+'</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid #f5f8fa;">'+r.jobs+'</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid #f5f8fa;">'+r.subs+'</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid #f5f8fa;font-weight:700;color:#15803d;">'+r.placed+'</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid #f5f8fa;">'+ratio+'</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid #f5f8fa;">'+r.touches+'</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid #f5f8fa;font-weight:600;">'+(r.gp?money(r.gp):'\u2014')+'</td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="7" style="padding:16px;color:#94a3b8;">No activity recorded yet.</td></tr>') +
+      '</tbody></table></div></div>' +
+
+    '<div class="col" style="background:#fff;border:1px solid #b8dff0;margin-top:11px;">' +
+      '<div class="col-h"><span class="col-t">Submission Funnel</span></div>' +
+      ['shortlist','submitted','client_review','interview','offer','placed','rejected'].map(function(st){
+        var n = SUBS.filter(s=>s.status===st).length;
+        var pct = SUBS.length ? Math.round((n/SUBS.length)*100) : 0;
+        return '<div style="display:flex;align-items:center;gap:11px;padding:7px 4px;">' +
+          '<span style="font-size:.8rem;min-width:120px;color:#2a4a5a;">'+SUB_LABEL[st]+'</span>' +
+          '<div style="flex:1;height:9px;background:#eef2f7;border-radius:20px;overflow:hidden;">' +
+            '<div style="height:100%;width:'+pct+'%;background:'+(st==='placed'?'#22c55e':st==='rejected'?'#ef4444':'#0099d8')+';border-radius:20px;"></div></div>' +
+          '<span style="font-size:.8rem;font-weight:700;color:#003a52;min-width:28px;text-align:right;">'+n+'</span></div>';
+      }).join('') + '</div>';
+}
+
+// ── Alerts folded into Today ──
+function alertRows(){
+  var out = [];
+  var today = new Date().toISOString().split('T')[0];
+  var soon = new Date(Date.now() + 14*86400000).toISOString().split('T')[0];
+
+  PLACEMENTS.filter(p=>p.status==='active' && p.end_date && p.end_date <= soon).forEach(function(p){
+    var i = PLACEMENTS.indexOf(p);
+    out.push({ txt:'Assignment ending ' + p.end_date, sub:candName(p.candidate_id)+' at '+companyName(p.company_id), fn:'openPlacement('+i+')', urgent:p.end_date<=today });
+  });
+  CANDIDATES.filter(c=>c.next_action_date && c.next_action_date <= today).forEach(function(c){
+    var i = CANDIDATES.indexOf(c);
+    out.push({ txt:c.next_action || 'Follow up', sub:c.full_name, fn:'openCandidate('+i+')', urgent:c.next_action_date < today });
+  });
+  LEADS.filter(l=>l.next_action_date && l.next_action_date <= today).forEach(function(l){
+    var i = LEADS.indexOf(l);
+    out.push({ txt:l.next_action || 'Follow up', sub:l.company, fn:'openLead('+i+')', urgent:l.next_action_date < today });
+  });
+  JOBS.filter(j=>['open','filling'].indexOf(j.status)>-1 && (daysSince(j.stage_changed_at||j.created_at)||0) >= 10)
+      .forEach(function(j){
+    var i = JOBS.indexOf(j);
+    var placed = subsFor(j.id).filter(s=>s.status==='placed').length;
+    if(placed < (j.openings||1)) out.push({ txt:'Job order aging \u2014 '+daysSince(j.created_at)+' days open', sub:j.title+' at '+companyName(j.company_id), fn:'openJob('+i+')', urgent:false });
+  });
+  return out;
 }
 
 // ═══════════ LOAD ═══════════
@@ -817,7 +1109,7 @@ function reportsFor(company){
 function setTab(t){
   TAB = t;
   var map = { today:'tab-today', jobs:'tab-jobs', candidates:'tab-cand',
-              companies:'tab-companies', clients:'tab-client', placements:'tab-place' };
+              companies:'tab-companies', clients:'tab-client', placements:'tab-place', metrics:'tab-metrics' };
   Object.keys(map).forEach(function(k){
     var el = document.getElementById(map[k]);
     if(el) el.className = 'tab' + (k === t ? ' on' : '');
@@ -840,6 +1132,7 @@ function render(){
   else if(TAB === 'candidates') renderCandidates(q, owner);
   else if(TAB === 'companies')  renderCompanies(q, owner);
   else if(TAB === 'placements') renderPlacements(q, owner);
+  else if(TAB === 'metrics')    renderMetrics();
   else                          renderClients(q, owner);
 }
 
@@ -1022,6 +1315,7 @@ function openCandidate(i){
   var acts = [];
   acts.push('<button class="mbtn primary" onclick="saveCandidate('+i+')">Save</button>');
   if(c.recruiter_brief) acts.push('<a class="mbtn" href="/qlm-candidates.html" target="_blank">Profile report</a>');
+  acts.push('<button class="mbtn" onclick="submitCandidateToJob(\'' + c.id + '\')">&#128228; Submit to job order</button>');
   acts.push('<a class="mbtn" href="/qlm-candidates.html" target="_blank">Open in database</a>');
   if(!a) acts.push('<a class="mbtn" href="/qlm-trades-assessment.html" target="_blank">Send assessment</a>');
   acts.push('<button class="mbtn" onclick="closeModal()">Close</button>');
