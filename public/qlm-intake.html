@@ -1002,16 +1002,32 @@ function submitForm() {
   var ctx = buildCtx(data);
 
   if(window.QLM && QLM.save){
+    // Personal details live on data.p
+    var _p = data.p || {};
+    var _name = [(_p.fn||'').trim(), (_p.ln||'').trim()].filter(Boolean).join(' ');
+    var _companies = (data.exps||[]).map(function(x){ return x.company; }).filter(Boolean).slice(0,4);
+
     var _payload = {
-      full_name: data.name || null, trade: data.trade || null,
-      title: data.title || null, city: data.city || null,
-      phone: data.phone || null, email: data.email || null,
-      experience: data.experience || null,
-      availability: data.availability || null,
-      skills: (data.skills||[]).map(function(s){ return s.name||s; }),
-      certs: (data.certs||[]).map(function(s){ return s.name||s; }),
+      full_name: _name || null,
+      trade: _p.role || null,
+      title: _p.role || null,
+      city: _p.city || null,
+      phone: _p.phone || null,
+      email: _p.email || null,
+      experience: _p.yoe || null,
+      availability: _p.avail || null,
+      skills: (data.skills||[]).map(function(s){ return s.name || s; }).filter(Boolean),
+      certs: (data.certs||[]).map(function(s){ return s.name || s; }).filter(Boolean),
+      companies: _companies,
+      summary: data.statement || null,
       source_tool: 'intake'
     };
+    // Never write a record with no name and no way to reach them
+    if(!_payload.full_name || (!_payload.phone && !_payload.email)){
+      console.warn('[qlm] intake not saved — missing name or contact');
+      return;
+    }
+
     QLM.getUser().then(function(u){
       if(u){
         QLM.save('candidates', _payload);
@@ -1028,17 +1044,17 @@ function submitForm() {
           p_availability: _payload.availability,
           p_skills: _payload.skills,
           p_certs: _payload.certs,
-          p_companies: [],
-          p_summary: null,
+          p_companies: _payload.companies || [],
+          p_summary: _payload.summary || null,
           p_brief: null
         });
       }
     });
   }
   qlmLog('intake', {
-    name: data.name || 'Unnamed candidate',
-    trade: data.trade || data.title || '',
-    city: data.city || '',
+    name: ((data.p||{}).fn ? ((data.p.fn||'') + ' ' + (data.p.ln||'')).trim() : 'Unnamed candidate'),
+    trade: (data.p||{}).role || '',
+    city: (data.p||{}).city || '',
     experience: data.experience || ''
   });
 
