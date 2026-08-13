@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Pipeline</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--blue:#0099d8;--blue-md:#0077a8;--blue-dk:#005a7e;--blue-lt:#e0f4fc;--mid:#b8dff0;--navy:#003a52;--gray:#f4f7fb;--text:#2a4a5a;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+header{background:var(--navy);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 2px 12px rgba(0,0,0,.3);gap:12px;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:.85rem;letter-spacing:2px;padding:5px 11px;border-radius:4px;}
+.logo-text{color:var(--mid);font-size:.78rem;letter-spacing:1px;white-space:nowrap;}
+.tool-nav{display:flex;align-items:center;gap:6px;}
+@media(max-width:900px){.logo-text{display:none;}}
+
+.main{max-width:1500px;margin:0 auto;padding:20px 18px 70px;}
+.head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.head h1{font-size:1.3rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:9px;}
+.src{font-size:.72rem;color:#64748b;margin-bottom:16px;}
+
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.tab{padding:9px 20px;border-radius:9px;font-size:.85rem;font-weight:600;border:1.5px solid var(--mid);background:#fff;color:#64748b;cursor:pointer;font-family:inherit;}
+.tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--mid);border-radius:11px;border-top:3px solid var(--blue);padding:14px 15px;}
+.kpi .n{font-size:1.5rem;font-weight:700;color:var(--navy);line-height:1;}
+.kpi .l{font-size:.63rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-top:4px;}
+.kpi .s{font-size:.68rem;color:#94a3b8;margin-top:2px;}
+
+.controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.search{flex:1;min-width:220px;border:1px solid var(--mid);border-radius:9px;padding:9px 13px;font-size:.86rem;font-family:inherit;outline:none;background:#fff;}
+.search:focus{border-color:var(--blue);}
+.btn{background:#fff;border:1.5px solid var(--mid);color:var(--blue-md);border-radius:8px;padding:8px 14px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn:hover{border-color:var(--blue);background:var(--blue-lt);}
+.btn.dark{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+.board{display:grid;gap:11px;overflow-x:auto;padding-bottom:8px;}
+.col{background:#eef4f9;border-radius:12px;padding:11px;min-width:0;}
+.col-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;padding:0 3px;}
+.col-t{font-size:.68rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--navy);}
+.col-n{font-size:.7rem;font-weight:700;color:#fff;background:var(--blue-md);border-radius:20px;padding:2px 8px;}
+.card{background:#fff;border:1px solid #dbe7f0;border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s,transform .1s;}
+.card:hover{box-shadow:0 5px 16px rgba(0,153,216,.15);transform:translateY(-1px);}
+.card-n{font-size:.86rem;font-weight:700;color:var(--navy);line-height:1.3;}
+.card-s{font-size:.72rem;color:#64748b;margin-top:2px;}
+.card-m{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
+.pill{font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:20px;background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;}
+.pill.g{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+.pill.a{background:#fefce8;border-color:#fde68a;color:#a16207;}
+.pill.r{background:#fef2f2;border-color:#fecaca;color:#b91c1c;}
+.pill.b{background:var(--blue-lt);border-color:var(--mid);color:var(--blue-md);}
+.card-f{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:7px;border-top:1px solid #f1f5f9;font-size:.68rem;color:#94a3b8;}
+.stale{color:#b91c1c;font-weight:600;}
+.col-empty{font-size:.74rem;color:#94a3b8;text-align:center;padding:14px 6px;}
+
+.modal{position:fixed;inset:0;background:rgba(0,58,82,.55);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal.hidden{display:none!important;}
+.mbox{background:#fff;border-radius:14px;max-width:620px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.3);}
+.mh{background:var(--navy);padding:20px 24px;border-radius:14px 14px 0 0;position:relative;}
+.mh h2{color:#fff;font-size:1.15rem;font-weight:700;}
+.mh .sub{color:var(--mid);font-size:.82rem;margin-top:3px;}
+.mclose{position:absolute;top:15px;right:17px;background:rgba(255,255,255,.12);border:none;color:#fff;width:27px;height:27px;border-radius:50%;cursor:pointer;font-size:1rem;line-height:1;}
+.mb{padding:20px 24px;}
+.msec{font-size:.63rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin:18px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--blue-lt);}
+.msec:first-child{margin-top:0;}
+.mrow{display:flex;gap:12px;padding:6px 0;font-size:.86rem;}
+.mrow .k{color:#64748b;min-width:120px;}
+.mrow .v{color:var(--text);font-weight:500;}
+.fl{margin-bottom:11px;}
+.fl label{display:block;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:4px;}
+.fl input,.fl select,.fl textarea{width:100%;border:1px solid var(--mid);border-radius:8px;padding:9px 12px;font-size:.86rem;font-family:inherit;outline:none;}
+.fl textarea{min-height:78px;resize:vertical;}
+.macts{display:flex;gap:8px;flex-wrap:wrap;padding:14px 24px 20px;border-top:1px solid #f1f5f9;}
+.mbtn{padding:9px 15px;border-radius:8px;font-size:.79rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--mid);background:#fff;color:var(--blue-md);text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+.mbtn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padding:12px;font-size:.7rem;}
+.shim{background:linear-gradient(90deg,#f1f5f9 25%,#e8eef4 50%,#f1f5f9 75%);background-size:200% 100%;animation:sh 1.4s infinite;height:64px;border-radius:10px;margin-bottom:8px;}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span></div>
+</header>
+
+<div class="main">
+  <div class="head">
+    <h1>&#128202; Pipeline</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" onclick="exportPipeline()">&#8595; Export CSV</button>
+      <button class="btn dark" onclick="loadAll()">&#8635; Refresh</button>
+    </div>
+  </div>
+  <div class="src" id="src-note"></div>
+
+  <div class="tabs">
+    <button class="tab on" id="tab-cand" onclick="setTab('candidates')">&#128101; Candidate Pipeline</button>
+    <button class="tab" id="tab-client" onclick="setTab('clients')">&#127970; Client Pipeline</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="controls">
+    <input class="search" id="search" placeholder="Search by name, company, trade, city..." oninput="render()">
+    <select class="btn" id="owner-filter" onchange="render()" style="padding:8px 12px;">
+      <option value="all">All owners</option>
+    </select>
+    <button class="btn" id="stale-btn" onclick="toggleStale()">Show stale only</button>
+  </div>
+
+  <div class="board" id="board"></div>
+</div>
+
+<div class="modal hidden" id="modal">
+  <div class="mbox">
+    <div class="mh">
+      <button class="mclose" onclick="closeModal()">&times;</button>
+      <h2 id="m-title"></h2>
+      <div class="sub" id="m-sub"></div>
+    </div>
+    <div class="mb" id="m-body"></div>
+    <div class="macts" id="m-acts"></div>
+  </div>
+</div>
+
+<footer>&copy; 2025 Quality Labor Management, LLC &middot; Pipeline &middot; Internal &middot; myqlm.com</footer>
+
+<script>window.QLM_REQUIRE_AUTH = true; window.QLM_REQUIRE_ADMIN = true;</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
+<script>
+var TAB = 'candidates', STALE_ONLY = false;
+var CANDIDATES = [], LEADS = [], ASSESSMENTS = [], REPORTS = [], TEAM = [];
+
+var CAND_STAGES = [
+  { id:'applied',    label:'Applied',       hint:'Came in from the application' },
+  { id:'screening',  label:'Screening',     hint:'Recruiter reviewing' },
+  { id:'assessed',   label:'Assessed',      hint:'Skills test complete' },
+  { id:'card_ready', label:'Card Ready',    hint:'Talent card built' },
+  { id:'submitted',  label:'Submitted',     hint:'Sent to a client' },
+  { id:'placed',     label:'Placed',        hint:'Working' }
+];
+var CLIENT_STAGES = [
+  { id:'new',       label:'New' },
+  { id:'contacted', label:'Contacted' },
+  { id:'qualified', label:'Qualified' },
+  { id:'proposal',  label:'Proposal Out' },
+  { id:'won',       label:'Won' },
+  { id:'lost',      label:'Lost' }
+];
+
+var TRADE_LABEL = {
+  electrician:'Electrician', plumber:'Plumber / Pipefitter', welder:'Welder', hvac:'HVAC Technician',
+  carpenter:'Carpenter / Framing', concrete:'Concrete / Formwork', operator:'Heavy Equipment Operator',
+  foreman:'Foreman / Superintendent', solar:'Solar / PV Installer', pipefitter:'Pipefitter (Industrial)',
+  ironworker:'Ironworker', painter:'Painter / Coatings', instrumentation:'Instrumentation Technician',
+  general_labor:'General Labor', skilled_labor:'Skilled Labor',
+  display_tech:'Display / Electronics Technician', qlm_orientation:'QLM Orientation'
+};
+function prettyTrade(t){
+  if(!t) return '';
+  if(TRADE_LABEL[t]) return TRADE_LABEL[t];
+  var k = String(t).toLowerCase().replace(/\s+/g,'_');
+  return TRADE_LABEL[k] || String(t).replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();});
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function daysSince(d){ if(!d) return null; return Math.floor((Date.now() - new Date(d).getTime())/86400000); }
+function money(v){ return v ? '$' + Math.round(v).toLocaleString('en-US') : ''; }
+
+// ═══════════ LOAD ═══════════
+async function loadAll(){
+  document.getElementById('board').innerHTML = '<div>' + Array(4).fill('<div class="shim"></div>').join('') + '</div>';
+  if(!window.QLM || !QLM.client()) return;
+  try{
+    var res = await Promise.all([
+      QLM.list('candidates'), QLM.list('leads'), QLM.list('assessments'),
+      QLM.list('market_reports', null, {limit:60}),
+      QLM.client().from('profiles').select('id, full_name, email').then(function(r){ return r.data || []; })
+    ]);
+    CANDIDATES = res[0] || []; LEADS = res[1] || []; ASSESSMENTS = res[2] || [];
+    REPORTS = res[3] || [];
+    TEAM = (res[4] || []).map(function(p){
+      return { id:p.id, name:(p.full_name && p.full_name.indexOf('@') === -1) ? p.full_name : p.email };
+    });
+    var sel = document.getElementById('owner-filter');
+    sel.innerHTML = '<option value="all">All owners</option>' +
+      TEAM.map(function(t){ return '<option value="'+t.id+'">'+esc(t.name)+'</option>'; }).join('') +
+      '<option value="none">Unassigned</option>';
+    document.getElementById('src-note').textContent =
+      '\u2601 ' + CANDIDATES.length + ' candidates \u00b7 ' + LEADS.length + ' client opportunities \u00b7 live from cloud';
+    render();
+  }catch(e){
+    document.getElementById('board').innerHTML = '<p style="color:#b91c1c;">Could not load: ' + esc(e.message) + '</p>';
+  }
+}
+
+function ownerName(id){ var t = TEAM.find(function(x){ return x.id === id; }); return t ? t.name : null; }
+function assessmentFor(c){
+  var nm = (c.full_name||'').trim().toLowerCase();
+  if(!nm) return null;
+  return ASSESSMENTS.find(function(a){ return (a.candidate_name||'').trim().toLowerCase() === nm; }) || null;
+}
+function reportsFor(company){
+  var q = (company||'').trim().toLowerCase();
+  if(!q) return [];
+  return REPORTS.filter(function(r){
+    return (r.report && r.report._company || '').toLowerCase().indexOf(q) > -1;
+  });
+}
+
+function setTab(t){
+  TAB = t;
+  document.getElementById('tab-cand').className = 'tab' + (t === 'candidates' ? ' on' : '');
+  document.getElementById('tab-client').className = 'tab' + (t === 'clients' ? ' on' : '');
+  render();
+}
+function toggleStale(){
+  STALE_ONLY = !STALE_ONLY;
+  document.getElementById('stale-btn').textContent = STALE_ONLY ? 'Showing stale only' : 'Show stale only';
+  document.getElementById('stale-btn').style.background = STALE_ONLY ? '#fefce8' : '#fff';
+  render();
+}
+
+// ═══════════ RENDER ═══════════
+function render(){
+  var q = (document.getElementById('search').value||'').toLowerCase().trim();
+  var owner = document.getElementById('owner-filter').value;
+  TAB === 'candidates' ? renderCandidates(q, owner) : renderClients(q, owner);
+}
+
+function passOwner(row, owner){
+  if(owner === 'all') return true;
+  if(owner === 'none') return !row.assigned_to;
+  return row.assigned_to === owner;
+}
+
+function renderCandidates(q, owner){
+  var rows = CANDIDATES.filter(function(c){
+    if(!passOwner(c, owner)) return false;
+    if(STALE_ONLY && (daysSince(c.stage_changed_at || c.created_at) || 0) < 14) return false;
+    if(!q) return true;
+    return [c.full_name, c.trade, prettyTrade(c.trade), c.title, c.city, c.email, c.phone]
+      .join(' ').toLowerCase().indexOf(q) > -1;
+  });
+
+  var assessed = rows.filter(function(c){ return assessmentFor(c); }).length;
+  var placed = rows.filter(function(c){ return c.stage === 'placed'; }).length;
+  var submitted = rows.filter(function(c){ return c.stage === 'submitted'; }).length;
+  document.getElementById('kpis').innerHTML =
+    kpi(rows.length, 'In pipeline') +
+    kpi(rows.filter(function(c){ return c.stage === 'applied'; }).length, 'New applications', 'Need screening') +
+    kpi(assessed, 'Assessed', 'Skills verified') +
+    kpi(submitted, 'Out to clients') +
+    kpi(placed, 'Placed') +
+    kpi(rows.filter(function(c){ return (daysSince(c.stage_changed_at||c.created_at)||0) >= 14 && c.stage !== 'placed'; }).length,
+        'Stale', 'No movement 14+ days');
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = 'repeat(' + CAND_STAGES.length + ', minmax(210px, 1fr))';
+  board.innerHTML = CAND_STAGES.map(function(st){
+    var items = rows.filter(function(c){ return (c.stage || 'applied') === st.id; });
+    return '<div class="col">' +
+      '<div class="col-h"><span class="col-t">' + st.label + '</span><span class="col-n">' + items.length + '</span></div>' +
+      (items.length ? items.map(candCard).join('') : '<div class="col-empty">' + st.hint + '</div>') +
+    '</div>';
+  }).join('');
+}
+
+function candCard(c){
+  var i = CANDIDATES.indexOf(c);
+  var a = assessmentFor(c);
+  var days = daysSince(c.stage_changed_at || c.created_at);
+  var stale = days >= 14 && c.stage !== 'placed';
+  var scorePill = '';
+  if(a && a.score != null){
+    var cls = a.score >= 75 ? 'g' : a.score >= 55 ? 'a' : 'r';
+    scorePill = '<span class="pill ' + cls + '">' + a.score + ' ' + esc(a.verdict||'') + '</span>';
+  }
+  return '<div class="card" onclick="openCandidate(' + i + ')">' +
+    '<div class="card-n">' + esc(c.full_name || 'Unnamed') + '</div>' +
+    '<div class="card-s">' + esc(prettyTrade(c.title || c.trade)) + (c.city ? ' \u00b7 ' + esc(c.city) : '') + '</div>' +
+    '<div class="card-m">' +
+      scorePill +
+      (c.availability ? '<span class="pill g">' + esc(c.availability) + '</span>' : '') +
+      ((c.skills||[]).length ? '<span class="pill b">Card</span>' : '') +
+      (c.recruiter_brief ? '<span class="pill">Profile</span>' : '') +
+    '</div>' +
+    '<div class="card-f">' +
+      '<span>' + (ownerName(c.assigned_to) || 'Unassigned') + '</span>' +
+      '<span class="' + (stale ? 'stale' : '') + '">' + (days != null ? days + 'd' : '') + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderClients(q, owner){
+  var rows = LEADS.filter(function(l){
+    if(!passOwner(l, owner)) return false;
+    if(STALE_ONLY && (daysSince(l.stage_changed_at || l.created_at) || 0) < 14) return false;
+    if(!q) return true;
+    return [l.company, l.location, (l.trades||[]).join(' '), l.contact_name]
+      .join(' ').toLowerCase().indexOf(q) > -1;
+  });
+
+  var open = rows.filter(function(l){ return ['new','contacted','qualified','proposal'].indexOf(l.status) > -1; });
+  var pipelineValue = open.reduce(function(sum, l){
+    return sum + ((l.est_bill_rate||0) * 40 * (l.est_workers||0) * (l.est_weeks||0));
+  }, 0);
+  var wonValue = rows.filter(function(l){ return l.status === 'won'; }).reduce(function(sum, l){
+    return sum + ((l.est_bill_rate||0) * 40 * (l.est_workers||0) * (l.est_weeks||0));
+  }, 0);
+
+  document.getElementById('kpis').innerHTML =
+    kpi(rows.length, 'Opportunities') +
+    kpi(open.length, 'Open', 'Not yet won or lost') +
+    kpi(rows.filter(function(l){ return l.status === 'proposal'; }).length, 'Proposals out') +
+    kpi(rows.filter(function(l){ return l.status === 'won'; }).length, 'Won') +
+    kpi(pipelineValue ? money(pipelineValue) : '\u2014', 'Open pipeline', 'Estimated billings') +
+    kpi(wonValue ? money(wonValue) : '\u2014', 'Won value');
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = 'repeat(' + CLIENT_STAGES.length + ', minmax(200px, 1fr))';
+  board.innerHTML = CLIENT_STAGES.map(function(st){
+    var items = rows.filter(function(l){ return (l.status || 'new') === st.id; });
+    return '<div class="col">' +
+      '<div class="col-h"><span class="col-t">' + st.label + '</span><span class="col-n">' + items.length + '</span></div>' +
+      (items.length ? items.map(leadCard).join('') : '<div class="col-empty">Nothing here</div>') +
+    '</div>';
+  }).join('');
+}
+
+function leadCard(l){
+  var i = LEADS.indexOf(l);
+  var days = daysSince(l.stage_changed_at || l.created_at);
+  var stale = days >= 14 && ['won','lost','dead'].indexOf(l.status) === -1;
+  var val = (l.est_bill_rate||0) * 40 * (l.est_workers||0) * (l.est_weeks||0);
+  var fit = l.qlm_fit_score;
+  return '<div class="card" onclick="openLead(' + i + ')">' +
+    '<div class="card-n">' + esc(l.company || 'Unnamed') + '</div>' +
+    '<div class="card-s">' + esc(l.location || '') + '</div>' +
+    '<div class="card-m">' +
+      (fit != null ? '<span class="pill ' + (fit >= 75 ? 'g' : fit >= 55 ? 'a' : '') + '">Fit ' + fit + '</span>' : '') +
+      ((l.trades||[]).slice(0,2).map(function(t){ return '<span class="pill b">' + esc(prettyTrade(t)) + '</span>'; }).join('')) +
+      (reportsFor(l.company).length ? '<span class="pill">Report</span>' : '') +
+      (l.contact_name || l.contact_email || l.contact_phone ? '<span class="pill g">Contact</span>' : '') +
+    '</div>' +
+    '<div class="card-f">' +
+      '<span>' + (val ? money(val) : (ownerName(l.assigned_to) || 'Unassigned')) + '</span>' +
+      '<span class="' + (stale ? 'stale' : '') + '">' + (days != null ? days + 'd' : '') + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function kpi(n, label, sub){
+  return '<div class="kpi"><div class="n">' + n + '</div><div class="l">' + label + '</div>' +
+    (sub ? '<div class="s">' + sub + '</div>' : '') + '</div>';
+}
+
+// ═══════════ CANDIDATE DETAIL ═══════════
+function openCandidate(i){
+  var c = CANDIDATES[i];
+  if(!c) return;
+  var a = assessmentFor(c);
+  document.getElementById('m-title').textContent = c.full_name || 'Candidate';
+  document.getElementById('m-sub').textContent =
+    [prettyTrade(c.title || c.trade), c.city, c.experience].filter(Boolean).join(' \u00b7 ');
+
+  function row(k,v){ return v ? '<div class="mrow"><span class="k">'+k+'</span><span class="v">'+esc(v)+'</span></div>' : ''; }
+
+  document.getElementById('m-body').innerHTML =
+    '<div class="msec">Pipeline</div>' +
+    '<div class="fl"><label>Stage</label><select id="f-stage">' +
+      CAND_STAGES.map(function(s){ return '<option value="'+s.id+'"'+((c.stage||'applied')===s.id?' selected':'')+'>'+s.label+'</option>'; }).join('') +
+      '<option value="inactive"' + (c.stage==='inactive'?' selected':'') + '>Inactive</option>' +
+    '</select></div>' +
+    '<div class="fl"><label>Owner</label><select id="f-owner"><option value="">Unassigned</option>' +
+      TEAM.map(function(t){ return '<option value="'+t.id+'"'+(c.assigned_to===t.id?' selected':'')+'>'+esc(t.name)+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="fl"><label>Submitted to (client)</label><input id="f-submitted" value="'+esc(c.submitted_to||'')+'" placeholder="e.g. Hensel Phelps"></div>' +
+    '<div class="fl"><label>Next action</label><input id="f-action" value="'+esc(c.next_action||'')+'" placeholder="e.g. Call about Monday start"></div>' +
+    '<div class="fl"><label>Follow up on</label><input type="date" id="f-date" value="'+(c.next_action_date||'')+'"></div>' +
+    '<div class="fl"><label>Notes</label><textarea id="f-notes" placeholder="Internal notes">'+esc(c.crm_notes||'')+'</textarea></div>' +
+
+    '<div class="msec">Contact</div>' +
+    (c.phone ? '<div class="mrow"><span class="k">Phone</span><span class="v"><a href="tel:'+esc(c.phone)+'" style="color:#0077a8;">'+esc(c.phone)+'</a></span></div>' : '') +
+    (c.email ? '<div class="mrow"><span class="k">Email</span><span class="v"><a href="mailto:'+esc(c.email)+'" style="color:#0077a8;">'+esc(c.email)+'</a></span></div>' : '') +
+    (!c.phone && !c.email ? '<div style="font-size:.84rem;color:#94a3b8;">No contact details on file.</div>' : '') +
+
+    (a ? '<div class="msec">Assessment</div>' +
+      row('Trade tested', prettyTrade(a.trade)) + row('Score', (a.score!=null? a.score+' / 100':'')) +
+      row('Verdict', a.verdict) + row('Integrity', a.integrity_flag) : '') +
+
+    ((c.skills||[]).length ? '<div class="msec">Skills</div><div class="card-m">' +
+      c.skills.map(function(s){ return '<span class="pill b">'+esc(s)+'</span>'; }).join('') + '</div>' : '');
+
+  var acts = [];
+  acts.push('<button class="mbtn primary" onclick="saveCandidate('+i+')">Save</button>');
+  if(c.recruiter_brief) acts.push('<a class="mbtn" href="/qlm-candidates.html" target="_blank">Profile report</a>');
+  acts.push('<a class="mbtn" href="/qlm-candidates.html" target="_blank">Open in database</a>');
+  if(!a) acts.push('<a class="mbtn" href="/qlm-trades-assessment.html" target="_blank">Send assessment</a>');
+  acts.push('<button class="mbtn" onclick="closeModal()">Close</button>');
+  document.getElementById('m-acts').innerHTML = acts.join('');
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+async function saveCandidate(i){
+  var c = CANDIDATES[i];
+  var patch = {
+    stage: document.getElementById('f-stage').value,
+    assigned_to: document.getElementById('f-owner').value || null,
+    submitted_to: document.getElementById('f-submitted').value.trim() || null,
+    next_action: document.getElementById('f-action').value.trim() || null,
+    next_action_date: document.getElementById('f-date').value || null,
+    crm_notes: document.getElementById('f-notes').value.trim() || null
+  };
+  var ok = await QLM.update('candidates', c.id, patch);
+  if(ok){ Object.assign(c, patch); closeModal(); render(); }
+  else alert('Could not save.');
+}
+
+// ═══════════ CLIENT DETAIL ═══════════
+function openLead(i){
+  var l = LEADS[i];
+  if(!l) return;
+  var reps = reportsFor(l.company);
+  document.getElementById('m-title').textContent = l.company || 'Opportunity';
+  document.getElementById('m-sub').textContent = [l.location, (l.trades||[]).map(prettyTrade).join(', ')].filter(Boolean).join(' \u00b7 ');
+
+  document.getElementById('m-body').innerHTML =
+    '<div class="msec">Pipeline</div>' +
+    '<div class="fl"><label>Stage</label><select id="f-status">' +
+      CLIENT_STAGES.map(function(s){ return '<option value="'+s.id+'"'+((l.status||'new')===s.id?' selected':'')+'>'+s.label+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="fl"><label>Owner</label><select id="f-owner"><option value="">Unassigned</option>' +
+      TEAM.map(function(t){ return '<option value="'+t.id+'"'+(l.assigned_to===t.id?' selected':'')+'>'+esc(t.name)+'</option>'; }).join('') +
+    '</select></div>' +
+
+    '<div class="msec">Deal size</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">' +
+      '<div class="fl"><label>Workers</label><input type="number" id="f-workers" value="'+(l.est_workers||'')+'"></div>' +
+      '<div class="fl"><label>Bill rate</label><input type="number" id="f-rate" value="'+(l.est_bill_rate||'')+'"></div>' +
+      '<div class="fl"><label>Weeks</label><input type="number" id="f-weeks" value="'+(l.est_weeks||'')+'"></div>' +
+    '</div>' +
+
+    '<div class="msec">Contact</div>' +
+    '<div class="fl"><label>Name</label><input id="f-cname" value="'+esc(l.contact_name||'')+'"></div>' +
+    '<div class="fl"><label>Email</label><input id="f-cemail" value="'+esc(l.contact_email||'')+'"></div>' +
+    '<div class="fl"><label>Phone</label><input id="f-cphone" value="'+esc(l.contact_phone||'')+'"></div>' +
+
+    '<div class="msec">Follow up</div>' +
+    '<div class="fl"><label>Next action</label><input id="f-action" value="'+esc(l.next_action||'')+'" placeholder="e.g. Send proposal"></div>' +
+    '<div class="fl"><label>Follow up on</label><input type="date" id="f-date" value="'+(l.next_action_date||'')+'"></div>' +
+    '<div class="fl"><label>Notes</label><textarea id="f-notes">'+esc(l.notes||'')+'</textarea></div>' +
+
+    (l.signal || l.summary ? '<div class="msec">Why they need us</div><div style="font-size:.86rem;line-height:1.8;">' + esc(l.signal || l.summary) + '</div>' : '') +
+
+    (reps.length ? '<div class="msec">Market research</div>' + reps.map(function(r){
+      var when = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+      return '<div style="font-size:.84rem;padding:5px 0;">&#128202; ' + esc((r.report && r.report._label) || r.market || '') +
+             ' <span style="color:#94a3b8;">' + when + '</span></div>';
+    }).join('') : '');
+
+  var acts = [
+    '<button class="mbtn primary" onclick="saveLead('+i+')">Save</button>',
+    '<a class="mbtn" href="/qlm-hiring-insights.html" target="_blank">Market research</a>',
+    '<a class="mbtn" href="/qlm-lead-generator.html" target="_blank">Lead generator</a>'
+  ];
+  if(l.contact_email) acts.push('<a class="mbtn" href="mailto:'+esc(l.contact_email)+'">Email</a>');
+  if(l.contact_phone) acts.push('<a class="mbtn" href="tel:'+esc(l.contact_phone)+'">Call</a>');
+  acts.push('<button class="mbtn" onclick="closeModal()">Close</button>');
+  document.getElementById('m-acts').innerHTML = acts.join('');
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+async function saveLead(i){
+  var l = LEADS[i];
+  var num = function(id){ var v = parseFloat(document.getElementById(id).value); return isFinite(v) ? v : null; };
+  var patch = {
+    status: document.getElementById('f-status').value,
+    assigned_to: document.getElementById('f-owner').value || null,
+    est_workers: num('f-workers'), est_bill_rate: num('f-rate'), est_weeks: num('f-weeks'),
+    contact_name: document.getElementById('f-cname').value.trim() || null,
+    contact_email: document.getElementById('f-cemail').value.trim() || null,
+    contact_phone: document.getElementById('f-cphone').value.trim() || null,
+    next_action: document.getElementById('f-action').value.trim() || null,
+    next_action_date: document.getElementById('f-date').value || null,
+    notes: document.getElementById('f-notes').value.trim() || null
+  };
+  var ok = await QLM.update('leads', l.id, patch);
+  if(ok){ Object.assign(l, patch); closeModal(); render(); }
+  else alert('Could not save.');
+}
+
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
+document.getElementById('modal').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+
+// ═══════════ EXPORT ═══════════
+function exportPipeline(){
+  var rows, hdrs, name;
+  if(TAB === 'candidates'){
+    hdrs = ['Name','Trade','City','Phone','Email','Stage','Owner','Score','Verdict','Submitted To','Next Action','Follow Up','Days In Stage'];
+    rows = CANDIDATES.map(function(c){
+      var a = assessmentFor(c);
+      return [c.full_name, prettyTrade(c.trade), c.city, c.phone, c.email, c.stage, ownerName(c.assigned_to),
+              a&&a.score!=null?a.score:'', a?a.verdict:'', c.submitted_to, c.next_action, c.next_action_date,
+              daysSince(c.stage_changed_at||c.created_at)];
+    });
+    name = 'qlm-candidate-pipeline';
+  } else {
+    hdrs = ['Company','Location','Trades','Stage','Owner','Fit','Workers','Bill Rate','Weeks','Est Value','Contact','Email','Phone','Next Action','Follow Up','Days In Stage'];
+    rows = LEADS.map(function(l){
+      var val = (l.est_bill_rate||0)*40*(l.est_workers||0)*(l.est_weeks||0);
+      return [l.company, l.location, (l.trades||[]).join('; '), l.status, ownerName(l.assigned_to), l.qlm_fit_score,
+              l.est_workers, l.est_bill_rate, l.est_weeks, val||'', l.contact_name, l.contact_email, l.contact_phone,
+              l.next_action, l.next_action_date, daysSince(l.stage_changed_at||l.created_at)];
+    });
+    name = 'qlm-client-pipeline';
+  }
+  var csv = [hdrs.join(',')].concat(rows.map(function(r){
+    return r.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(',');
+  })).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name + '-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+window.addEventListener('DOMContentLoaded', function(){
+  if(window.QLM) QLM.mountAuthBar('qlm-auth');
+  setTimeout(loadAll, 500);
+});
+</script>
+</body>
+</html>
