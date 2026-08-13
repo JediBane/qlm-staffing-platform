@@ -463,18 +463,6 @@ header{gap:12px;}
       </div>
     </div>
 
-    <!-- DIGEST -->
-    <div class="pcard">
-      <div class="pcard-title">&#128138; Daily Digest</div>
-      <div class="fl"><label>Send to</label>
-        <input type="email" id="digest-email" placeholder="you@email.com" value="luallen.daniel@icloud.com">
-      </div>
-      <div class="fl"><label>Frequency</label>
-        <select id="digest-freq"><option>Daily - 7am</option><option>Weekdays only - 7am</option><option>Weekly - Monday 7am</option></select>
-      </div>
-      <button class="btn-main navy" onclick="saveDigest()">&#128190; Save Digest Settings</button>
-      <div id="digestStatus"></div>
-    </div>
 
   </div>
 
@@ -1799,15 +1787,6 @@ function exportCSV(){
   var blob = new Blob([csv],{type:'text/csv'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a'); a.href=url; a.download='qlm-leads-'+new Date().toISOString().split('T')[0]+'.csv'; a.click(); URL.revokeObjectURL(url);
-}
-
-// ═══════ DIGEST ═══════
-function saveDigest(){
-  var email = document.getElementById('digest-email').value.trim();
-  if(!email){ alert('Enter an email.'); return; }
-  localStorage.setItem('qlm_lead_digest', JSON.stringify({email:email,freq:document.getElementById('digest-freq').value,trades:selectedTrades,location:document.getElementById('s-loc').value}));
-  showSt('digestStatus','success','\u2713 Digest settings saved.');
-  setTimeout(function(){ clearSt('digestStatus'); },3000);
 }
 
 // ═══════ UTILITIES ═══════
