@@ -304,8 +304,68 @@ header{gap:12px;}
         </div>
       </div>
 
+      <div class="fl">
+        <label>Client / Company <span style="font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <input type="text" id="r-company" placeholder="e.g. Hensel Phelps — ties this report to that opportunity">
+      </div>
+
+      <div class="fl">
+        <label>Wage Basis</label>
+        <select id="r-wage-basis">
+          <option value="">Standard commercial</option>
+          <option>Davis-Bacon / prevailing wage</option>
+          <option>State prevailing wage</option>
+          <option>Union scale</option>
+        </select>
+      </div>
+
+      <div class="fl">
+        <label>Travel &amp; Per Diem</label>
+        <select id="r-perdiem">
+          <option value="">Local — none</option>
+          <option>Per diem required (remote site)</option>
+          <option>Per diem + lodging</option>
+          <option>Travel pay / mobilization</option>
+        </select>
+      </div>
+
       <div id="genStatus"></div>
       <button class="btn-g" id="gen-btn" onclick="generateReport()">&#128202; Generate Report</button>
+    </div>
+
+    <!-- DEAL CALCULATOR -->
+    <div class="pcard">
+      <div class="pcard-title">&#128176; Deal Calculator</div>
+
+      <div class="fl">
+        <label>Solve for</label>
+        <select id="dc-mode" onchange="setDealMode()">
+          <option value="forward">Margin from my rates</option>
+          <option value="bill">Bill rate for a target margin</option>
+          <option value="budget">Pay rate a client budget supports</option>
+        </select>
+      </div>
+
+      <div class="fl" id="dc-pay-wrap"><label>Pay Rate ($/hr)</label>
+        <input type="number" id="dc-pay" placeholder="34" oninput="runDealCalc()"></div>
+      <div class="fl" id="dc-bill-wrap"><label>Bill Rate ($/hr)</label>
+        <input type="number" id="dc-bill" placeholder="55" oninput="runDealCalc()"></div>
+      <div class="fl" id="dc-margin-wrap" style="display:none;"><label>Target Margin (%)</label>
+        <input type="number" id="dc-margin" value="30" oninput="runDealCalc()"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;">
+        <div class="fl" style="margin:0;"><label>Workers</label><input type="number" id="dc-workers" value="1" oninput="runDealCalc()"></div>
+        <div class="fl" style="margin:0;"><label>Hrs/wk</label><input type="number" id="dc-hours" value="40" oninput="runDealCalc()"></div>
+        <div class="fl" style="margin:0;"><label>Weeks</label><input type="number" id="dc-weeks" value="13" oninput="runDealCalc()"></div>
+      </div>
+
+      <div id="dc-out" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- SAVED REPORTS -->
+    <div class="pcard">
+      <div class="pcard-title">&#128190; Saved Reports</div>
+      <div id="saved-reports"></div>
     </div>
 
     <div class="pcard">
@@ -454,6 +514,12 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 // ── GENERATE ──
 function generateReport(){
+  var wageBasis = (document.getElementById('r-wage-basis')||{}).value || '';
+  var perDiem   = (document.getElementById('r-perdiem')||{}).value || '';
+  var contextNote =
+    (wageBasis ? 'WAGE BASIS: ' + wageBasis + '. Report the applicable prevailing or scale wage for this trade and classification, not just the open-market rate, and note that certified payroll applies.\n' : '') +
+    (perDiem ? 'TRAVEL: ' + perDiem + '. Factor this into the pay package and state it separately from the base hourly rate.\n' : '');
+
   var market=document.getElementById('r-market').value.trim()||'Tampa, FL';
   var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   document.getElementById('gen-btn').disabled=true;
@@ -473,7 +539,7 @@ function generateMarketReport(market,today){
   var trades=selectedTrades.join(', ');
   var markup=document.getElementById('r-markup').value;
 
-  var prompt='You are a construction staffing industry analyst helping QLM (Quality Labor Management) understand the '+market+' labor market.\n\n'+
+  var prompt = contextNote +'You are a construction staffing industry analyst helping QLM (Quality Labor Management) understand the '+market+' labor market.\n\n'+
     'Search the web for current '+market+' construction labor data: job postings, wages, staffing agency rates, and hiring trends for '+today+'.\n\n'+
     'Return ONLY a raw JSON object (no markdown). Structure:\n'+
     '{\n'+
@@ -513,6 +579,10 @@ function generateMarketReport(market,today){
     renderMarketReport(data,market,trades,today);
     setToolbar('Market Insights: '+market, trades+' \u00b7 '+today, market, today);
     saveHistory('Market: '+market,today);
+    try{
+      saveReportToCloud('Market \u00b7 ' + market, market, '', '', null, null, data,
+        (document.getElementById('r-company')||{}).value || '');
+    }catch(e){}
     clearSt('genStatus');
   })
   .catch(function(e){
@@ -531,7 +601,7 @@ function generateDrillReport(market,today){
   var sector=document.getElementById('r-drill-sector').value||'commercial construction';
 
   var levelStr = level && level !== 'Any level' ? level : 'Journeyman';
-  var prompt='You are a construction staffing industry analyst helping QLM (Quality Labor Management) sell temp and temp-to-hire staffing services to clients in '+market+'.\n\n'+
+  var prompt=contextNote+'You are a construction staffing industry analyst helping QLM (Quality Labor Management) sell temp and temp-to-hire staffing services to clients in '+market+'.\n\n'+
     'QLM is a W2 staffing company. Workers are on QLM payroll. QLM covers ALL employer costs: FICA, FUTA, SUTA, workers comp insurance, general liability, benefits admin, and HR. Clients pay one all-inclusive bill rate with zero employer liability.\n\n'+
     'MARKUP RULES — THESE ARE ABSOLUTE CONSTRAINTS:\n'+
     '- Construction staffing standard markup range: 40-55% above pay rate\n'+
@@ -665,6 +735,10 @@ function generateDrillReport(market,today){
     renderDrillReport(data,market,today,payRate,billRate);
     setToolbar(trade+' Deep Dive: '+market,level+' \u00b7 '+today,market,today);
     saveHistory(trade+' Drill: '+market,today);
+    try{
+      saveReportToCloud(trade + ' \u00b7 ' + market, market, trade, level, payRate, billRate, data,
+        (document.getElementById('r-company')||{}).value || '');
+    }catch(e){}
     clearSt('genStatus');
   })
   .catch(function(e){
@@ -1108,7 +1182,279 @@ function shimCards(){
   for(var i=0;i<4;i++) o+='<div class="shim-card"><div class="shim" style="width:35%"></div><div class="shim"></div><div class="shim" style="width:70%"></div><div class="shim" style="width:85%"></div></div>';
   return o;
 }
+// ═══════════════════════════════════════════════════════════════
+//  DEAL TOOLS  ·  SAVED REPORTS  ·  CLIENT ONE-PAGER
+// ═══════════════════════════════════════════════════════════════
+
+// ── Burden model (Florida). Mirrors the cost breakdown already in use. ──
+function burdenFor(trade){
+  var t = (trade||'').toLowerCase();
+  var wc = /electric|hvac|plumb/.test(t) ? 1.4
+         : /weld|ironwork|concrete|roof|steel/.test(t) ? 2.5
+         : 1.8;
+  return { fica:7.65, futa:0.6, suta:2.7, wc:wc, gl:1.5 };
+}
+function burdenPct(trade){
+  var b = burdenFor(trade);
+  return (b.fica + b.futa + b.suta + b.wc + b.gl) / 100;
+}
+
+// ── 1. FORWARD: pay + bill  →  margin ──
+function calcFromRates(pay, bill, trade){
+  var burden = pay * burdenPct(trade);
+  var cost = pay + burden;
+  var gp = bill - cost;
+  return {
+    pay: pay, bill: bill, burden: burden, cost: cost,
+    gp: gp,
+    markup: pay > 0 ? ((bill - pay) / pay) * 100 : 0,
+    margin: bill > 0 ? (gp / bill) * 100 : 0
+  };
+}
+
+// ── 2. REVERSE: pay + target margin  →  bill rate ──
+function billForMargin(pay, targetMarginPct, trade){
+  var cost = pay * (1 + burdenPct(trade));
+  return cost / (1 - (targetMarginPct/100));
+}
+
+// ── 3. REVERSE: client budget  →  what pay rate it supports ──
+function payForBudget(bill, targetMarginPct, trade){
+  var cost = bill * (1 - (targetMarginPct/100));
+  return cost / (1 + burdenPct(trade));
+}
+
+function runDealCalc(){
+  var trade = (document.getElementById('r-drill-trade')||{}).value || '';
+  var mode  = document.getElementById('dc-mode').value;
+  var out   = document.getElementById('dc-out');
+  var n = function(id){ return parseFloat((document.getElementById(id)||{}).value) || 0; };
+
+  var pay = n('dc-pay'), bill = n('dc-bill'), target = n('dc-margin') || 30;
+  var res, headline, sub;
+
+  if(mode === 'forward'){
+    if(!pay || !bill){ out.innerHTML = hint('Enter both a pay rate and a bill rate.'); return; }
+    res = calcFromRates(pay, bill, trade);
+    headline = fmtMoney(res.gp) + ' / hr gross profit';
+    sub = Math.round(res.markup) + '% markup &middot; ' + Math.round(res.margin) + '% margin';
+  } else if(mode === 'bill'){
+    if(!pay){ out.innerHTML = hint('Enter the pay rate you need to offer.'); return; }
+    bill = billForMargin(pay, target, trade);
+    res = calcFromRates(pay, bill, trade);
+    headline = 'Bill at ' + fmtMoney(bill) + ' / hr';
+    sub = 'to hold a ' + target + '% margin on ' + fmtMoney(pay) + ' pay';
+  } else {
+    if(!bill){ out.innerHTML = hint('Enter the bill rate the client will accept.'); return; }
+    pay = payForBudget(bill, target, trade);
+    res = calcFromRates(pay, bill, trade);
+    headline = 'Pay up to ' + fmtMoney(pay) + ' / hr';
+    sub = 'at a ' + fmtMoney(bill) + ' bill rate and ' + target + '% margin';
+  }
+
+  // Deal size
+  var workers = n('dc-workers') || 1;
+  var hours   = n('dc-hours') || 40;
+  var weeks   = n('dc-weeks') || 1;
+  var gpHour  = res.gp;
+  var gpWeek  = gpHour * hours * workers;
+  var gpTotal = gpWeek * weeks;
+  var revTotal = res.bill * hours * workers * weeks;
+
+  var warn = '';
+  if(res.markup > 60) warn = flag('#fef2f2','#fecaca','#b91c1c','That is a ' + Math.round(res.markup) + '% markup. Above 60% is very hard to defend outside emergency or hard-to-fill work.');
+  else if(res.markup < 35) warn = flag('#fefce8','#fde68a','#a16207','A ' + Math.round(res.markup) + '% markup is below the normal 40-55% range. Check that burden and overhead are covered.');
+  else if(res.gp <= 0) warn = flag('#fef2f2','#fecaca','#b91c1c','This loses money once burden is applied.');
+
+  out.innerHTML =
+    '<div style="background:#003a52;border-radius:11px;padding:16px 18px;color:#fff;margin-bottom:11px;">' +
+      '<div style="font-size:1.45rem;font-weight:700;">' + headline + '</div>' +
+      '<div style="font-size:.84rem;color:#b8dff0;margin-top:3px;">' + sub + '</div>' +
+    '</div>' +
+    warn +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:11px;">' +
+      tile('Pay rate', fmtMoney(res.pay)) +
+      tile('Burden', fmtMoney(res.burden), Math.round(burdenPct(trade)*1000)/10 + '%') +
+      tile('True cost', fmtMoney(res.cost)) +
+      tile('Bill rate', fmtMoney(res.bill)) +
+      tile('GP / hour', fmtMoney(res.gp), Math.round(res.margin) + '% margin') +
+    '</div>' +
+    '<div style="background:#e0f4fc;border:1px solid #b8dff0;border-radius:10px;padding:14px 16px;">' +
+      '<div style="font-size:.64rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0077a8;margin-bottom:9px;">Deal value</div>' +
+      '<div style="font-size:.86rem;color:#003a52;line-height:1.9;">' +
+        workers + ' worker' + (workers>1?'s':'') + ' &middot; ' + hours + ' hrs/week &middot; ' + weeks + ' week' + (weeks>1?'s':'') + '<br>' +
+        'Gross profit per week: <strong>' + fmtMoney(gpWeek) + '</strong><br>' +
+        'Gross profit over the run: <strong style="font-size:1.05rem;">' + fmtMoney(gpTotal) + '</strong><br>' +
+        '<span style="color:#64748b;">Total billed: ' + fmtMoney(revTotal) + '</span>' +
+      '</div>' +
+    '</div>';
+
+  window._dealCalc = { res: res, workers: workers, hours: hours, weeks: weeks, gpWeek: gpWeek, gpTotal: gpTotal, revTotal: revTotal, trade: trade };
+}
+
+function fmtMoney(v){
+  if(!isFinite(v)) return '$0';
+  return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits: Math.abs(v) < 100 ? 2 : 0, maximumFractionDigits: Math.abs(v) < 100 ? 2 : 0});
+}
+function tile(label, val, sub){
+  return '<div style="background:#fff;border:1px solid #b8dff0;border-radius:9px;padding:11px 12px;">' +
+    '<div style="font-size:1.05rem;font-weight:700;color:#003a52;">' + val + '</div>' +
+    '<div style="font-size:.63rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-top:2px;">' + label + '</div>' +
+    (sub ? '<div style="font-size:.68rem;color:#94a3b8;">' + sub + '</div>' : '') + '</div>';
+}
+function hint(msg){ return '<div style="font-size:.84rem;color:#94a3b8;padding:10px 0;">' + msg + '</div>'; }
+function flag(bg,bd,fg,msg){
+  return '<div style="background:'+bg+';border:1px solid '+bd+';color:'+fg+';border-radius:9px;padding:10px 13px;font-size:.82rem;line-height:1.6;margin-bottom:11px;">' + msg + '</div>';
+}
+
+function setDealMode(){
+  var m = document.getElementById('dc-mode').value;
+  document.getElementById('dc-pay-wrap').style.display  = m === 'budget' ? 'none' : 'block';
+  document.getElementById('dc-bill-wrap').style.display = m === 'bill' ? 'none' : 'block';
+  document.getElementById('dc-margin-wrap').style.display = m === 'forward' ? 'none' : 'block';
+  runDealCalc();
+}
+
+// ═══════════════════════════════════════════════════
+//  SAVED REPORTS
+// ═══════════════════════════════════════════════════
+async function saveReportToCloud(label, market, trade, level, payRate, billRate, report, company){
+  if(!window.QLM || !QLM.save) return;
+  try{
+    await QLM.save('market_reports', {
+      mode: trade ? 'drill' : 'market',
+      market: market || '',
+      trade: trade || '',
+      level: level || '',
+      pay_rate: payRate || null,
+      bill_rate: billRate || null,
+      report: Object.assign({ _label: label, _company: company || '' }, report || {})
+    });
+    loadSavedReports();
+  }catch(e){ console.warn('report save failed', e); }
+}
+
+async function loadSavedReports(){
+  var el = document.getElementById('saved-reports');
+  if(!el) return;
+  if(!window.QLM || !QLM.list){ el.innerHTML = hint('Sign in to keep reports.'); return; }
+  try{
+    var rows = await QLM.list('market_reports', null, { limit: 25 });
+    if(!rows.length){ el.innerHTML = hint('No saved reports yet. Generate one and it is kept here for the team.'); return; }
+    el.innerHTML = rows.map(function(r, i){
+      var when = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+      var label = (r.report && r.report._label) || ((r.trade ? r.trade + ' · ' : '') + (r.market||''));
+      var co = (r.report && r.report._company) || '';
+      return '<div onclick="openSavedReport(' + i + ')" style="padding:9px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">' +
+        '<div style="font-size:.84rem;font-weight:600;color:#003a52;">' + label + '</div>' +
+        '<div style="font-size:.72rem;color:#94a3b8;">' + when + (co ? ' · ' + co : '') +
+        (r.bill_rate ? ' · billed $' + r.bill_rate : '') + '</div>' +
+      '</div>';
+    }).join('');
+    window._savedReports = rows;
+  }catch(e){ el.innerHTML = hint('Could not load saved reports.'); }
+}
+
+function openSavedReport(i){
+  var r = (window._savedReports||[])[i];
+  if(!r || !r.report) return;
+  reportRaw = r.report;
+  try{
+    if(r.trade) renderDrillReport(r.report, r.market, new Date(r.created_at).toLocaleDateString(), r.pay_rate, r.bill_rate);
+    else renderMarketReport(r.report, r.market, new Date(r.created_at).toLocaleDateString());
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){ alert('This report was saved in an older format.'); }
+}
+
+// ═══════════════════════════════════════════════════
+//  CLIENT ONE-PAGER — no internal margin data
+// ═══════════════════════════════════════════════════
+function clientOnePager(){
+  if(!reportRaw){ alert('Generate a report first.'); return; }
+  var d = reportRaw;
+  var market = (document.getElementById('r-market')||{}).value || '';
+  var trade  = (document.getElementById('r-drill-trade')||{}).value || '';
+  var company = (document.getElementById('r-company')||{}).value || '';
+  var e = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  var today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  var points = (d.talkingPoints||[]).slice(0,6);
+  var rate = d.recommendedBillRate || d.billRate || '';
+  var payRange = d.marketPayRange || '';
+  var fill = d.weeksToFillSelfManaged || d.fillTimeSelfManaged || '';
+  var diff = d.fillDifficultyScore != null ? d.fillDifficultyScore : '';
+
+  var html =
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Market Brief — ' + e(trade) + ' — ' + e(market) + '</title>' +
+'<style>' +
+'*{box-sizing:border-box;margin:0;padding:0;}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:26px 16px;line-height:1.6;}' +
+'.pg{max-width:760px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,58,82,.14);}' +
+'.hd{background:#003a52;padding:26px 32px;}' +
+'.badge{display:inline-block;background:#0099d8;color:#fff;font-weight:700;font-size:.7rem;letter-spacing:3px;padding:5px 13px;border-radius:5px;}' +
+'.hd h1{color:#fff;font-size:1.5rem;font-weight:700;margin-top:13px;}' +
+'.hd .sub{color:#b8dff0;font-size:.88rem;margin-top:5px;}' +
+'.bd{padding:26px 32px;}' +
+'.sec{font-size:.64rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0077a8;margin:22px 0 11px;padding-bottom:6px;border-bottom:1px solid #e0f4fc;}' +
+'.sec:first-child{margin-top:0;}' +
+'.stats{display:flex;gap:11px;flex-wrap:wrap;}' +
+'.st{flex:1;min-width:150px;background:#e0f4fc;border:1px solid #b8dff0;border-radius:10px;padding:15px 16px;}' +
+'.st .v{font-size:1.35rem;font-weight:700;color:#003a52;}' +
+'.st .l{font-size:.64rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#0077a8;margin-top:3px;}' +
+'ul{margin:0;padding-left:19px;}' +
+'li{font-size:.92rem;line-height:1.85;margin-bottom:5px;}' +
+'.note{font-size:.86rem;line-height:1.8;color:#2a4a5a;}' +
+'.ft{background:#003a52;padding:18px 32px;text-align:center;}' +
+'.ft .spq{color:#0099d8;font-size:.66rem;font-weight:700;letter-spacing:2.5px;}' +
+'.ft .info{color:#b8dff0;font-size:.78rem;margin-top:5px;}' +
+'.tools{max-width:760px;margin:0 auto 13px;display:flex;gap:8px;justify-content:flex-end;}' +
+'.tools button{background:#003a52;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}' +
+'.tools button.alt{background:#fff;color:#0077a8;border:1.5px solid #b8dff0;}' +
+'@media print{body{background:#fff;padding:0;}.tools{display:none;}.pg{box-shadow:none;border-radius:0;}' +
+'.hd,.ft,.st{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
+'</style></head><body>' +
+'<div class="tools"><button class="alt" onclick="window.print()">&#128438; Print / PDF</button><button onclick="window.close()">Close</button></div>' +
+'<div class="pg">' +
+  '<div class="hd">' +
+    '<div class="badge">QLM</div>' +
+    '<h1>' + e(trade || 'Skilled Trades') + ' Labor Market Brief</h1>' +
+    '<div class="sub">' + e(market) + (company ? ' &nbsp;&middot;&nbsp; Prepared for ' + e(company) : '') + ' &nbsp;&middot;&nbsp; ' + today + '</div>' +
+  '</div>' +
+  '<div class="bd">' +
+    '<div class="sec">Current Market Conditions</div>' +
+    '<div class="stats">' +
+      (payRange ? '<div class="st"><div class="v">' + e(payRange) + '</div><div class="l">Market pay range</div></div>' : '') +
+      (fill ? '<div class="st"><div class="v">' + e(fill) + '</div><div class="l">Typical time to fill on your own</div></div>' : '') +
+      (diff !== '' ? '<div class="st"><div class="v">' + e(diff) + ' / 10</div><div class="l">Difficulty to fill</div></div>' : '') +
+    '</div>' +
+    (points.length ? '<div class="sec">What This Means For Your Project</div><ul>' +
+      points.map(function(p){ return '<li>' + e(typeof p === 'string' ? p : (p.point||p.text||'')) + '</li>'; }).join('') +
+      '</ul>' : '') +
+    (d.qlmAdvantage || d.whyQlm ? '<div class="sec">Working With QLM</div><div class="note">' + e(d.qlmAdvantage || d.whyQlm) + '</div>' : '') +
+    '<div class="sec">What Is Included</div>' +
+    '<div class="note">Every QLM team member is our W-2 employee. Workers compensation, general liability, payroll taxes and unemployment are carried by QLM and are included in one all-inclusive hourly rate. You approve hours; we handle the rest. No employer liability, no payroll administration, and no cost when the work stops.</div>' +
+  '</div>' +
+  '<div class="ft"><div class="spq">SAFETY &middot; PRODUCTIVITY &middot; QUALITY</div>' +
+  '<div class="info">Quality Labor Management &middot; myqlm.com &middot; 855-756-9675</div></div>' +
+'</div></body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 function setToolbar(title,meta,market,date){
+  setTimeout(function(){
+    var bar = document.querySelector('.output-btns');
+    if(bar && !document.getElementById('btn-onepager')){
+      var b = document.createElement('button');
+      b.id = 'btn-onepager';
+      b.className = 'btn-out';
+      b.innerHTML = '\uD83D\uDCC4 Client One-Pager';
+      b.onclick = clientOnePager;
+      bar.insertBefore(b, bar.firstChild);
+    }
+  }, 60);
   document.getElementById('report-toolbar').style.display='flex';
   document.getElementById('rpt-title').textContent=title;
   document.getElementById('rpt-meta').textContent=meta;
@@ -1172,6 +1518,7 @@ function renderHistory(){
 }
 
 window.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){ try{ loadSavedReports(); setDealMode(); }catch(e){} }, 600);
   renderHistory();
 });
 </script>
