@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /qlm-intake.html
+Allow: /qlm-trades-assessment.html
+Disallow: /qlm-dashboard.html
+Disallow: /qlm-candidates.html
+Disallow: /qlm-lead-generator.html
+Disallow: /qlm-hiring-insights.html
+Disallow: /talent-card.html
+Disallow: /login.html
