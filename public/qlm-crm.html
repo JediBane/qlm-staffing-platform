@@ -91,6 +91,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
   <div class="head">
     <h1>&#128202; Pipeline</h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn dark" onclick="quickNewJob()">+ New Job Order</button>
       <button class="btn" onclick="exportPipeline()">&#8595; Export CSV</button>
       <button class="btn dark" onclick="loadAll()">&#8635; Refresh</button>
     </div>
@@ -98,8 +99,12 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
   <div class="src" id="src-note"></div>
 
   <div class="tabs">
-    <button class="tab on" id="tab-cand" onclick="setTab('candidates')">&#128101; Candidate Pipeline</button>
-    <button class="tab" id="tab-client" onclick="setTab('clients')">&#127970; Client Pipeline</button>
+    <button class="tab on" id="tab-today"  onclick="setTab('today')">&#9203; Today</button>
+    <button class="tab" id="tab-jobs"      onclick="setTab('jobs')">&#128188; Job Orders</button>
+    <button class="tab" id="tab-cand"      onclick="setTab('candidates')">&#128101; Candidates</button>
+    <button class="tab" id="tab-companies" onclick="setTab('companies')">&#127970; Companies</button>
+    <button class="tab" id="tab-client"    onclick="setTab('clients')">&#127919; Leads</button>
+    <button class="tab" id="tab-place"     onclick="setTab('placements')">&#9989; Placements</button>
   </div>
 
   <div class="kpis" id="kpis"></div>
@@ -133,7 +138,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/qlm-data.js"></script>
 <script>
-var TAB = 'candidates', STALE_ONLY = false;
+var TAB = 'today', STALE_ONLY = false;
 var CANDIDATES = [], LEADS = [], ASSESSMENTS = [], REPORTS = [], TEAM = [];
 
 var CAND_STAGES = [
@@ -171,6 +176,600 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function daysSince(d){ if(!d) return null; return Math.floor((Date.now() - new Date(d).getTime())/86400000); }
 function money(v){ return v ? '$' + Math.round(v).toLocaleString('en-US') : ''; }
 
+// ═══════════════════════════════════════════════════════════════
+//  ATS CORE — job orders, submissions, companies, placements,
+//  activity timeline and task list
+// ═══════════════════════════════════════════════════════════════
+var COMPANIES = [], CONTACTS = [], JOBS = [], SUBS = [], PLACEMENTS = [], ACTS = [];
+
+var JOB_STAGES = [
+  { id:'open',    label:'Open',     hint:'Needs candidates' },
+  { id:'filling', label:'Filling',  hint:'Submissions out' },
+  { id:'filled',  label:'Filled',   hint:'All openings covered' },
+  { id:'on_hold', label:'On Hold',  hint:'Client paused it' },
+  { id:'closed',  label:'Closed',   hint:'Complete' },
+  { id:'lost',    label:'Lost',     hint:'Went elsewhere' }
+];
+
+var SUB_STAGES = ['shortlist','submitted','client_review','interview','offer','placed','rejected','withdrawn'];
+var SUB_LABEL = {
+  shortlist:'Shortlisted', submitted:'Submitted', client_review:'Client Review',
+  interview:'Interview', offer:'Offer', placed:'Placed', rejected:'Rejected', withdrawn:'Withdrawn'
+};
+var SUB_COLOR = {
+  shortlist:'', submitted:'b', client_review:'b', interview:'a',
+  offer:'a', placed:'g', rejected:'r', withdrawn:''
+};
+
+async function loadAts(){
+  if(!window.QLM || !QLM.client()) return;
+  var q = QLM.client();
+  var res = await Promise.all([
+    q.from('companies').select('*').order('name').then(r=>r.data||[]),
+    q.from('contacts').select('*').then(r=>r.data||[]),
+    q.from('job_orders').select('*').order('created_at',{ascending:false}).then(r=>r.data||[]),
+    q.from('submissions').select('*').order('created_at',{ascending:false}).then(r=>r.data||[]),
+    q.from('placements').select('*').order('start_date',{ascending:false}).then(r=>r.data||[]),
+    q.from('crm_activity').select('*').order('created_at',{ascending:false}).limit(400).then(r=>r.data||[])
+  ]);
+  COMPANIES = res[0]; CONTACTS = res[1]; JOBS = res[2]; SUBS = res[3]; PLACEMENTS = res[4]; ACTS = res[5];
+}
+
+function companyName(id){ var c = COMPANIES.find(x=>x.id===id); return c ? c.name : ''; }
+function candName(id){ var c = CANDIDATES.find(x=>x.id===id); return c ? c.full_name : ''; }
+function jobTitle(id){ var j = JOBS.find(x=>x.id===id); return j ? j.title : ''; }
+function subsFor(jobId){ return SUBS.filter(s=>s.job_order_id===jobId); }
+function jobsFor(companyId){ return JOBS.filter(j=>j.company_id===companyId); }
+function actsFor(type, id){ return ACTS.filter(a=>a.entity_type===type && a.entity_id===id); }
+function openTasks(){
+  return ACTS.filter(a=>a.type==='task' && !a.done).sort(function(a,b){
+    return new Date(a.due_date||'2099-01-01') - new Date(b.due_date||'2099-01-01');
+  });
+}
+
+// ═══════════ JOB ORDERS BOARD ═══════════
+function renderJobs(q, owner){
+  var rows = JOBS.filter(function(j){
+    if(!passOwner(j, owner)) return false;
+    if(STALE_ONLY && (daysSince(j.stage_changed_at||j.created_at)||0) < 14) return false;
+    if(!q) return true;
+    return [j.title, companyName(j.company_id), j.city, prettyTrade(j.trade)].join(' ').toLowerCase().indexOf(q) > -1;
+  });
+
+  var open = rows.filter(j=>['open','filling'].indexOf(j.status)>-1);
+  var openings = open.reduce(function(s,j){
+    var placed = subsFor(j.id).filter(x=>x.status==='placed').length;
+    return s + Math.max(0, (j.openings||1) - placed);
+  }, 0);
+  var weeklyValue = open.reduce(function(s,j){
+    var placed = subsFor(j.id).filter(x=>x.status==='placed').length;
+    var need = Math.max(0,(j.openings||1)-placed);
+    return s + need * (j.bill_rate||0) * 40;
+  },0);
+
+  document.getElementById('kpis').innerHTML =
+    kpi(rows.length,'Job orders') +
+    kpi(open.length,'Open','Actively working') +
+    kpi(openings,'Seats to fill') +
+    kpi(rows.filter(j=>j.priority==='critical'||j.priority==='high').length,'High priority') +
+    kpi(weeklyValue?money(weeklyValue):'\u2014','Weekly value','If all seats filled') +
+    kpi(SUBS.filter(s=>['submitted','client_review','interview','offer'].indexOf(s.status)>-1).length,'Active submissions');
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = 'repeat(' + JOB_STAGES.length + ', minmax(215px,1fr))';
+  board.innerHTML = JOB_STAGES.map(function(st){
+    var items = rows.filter(j=>(j.status||'open')===st.id);
+    return '<div class="col"><div class="col-h"><span class="col-t">'+st.label+'</span>' +
+      '<span class="col-n">'+items.length+'</span></div>' +
+      (items.length ? items.map(jobCard).join('') : '<div class="col-empty">'+st.hint+'</div>') + '</div>';
+  }).join('');
+}
+
+function jobCard(j){
+  var i = JOBS.indexOf(j);
+  var subs = subsFor(j.id);
+  var placed = subs.filter(s=>s.status==='placed').length;
+  var active = subs.filter(s=>['submitted','client_review','interview','offer'].indexOf(s.status)>-1).length;
+  var days = daysSince(j.stage_changed_at||j.created_at);
+  var stale = days>=14 && ['open','filling'].indexOf(j.status)>-1;
+  var pri = j.priority==='critical' ? '<span class="pill r">Critical</span>'
+          : j.priority==='high' ? '<span class="pill a">High</span>' : '';
+  return '<div class="card" onclick="openJob('+i+')">' +
+    '<div class="card-n">'+esc(j.title)+'</div>' +
+    '<div class="card-s">'+esc(companyName(j.company_id))+(j.city?' \u00b7 '+esc(j.city):'')+'</div>' +
+    '<div class="card-m">' + pri +
+      '<span class="pill b">'+placed+'/'+(j.openings||1)+' filled</span>' +
+      (active?'<span class="pill a">'+active+' out</span>':'') +
+      (j.bill_rate?'<span class="pill">$'+j.bill_rate+'/hr</span>':'') +
+    '</div>' +
+    '<div class="card-f"><span>'+(ownerName(j.owner_id)||'Unassigned')+'</span>' +
+    '<span class="'+(stale?'stale':'')+'">'+(days!=null?days+'d':'')+'</span></div></div>';
+}
+
+// ═══════════ JOB ORDER DETAIL ═══════════
+function openJob(i){
+  var j = JOBS[i];
+  if(!j) return;
+  var subs = subsFor(j.id);
+  var placed = subs.filter(s=>s.status==='placed').length;
+
+  document.getElementById('m-title').textContent = j.title;
+  document.getElementById('m-sub').textContent =
+    [companyName(j.company_id), j.city, prettyTrade(j.trade)].filter(Boolean).join(' \u00b7 ');
+
+  document.getElementById('m-body').innerHTML =
+    '<div class="msec">Requisition</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+      '<div class="fl"><label>Status</label><select id="j-status">' +
+        JOB_STAGES.map(s=>'<option value="'+s.id+'"'+(j.status===s.id?' selected':'')+'>'+s.label+'</option>').join('') +
+      '</select></div>' +
+      '<div class="fl"><label>Priority</label><select id="j-pri">' +
+        ['low','normal','high','critical'].map(p=>'<option value="'+p+'"'+(j.priority===p?' selected':'')+'>'+p.charAt(0).toUpperCase()+p.slice(1)+'</option>').join('') +
+      '</select></div>' +
+      '<div class="fl"><label>Openings</label><input type="number" id="j-openings" value="'+(j.openings||1)+'"></div>' +
+      '<div class="fl"><label>Owner</label><select id="j-owner"><option value="">Unassigned</option>' +
+        TEAM.map(t=>'<option value="'+t.id+'"'+(j.owner_id===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('') +
+      '</select></div>' +
+      '<div class="fl"><label>Pay rate</label><input type="number" id="j-pay" value="'+(j.pay_rate||'')+'"></div>' +
+      '<div class="fl"><label>Bill rate</label><input type="number" id="j-bill" value="'+(j.bill_rate||'')+'"></div>' +
+      '<div class="fl"><label>Start date</label><input type="date" id="j-start" value="'+(j.start_date||'')+'"></div>' +
+      '<div class="fl"><label>Duration (weeks)</label><input type="number" id="j-weeks" value="'+(j.duration_weeks||'')+'"></div>' +
+      '<div class="fl"><label>Shift</label><input id="j-shift" value="'+esc(j.shift||'')+'" placeholder="Days, 6-4:30"></div>' +
+      '<div class="fl"><label>OT expected</label><input id="j-ot" value="'+esc(j.ot_expected||'')+'" placeholder="10 hrs/wk"></div>' +
+    '</div>' +
+    '<div class="fl"><label>Certifications required</label><input id="j-certs" value="'+esc(j.certs_required||'')+'" placeholder="OSHA 30, TWIC"></div>' +
+    '<div class="fl"><label>Scope / notes</label><textarea id="j-desc">'+esc(j.description||'')+'</textarea></div>' +
+
+    '<div class="msec">Submissions (' + placed + ' of ' + (j.openings||1) + ' placed)</div>' +
+    (subs.length ? subs.map(function(s){
+      var si = SUBS.indexOf(s);
+      return '<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f1f5f9;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:.86rem;font-weight:600;color:#003a52;">'+esc(candName(s.candidate_id)||'Candidate')+'</div>' +
+          '<div style="font-size:.72rem;color:#94a3b8;">'+(s.submitted_at?new Date(s.submitted_at).toLocaleDateString():'')+
+            (s.bill_rate?' \u00b7 $'+s.bill_rate+'/hr':'')+'</div>' +
+        '</div>' +
+        '<select onchange="moveSubmission('+si+',this.value)" style="border:1px solid #b8dff0;border-radius:6px;padding:4px 8px;font-size:.75rem;font-family:inherit;">' +
+          SUB_STAGES.map(x=>'<option value="'+x+'"'+(s.status===x?' selected':'')+'>'+SUB_LABEL[x]+'</option>').join('') +
+        '</select></div>';
+    }).join('') : '<div style="font-size:.84rem;color:#94a3b8;padding:6px 0;">No one submitted yet.</div>') +
+
+    '<div class="fl" style="margin-top:11px;"><label>Add candidate to this job</label>' +
+      '<select id="j-addcand"><option value="">Select a candidate...</option>' +
+        matchCandidates(j).map(function(c){
+          var a = assessmentFor(c);
+          return '<option value="'+c.id+'">'+esc(c.full_name)+' \u2014 '+esc(prettyTrade(c.trade))+
+                 (a&&a.score!=null?' ('+a.score+')':'')+'</option>';
+        }).join('') +
+      '</select></div>' +
+    '<button class="mbtn" onclick="addSubmission(\'' + j.id + '\')" style="margin-bottom:6px;">+ Submit candidate</button>' +
+
+    activityBlock('job_order', j.id);
+
+  document.getElementById('m-acts').innerHTML =
+    '<button class="mbtn primary" onclick="saveJob('+i+')">Save</button>' +
+    '<button class="mbtn" onclick="closeModal()">Close</button>';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+// Candidates that plausibly fit, best first
+function matchCandidates(j){
+  var trade = (j.trade||'').toLowerCase();
+  var city = (j.city||'').toLowerCase().split(',')[0];
+  var already = subsFor(j.id).map(s=>s.candidate_id);
+  return CANDIDATES.filter(c=>already.indexOf(c.id)===-1 && c.stage!=='placed')
+    .map(function(c){
+      var score = 0;
+      var ct = ((c.trade||'') + ' ' + (c.title||'')).toLowerCase();
+      if(trade && ct.indexOf(trade.split(' ')[0]) > -1) score += 50;
+      if(city && (c.city||'').toLowerCase().indexOf(city) > -1) score += 20;
+      var a = assessmentFor(c);
+      if(a && a.score != null) score += Math.round(a.score/5);
+      if((c.availability||'').toLowerCase().indexOf('immediate') > -1) score += 15;
+      return { c:c, score:score };
+    })
+    .sort((x,y)=>y.score-x.score)
+    .slice(0,40)
+    .map(x=>x.c);
+}
+
+async function saveJob(i){
+  var j = JOBS[i];
+  var num = id => { var v = parseFloat(document.getElementById(id).value); return isFinite(v)?v:null; };
+  var patch = {
+    status: document.getElementById('j-status').value,
+    priority: document.getElementById('j-pri').value,
+    openings: parseInt(document.getElementById('j-openings').value)||1,
+    owner_id: document.getElementById('j-owner').value || null,
+    pay_rate: num('j-pay'), bill_rate: num('j-bill'),
+    start_date: document.getElementById('j-start').value || null,
+    duration_weeks: parseInt(document.getElementById('j-weeks').value)||null,
+    shift: document.getElementById('j-shift').value.trim()||null,
+    ot_expected: document.getElementById('j-ot').value.trim()||null,
+    certs_required: document.getElementById('j-certs').value.trim()||null,
+    description: document.getElementById('j-desc').value.trim()||null
+  };
+  var r = await QLM.client().from('job_orders').update(patch).eq('id', j.id);
+  if(!r.error){ Object.assign(j, patch); closeModal(); render(); }
+  else alert('Could not save: ' + r.error.message);
+}
+
+async function addSubmission(jobId){
+  var sel = document.getElementById('j-addcand');
+  if(!sel || !sel.value){ alert('Pick a candidate first.'); return; }
+  var u = await QLM.getUser();
+  var job = JOBS.find(j=>j.id===jobId);
+  var r = await QLM.client().from('submissions').insert({
+    owner_id: u ? u.id : null, job_order_id: jobId, candidate_id: sel.value,
+    status: 'submitted', pay_rate: job&&job.pay_rate, bill_rate: job&&job.bill_rate
+  }).select().single();
+  if(r.error){ alert(r.error.message.indexOf('duplicate')>-1 ? 'That candidate is already on this job order.' : r.error.message); return; }
+  SUBS.unshift(r.data);
+  await logActivity('job_order', jobId, 'stage', 'Submitted ' + candName(sel.value));
+  var i = JOBS.indexOf(job);
+  openJob(i);
+  render();
+}
+
+async function moveSubmission(si, status){
+  var s = SUBS[si];
+  var r = await QLM.client().from('submissions').update({ status: status }).eq('id', s.id);
+  if(r.error){ alert(r.error.message); return; }
+  s.status = status;
+  await logActivity('job_order', s.job_order_id, 'stage', candName(s.candidate_id) + ' \u2192 ' + SUB_LABEL[status]);
+  if(status === 'placed'){ await loadAll(); }
+  else render();
+}
+
+// ═══════════ COMPANIES ═══════════
+function renderCompanies(q, owner){
+  var rows = COMPANIES.filter(function(c){
+    if(!passOwner(c, owner)) return false;
+    if(!q) return true;
+    return [c.name, c.city, c.industry].join(' ').toLowerCase().indexOf(q) > -1;
+  });
+
+  document.getElementById('kpis').innerHTML =
+    kpi(rows.length,'Companies') +
+    kpi(rows.filter(c=>c.status==='active').length,'Active clients') +
+    kpi(rows.filter(c=>c.status==='prospect').length,'Prospects') +
+    kpi(JOBS.filter(j=>['open','filling'].indexOf(j.status)>-1).length,'Open orders') +
+    kpi(CONTACTS.length,'Contacts') +
+    kpi(PLACEMENTS.filter(p=>p.status==='active').length,'Working now');
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = 'repeat(auto-fill,minmax(255px,1fr))';
+  board.innerHTML = rows.length ? rows.map(function(c){
+    var i = COMPANIES.indexOf(c);
+    var jl = jobsFor(c.id);
+    var openJobs = jl.filter(j=>['open','filling'].indexOf(j.status)>-1).length;
+    var cts = CONTACTS.filter(x=>x.company_id===c.id);
+    var col = c.status==='active' ? 'g' : c.status==='prospect' ? 'b' : '';
+    return '<div class="card" onclick="openCompany('+i+')">' +
+      '<div class="card-n">'+esc(c.name)+'</div>' +
+      '<div class="card-s">'+esc([c.city,c.state].filter(Boolean).join(', '))+'</div>' +
+      '<div class="card-m">' +
+        '<span class="pill '+col+'">'+esc(c.status.replace('_',' '))+'</span>' +
+        (openJobs?'<span class="pill a">'+openJobs+' open</span>':'') +
+        (cts.length?'<span class="pill">'+cts.length+' contact'+(cts.length>1?'s':'')+'</span>':'') +
+      '</div>' +
+      '<div class="card-f"><span>'+(ownerName(c.owner_id)||'Unassigned')+'</span>' +
+      '<span>'+jl.length+' order'+(jl.length===1?'':'s')+'</span></div></div>';
+  }).join('') : '<div class="col-empty">No companies yet. They are created automatically from saved leads.</div>';
+}
+
+function openCompany(i){
+  var c = COMPANIES[i];
+  if(!c) return;
+  var jl = jobsFor(c.id), cts = CONTACTS.filter(x=>x.company_id===c.id);
+
+  document.getElementById('m-title').textContent = c.name;
+  document.getElementById('m-sub').textContent = [c.city, c.state, c.industry].filter(Boolean).join(' \u00b7 ');
+
+  document.getElementById('m-body').innerHTML =
+    '<div class="msec">Account</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+      '<div class="fl"><label>Status</label><select id="co-status">' +
+        ['prospect','active','inactive','do_not_use'].map(s=>'<option value="'+s+'"'+(c.status===s?' selected':'')+'>'+s.replace('_',' ')+'</option>').join('') +
+      '</select></div>' +
+      '<div class="fl"><label>Owner</label><select id="co-owner"><option value="">Unassigned</option>' +
+        TEAM.map(t=>'<option value="'+t.id+'"'+(c.owner_id===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('') +
+      '</select></div>' +
+      '<div class="fl"><label>City</label><input id="co-city" value="'+esc(c.city||'')+'"></div>' +
+      '<div class="fl"><label>Phone</label><input id="co-phone" value="'+esc(c.phone||'')+'"></div>' +
+    '</div>' +
+    '<div class="fl"><label>Notes</label><textarea id="co-notes">'+esc(c.notes||'')+'</textarea></div>' +
+
+    '<div class="msec">Contacts</div>' +
+    (cts.length ? cts.map(function(x){
+      return '<div style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:.85rem;">' +
+        '<strong style="color:#003a52;">'+esc(x.name)+'</strong>'+(x.title?' <span style="color:#64748b;">\u00b7 '+esc(x.title)+'</span>':'') +
+        '<div style="font-size:.78rem;margin-top:2px;">' +
+          (x.email?'<a href="mailto:'+esc(x.email)+'" style="color:#0077a8;">'+esc(x.email)+'</a> ':'') +
+          (x.phone?' <a href="tel:'+esc(x.phone)+'" style="color:#0077a8;">'+esc(x.phone)+'</a>':'') +
+        '</div></div>';
+    }).join('') : '<div style="font-size:.84rem;color:#94a3b8;">No contacts recorded.</div>') +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;">' +
+      '<div class="fl" style="margin:0;"><input id="ct-name" placeholder="Name"></div>' +
+      '<div class="fl" style="margin:0;"><input id="ct-title" placeholder="Title"></div>' +
+      '<div class="fl" style="margin:0;"><input id="ct-email" placeholder="Email"></div>' +
+      '<div class="fl" style="margin:0;"><input id="ct-phone" placeholder="Phone"></div>' +
+    '</div>' +
+    '<button class="mbtn" onclick="addContact(\'' + c.id + '\')" style="margin:8px 0;">+ Add contact</button>' +
+
+    '<div class="msec">Job orders</div>' +
+    (jl.length ? jl.map(function(j){
+      var ji = JOBS.indexOf(j);
+      var placed = subsFor(j.id).filter(s=>s.status==='placed').length;
+      return '<div onclick="openJob('+ji+')" style="padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;">' +
+        '<div style="font-size:.86rem;font-weight:600;color:#003a52;">'+esc(j.title)+'</div>' +
+        '<div style="font-size:.74rem;color:#94a3b8;">'+esc(j.status)+' \u00b7 '+placed+'/'+(j.openings||1)+' filled'+
+        (j.bill_rate?' \u00b7 $'+j.bill_rate+'/hr':'')+'</div></div>';
+    }).join('') : '<div style="font-size:.84rem;color:#94a3b8;">No job orders yet.</div>') +
+    '<button class="mbtn" onclick="newJobOrder(\'' + c.id + '\')" style="margin-top:9px;">+ New job order</button>' +
+
+    activityBlock('company', c.id);
+
+  document.getElementById('m-acts').innerHTML =
+    '<button class="mbtn primary" onclick="saveCompany('+i+')">Save</button>' +
+    '<button class="mbtn" onclick="closeModal()">Close</button>';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+async function saveCompany(i){
+  var c = COMPANIES[i];
+  var patch = {
+    status: document.getElementById('co-status').value,
+    owner_id: document.getElementById('co-owner').value || null,
+    city: document.getElementById('co-city').value.trim()||null,
+    phone: document.getElementById('co-phone').value.trim()||null,
+    notes: document.getElementById('co-notes').value.trim()||null
+  };
+  var r = await QLM.client().from('companies').update(patch).eq('id', c.id);
+  if(!r.error){ Object.assign(c, patch); closeModal(); render(); }
+  else alert(r.error.message);
+}
+
+async function addContact(companyId){
+  var name = document.getElementById('ct-name').value.trim();
+  if(!name){ alert('Enter a name.'); return; }
+  var u = await QLM.getUser();
+  var r = await QLM.client().from('contacts').insert({
+    owner_id: u?u.id:null, company_id: companyId, name: name,
+    title: document.getElementById('ct-title').value.trim()||null,
+    email: document.getElementById('ct-email').value.trim()||null,
+    phone: document.getElementById('ct-phone').value.trim()||null
+  }).select().single();
+  if(r.error){ alert(r.error.message); return; }
+  CONTACTS.push(r.data);
+  openCompany(COMPANIES.findIndex(c=>c.id===companyId));
+}
+
+async function newJobOrder(companyId){
+  var title = prompt('Job order title (e.g. Journeyman Electrician \u2014 Melbourne):');
+  if(!title) return;
+  var u = await QLM.getUser();
+  var c = COMPANIES.find(x=>x.id===companyId);
+  var r = await QLM.client().from('job_orders').insert({
+    owner_id: u?u.id:null, company_id: companyId, title: title,
+    city: c ? c.city : null, openings: 1, status:'open'
+  }).select().single();
+  if(r.error){ alert(r.error.message); return; }
+  JOBS.unshift(r.data);
+  openJob(0);
+  render();
+}
+
+// ═══════════ PLACEMENTS ═══════════
+function renderPlacements(q, owner){
+  var rows = PLACEMENTS.filter(function(p){
+    if(!passOwner(p, owner)) return false;
+    if(!q) return true;
+    return [candName(p.candidate_id), companyName(p.company_id), jobTitle(p.job_order_id)]
+      .join(' ').toLowerCase().indexOf(q) > -1;
+  });
+  var active = rows.filter(p=>p.status==='active');
+  var weeklyGp = active.reduce(function(s,p){
+    var burden = (p.pay_rate||0) * 0.139;
+    return s + (((p.bill_rate||0) - (p.pay_rate||0) - burden) * (p.hours_per_week||40));
+  },0);
+  var weeklyRev = active.reduce((s,p)=>s + (p.bill_rate||0)*(p.hours_per_week||40), 0);
+
+  document.getElementById('kpis').innerHTML =
+    kpi(active.length,'Working now') +
+    kpi(rows.filter(p=>p.status==='completed').length,'Completed') +
+    kpi(rows.filter(p=>p.status==='converted').length,'Converted to hire') +
+    kpi(weeklyRev?money(weeklyRev):'\u2014','Weekly billings') +
+    kpi(weeklyGp?money(weeklyGp):'\u2014','Weekly gross profit') +
+    kpi(weeklyGp?money(weeklyGp*52):'\u2014','Annualised GP','At current run rate');
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = 'repeat(auto-fill,minmax(255px,1fr))';
+  board.innerHTML = rows.length ? rows.map(function(p){
+    var i = PLACEMENTS.indexOf(p);
+    var burden = (p.pay_rate||0)*0.139;
+    var gp = ((p.bill_rate||0)-(p.pay_rate||0)-burden)*(p.hours_per_week||40);
+    var col = p.status==='active'?'g':p.status==='converted'?'b':'';
+    return '<div class="card" onclick="openPlacement('+i+')">' +
+      '<div class="card-n">'+esc(candName(p.candidate_id)||'Worker')+'</div>' +
+      '<div class="card-s">'+esc(companyName(p.company_id))+' \u00b7 '+esc(jobTitle(p.job_order_id))+'</div>' +
+      '<div class="card-m">' +
+        '<span class="pill '+col+'">'+esc(p.status.replace('_',' '))+'</span>' +
+        (p.bill_rate?'<span class="pill">$'+p.bill_rate+'/hr</span>':'') +
+        (gp>0?'<span class="pill g">'+money(gp)+'/wk GP</span>':'') +
+      '</div>' +
+      '<div class="card-f"><span>'+(p.start_date||'')+'</span><span>'+(p.hours_per_week||40)+' hrs</span></div></div>';
+  }).join('') : '<div class="col-empty">No placements yet. They are created automatically when a submission is marked Placed.</div>';
+}
+
+function openPlacement(i){
+  var p = PLACEMENTS[i];
+  if(!p) return;
+  document.getElementById('m-title').textContent = candName(p.candidate_id) || 'Placement';
+  document.getElementById('m-sub').textContent = [companyName(p.company_id), jobTitle(p.job_order_id)].filter(Boolean).join(' \u00b7 ');
+  document.getElementById('m-body').innerHTML =
+    '<div class="msec">Placement</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+      '<div class="fl"><label>Status</label><select id="p-status">' +
+        ['active','completed','ended_early','converted'].map(s=>'<option value="'+s+'"'+(p.status===s?' selected':'')+'>'+s.replace('_',' ')+'</option>').join('') +
+      '</select></div>' +
+      '<div class="fl"><label>Hours / week</label><input type="number" id="p-hours" value="'+(p.hours_per_week||40)+'"></div>' +
+      '<div class="fl"><label>Pay rate</label><input type="number" id="p-pay" value="'+(p.pay_rate||'')+'"></div>' +
+      '<div class="fl"><label>Bill rate</label><input type="number" id="p-bill" value="'+(p.bill_rate||'')+'"></div>' +
+      '<div class="fl"><label>Start</label><input type="date" id="p-start" value="'+(p.start_date||'')+'"></div>' +
+      '<div class="fl"><label>End</label><input type="date" id="p-end" value="'+(p.end_date||'')+'"></div>' +
+    '</div>' +
+    '<div class="fl"><label>End reason</label><input id="p-reason" value="'+esc(p.end_reason||'')+'"></div>' +
+    activityBlock('placement', p.id);
+  document.getElementById('m-acts').innerHTML =
+    '<button class="mbtn primary" onclick="savePlacement('+i+')">Save</button>' +
+    '<button class="mbtn" onclick="closeModal()">Close</button>';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+async function savePlacement(i){
+  var p = PLACEMENTS[i];
+  var num = id => { var v = parseFloat(document.getElementById(id).value); return isFinite(v)?v:null; };
+  var patch = {
+    status: document.getElementById('p-status').value,
+    hours_per_week: parseInt(document.getElementById('p-hours').value)||40,
+    pay_rate: num('p-pay'), bill_rate: num('p-bill'),
+    start_date: document.getElementById('p-start').value||null,
+    end_date: document.getElementById('p-end').value||null,
+    end_reason: document.getElementById('p-reason').value.trim()||null
+  };
+  var r = await QLM.client().from('placements').update(patch).eq('id', p.id);
+  if(!r.error){ Object.assign(p, patch); closeModal(); render(); }
+  else alert(r.error.message);
+}
+
+// ═══════════ ACTIVITY TIMELINE ═══════════
+function activityBlock(type, id){
+  var list = actsFor(type, id);
+  var icon = { note:'\uD83D\uDCDD', call:'\uD83D\uDCDE', email:'\u2709\uFE0F', text:'\uD83D\uDCF1', meeting:'\uD83E\uDD1D', task:'\u2705', stage:'\u27A1\uFE0F' };
+  return '<div class="msec">Activity</div>' +
+    '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
+      ['note','call','email','text','meeting'].map(function(t){
+        return '<button class="mbtn" style="padding:5px 11px;font-size:.72rem;" onclick="quickLog(\''+type+'\',\''+id+'\',\''+t+'\')">'+icon[t]+' '+t.charAt(0).toUpperCase()+t.slice(1)+'</button>';
+      }).join('') +
+      '<button class="mbtn" style="padding:5px 11px;font-size:.72rem;" onclick="quickTask(\''+type+'\',\''+id+'\')">\u23F0 Task</button>' +
+    '</div>' +
+    (list.length ? '<div style="max-height:230px;overflow-y:auto;">' + list.slice(0,25).map(function(a){
+      var when = new Date(a.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+      return '<div style="display:flex;gap:9px;padding:7px 0;border-bottom:1px solid #f5f8fa;">' +
+        '<span style="flex-shrink:0;">'+(icon[a.type]||'\uD83D\uDCDD')+'</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:.84rem;color:#2a4a5a;line-height:1.6;">'+esc(a.body||'')+'</div>' +
+          '<div style="font-size:.68rem;color:#94a3b8;">'+(ownerName(a.owner_id)||'')+' \u00b7 '+when+
+            (a.due_date&&!a.done?' \u00b7 <span style="color:#a16207;font-weight:600;">due '+a.due_date+'</span>':'')+'</div>' +
+        '</div>' +
+        (a.type==='task' && !a.done ? '<button onclick="completeTask(\''+a.id+'\')" style="background:none;border:1px solid #bbf7d0;color:#15803d;border-radius:6px;padding:2px 8px;font-size:.68rem;cursor:pointer;font-family:inherit;">Done</button>' : '') +
+      '</div>';
+    }).join('') + '</div>' : '<div style="font-size:.82rem;color:#94a3b8;">Nothing logged yet.</div>');
+}
+
+async function logActivity(type, id, kind, body, dueDate){
+  var u = await QLM.getUser();
+  var r = await QLM.client().from('crm_activity').insert({
+    owner_id: u?u.id:null, entity_type: type, entity_id: id,
+    type: kind, body: body, due_date: dueDate || null
+  }).select().single();
+  if(!r.error) ACTS.unshift(r.data);
+  return r.data;
+}
+
+async function quickLog(type, id, kind){
+  var body = prompt(kind.charAt(0).toUpperCase()+kind.slice(1) + ' note:');
+  if(!body) return;
+  await logActivity(type, id, kind, body);
+  refreshOpenModal(type, id);
+}
+
+async function quickTask(type, id){
+  var body = prompt('What needs doing?');
+  if(!body) return;
+  var due = prompt('Due date (YYYY-MM-DD), or leave blank:');
+  await logActivity(type, id, 'task', body, due || null);
+  refreshOpenModal(type, id);
+}
+
+async function completeTask(actId){
+  var r = await QLM.client().from('crm_activity').update({ done:true, done_at:new Date().toISOString() }).eq('id', actId);
+  if(!r.error){
+    var a = ACTS.find(x=>x.id===actId);
+    if(a){ a.done = true; }
+    render();
+    var m = document.getElementById('modal');
+    if(!m.classList.contains('hidden') && window._openEntity) refreshOpenModal(window._openEntity.type, window._openEntity.id);
+  }
+}
+
+function refreshOpenModal(type, id){
+  window._openEntity = { type:type, id:id };
+  if(type==='job_order')      openJob(JOBS.findIndex(x=>x.id===id));
+  else if(type==='company')   openCompany(COMPANIES.findIndex(x=>x.id===id));
+  else if(type==='placement') openPlacement(PLACEMENTS.findIndex(x=>x.id===id));
+  else if(type==='candidate') openCandidate(CANDIDATES.findIndex(x=>x.id===id));
+}
+
+// ═══════════ TODAY / TASKS ═══════════
+async function quickNewJob(){
+  if(!COMPANIES.length){ alert('No companies yet. Save a lead in the Lead Generator first, or add one from the Companies tab.'); return; }
+  var list = COMPANIES.slice(0,40).map(function(c,i){ return (i+1) + '. ' + c.name; }).join('\n');
+  var pick = prompt('Which company?\n\n' + list + '\n\nEnter the number:');
+  var idx = parseInt(pick) - 1;
+  if(isNaN(idx) || !COMPANIES[idx]) return;
+  await newJobOrder(COMPANIES[idx].id);
+}
+
+function renderToday(){
+  var tasks = openTasks();
+  var today = new Date().toISOString().split('T')[0];
+  var overdue = tasks.filter(t=>t.due_date && t.due_date < today);
+  var dueToday = tasks.filter(t=>t.due_date === today);
+  var upcoming = tasks.filter(t=>!t.due_date || t.due_date > today);
+
+  var newApps = CANDIDATES.filter(c=>c.stage==='applied').length;
+  var openSeats = JOBS.filter(j=>['open','filling'].indexOf(j.status)>-1)
+    .reduce((s,j)=>s + Math.max(0,(j.openings||1) - subsFor(j.id).filter(x=>x.status==='placed').length), 0);
+  var awaiting = SUBS.filter(s=>['submitted','client_review','interview','offer'].indexOf(s.status)>-1).length;
+
+  document.getElementById('kpis').innerHTML =
+    kpi(overdue.length,'Overdue', overdue.length?'Needs attention':'') +
+    kpi(dueToday.length,'Due today') +
+    kpi(newApps,'New applications','Awaiting screening') +
+    kpi(openSeats,'Seats to fill') +
+    kpi(awaiting,'Submissions pending','With clients') +
+    kpi(PLACEMENTS.filter(p=>p.status==='active').length,'Working now');
+
+  function taskRow(t){
+    var link = '';
+    if(t.entity_type==='job_order'){ var ji=JOBS.findIndex(x=>x.id===t.entity_id); if(ji>-1) link='openJob('+ji+')'; }
+    if(t.entity_type==='company'){ var ci=COMPANIES.findIndex(x=>x.id===t.entity_id); if(ci>-1) link='openCompany('+ci+')'; }
+    if(t.entity_type==='candidate'){ var ai=CANDIDATES.findIndex(x=>x.id===t.entity_id); if(ai>-1) link='openCandidate('+ai+')'; }
+    var label = t.entity_type==='job_order' ? jobTitle(t.entity_id)
+              : t.entity_type==='company' ? companyName(t.entity_id)
+              : t.entity_type==='candidate' ? candName(t.entity_id) : '';
+    return '<div class="card" ' + (link?'onclick="'+link+'"':'') + '>' +
+      '<div class="card-n">'+esc(t.body||'')+'</div>' +
+      '<div class="card-s">'+esc(label)+'</div>' +
+      '<div class="card-f"><span>'+(ownerName(t.owner_id)||'')+'</span>' +
+      '<span>'+(t.due_date||'no date')+'</span></div></div>';
+  }
+
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = 'repeat(auto-fit,minmax(260px,1fr))';
+  board.innerHTML =
+    '<div class="col"><div class="col-h"><span class="col-t">Overdue</span><span class="col-n">'+overdue.length+'</span></div>' +
+      (overdue.length?overdue.map(taskRow).join(''):'<div class="col-empty">Nothing overdue</div>')+'</div>' +
+    '<div class="col"><div class="col-h"><span class="col-t">Due today</span><span class="col-n">'+dueToday.length+'</span></div>' +
+      (dueToday.length?dueToday.map(taskRow).join(''):'<div class="col-empty">Clear</div>')+'</div>' +
+    '<div class="col"><div class="col-h"><span class="col-t">Upcoming</span><span class="col-n">'+upcoming.length+'</span></div>' +
+      (upcoming.length?upcoming.slice(0,15).map(taskRow).join(''):'<div class="col-empty">Nothing scheduled</div>')+'</div>' +
+    '<div class="col"><div class="col-h"><span class="col-t">New applications</span><span class="col-n">'+newApps+'</span></div>' +
+      (newApps?CANDIDATES.filter(c=>c.stage==='applied').slice(0,15).map(candCard).join(''):'<div class="col-empty">None waiting</div>')+'</div>';
+}
+
 // ═══════════ LOAD ═══════════
 async function loadAll(){
   document.getElementById('board').innerHTML = '<div>' + Array(4).fill('<div class="shim"></div>').join('') + '</div>';
@@ -190,8 +789,11 @@ async function loadAll(){
     sel.innerHTML = '<option value="all">All owners</option>' +
       TEAM.map(function(t){ return '<option value="'+t.id+'">'+esc(t.name)+'</option>'; }).join('') +
       '<option value="none">Unassigned</option>';
+    await loadAts();
     document.getElementById('src-note').textContent =
-      '\u2601 ' + CANDIDATES.length + ' candidates \u00b7 ' + LEADS.length + ' client opportunities \u00b7 live from cloud';
+      '\u2601 ' + CANDIDATES.length + ' candidates \u00b7 ' + JOBS.length + ' job orders \u00b7 ' +
+      COMPANIES.length + ' companies \u00b7 ' + PLACEMENTS.filter(function(p){return p.status==='active';}).length +
+      ' working \u00b7 live from cloud';
     render();
   }catch(e){
     document.getElementById('board').innerHTML = '<p style="color:#b91c1c;">Could not load: ' + esc(e.message) + '</p>';
@@ -214,8 +816,12 @@ function reportsFor(company){
 
 function setTab(t){
   TAB = t;
-  document.getElementById('tab-cand').className = 'tab' + (t === 'candidates' ? ' on' : '');
-  document.getElementById('tab-client').className = 'tab' + (t === 'clients' ? ' on' : '');
+  var map = { today:'tab-today', jobs:'tab-jobs', candidates:'tab-cand',
+              companies:'tab-companies', clients:'tab-client', placements:'tab-place' };
+  Object.keys(map).forEach(function(k){
+    var el = document.getElementById(map[k]);
+    if(el) el.className = 'tab' + (k === t ? ' on' : '');
+  });
   render();
 }
 function toggleStale(){
@@ -229,7 +835,12 @@ function toggleStale(){
 function render(){
   var q = (document.getElementById('search').value||'').toLowerCase().trim();
   var owner = document.getElementById('owner-filter').value;
-  TAB === 'candidates' ? renderCandidates(q, owner) : renderClients(q, owner);
+  if(TAB === 'today')           renderToday();
+  else if(TAB === 'jobs')       renderJobs(q, owner);
+  else if(TAB === 'candidates') renderCandidates(q, owner);
+  else if(TAB === 'companies')  renderCompanies(q, owner);
+  else if(TAB === 'placements') renderPlacements(q, owner);
+  else                          renderClients(q, owner);
 }
 
 function passOwner(row, owner){
@@ -394,7 +1005,19 @@ function openCandidate(i){
       row('Verdict', a.verdict) + row('Integrity', a.integrity_flag) : '') +
 
     ((c.skills||[]).length ? '<div class="msec">Skills</div><div class="card-m">' +
-      c.skills.map(function(s){ return '<span class="pill b">'+esc(s)+'</span>'; }).join('') + '</div>' : '');
+      c.skills.map(function(s){ return '<span class="pill b">'+esc(s)+'</span>'; }).join('') + '</div>' : '') +
+
+    (function(){
+      var mine = SUBS.filter(function(s){ return s.candidate_id === c.id; });
+      if(!mine.length) return '';
+      return '<div class="msec">Submissions</div>' + mine.map(function(s){
+        return '<div style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:.85rem;">' +
+          '<strong style="color:#003a52;">' + esc(jobTitle(s.job_order_id)) + '</strong>' +
+          ' <span class="pill ' + (SUB_COLOR[s.status]||'') + '">' + (SUB_LABEL[s.status]||s.status) + '</span></div>';
+      }).join('');
+    })() +
+
+    activityBlock('candidate', c.id);
 
   var acts = [];
   acts.push('<button class="mbtn primary" onclick="saveCandidate('+i+')">Save</button>');
@@ -501,7 +1124,31 @@ document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeMo
 // ═══════════ EXPORT ═══════════
 function exportPipeline(){
   var rows, hdrs, name;
-  if(TAB === 'candidates'){
+  if(TAB === 'jobs'){
+    hdrs = ['Title','Company','City','Trade','Status','Priority','Openings','Placed','Pay','Bill','Start','Owner','Days'];
+    rows = JOBS.map(function(j){
+      return [j.title, companyName(j.company_id), j.city, prettyTrade(j.trade), j.status, j.priority,
+              j.openings, subsFor(j.id).filter(function(s){return s.status==='placed';}).length,
+              j.pay_rate, j.bill_rate, j.start_date, ownerName(j.owner_id),
+              daysSince(j.stage_changed_at||j.created_at)];
+    });
+    name = 'qlm-job-orders';
+  } else if(TAB === 'placements'){
+    hdrs = ['Worker','Company','Job','Status','Start','End','Pay','Bill','Hrs/wk'];
+    rows = PLACEMENTS.map(function(p){
+      return [candName(p.candidate_id), companyName(p.company_id), jobTitle(p.job_order_id),
+              p.status, p.start_date, p.end_date, p.pay_rate, p.bill_rate, p.hours_per_week];
+    });
+    name = 'qlm-placements';
+  } else if(TAB === 'companies'){
+    hdrs = ['Company','City','Status','Owner','Open Orders','Contacts'];
+    rows = COMPANIES.map(function(co){
+      return [co.name, co.city, co.status, ownerName(co.owner_id),
+              jobsFor(co.id).filter(function(j){return ['open','filling'].indexOf(j.status)>-1;}).length,
+              CONTACTS.filter(function(x){return x.company_id===co.id;}).length];
+    });
+    name = 'qlm-companies';
+  } else if(TAB === 'candidates'){
     hdrs = ['Name','Trade','City','Phone','Email','Stage','Owner','Score','Verdict','Submitted To','Next Action','Follow Up','Days In Stage'];
     rows = CANDIDATES.map(function(c){
       var a = assessmentFor(c);
