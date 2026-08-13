@@ -3,7 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QLM | Trades Assessment</title>
+<title>Skills Assessment | Quality Labor Management (QLM)</title>
+<meta name="description" content="Official skilled trades knowledge assessment from Quality Labor Management, a W-2 staffing company. Candidates complete a short trade knowledge check as part of the QLM hiring process.">
+<meta name="author" content="Quality Labor Management, LLC">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Skills Assessment | Quality Labor Management">
+<meta property="og:description" content="Trade knowledge assessment for QLM candidates.">
+<meta property="og:site_name" content="Quality Labor Management">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://myqlm.com/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"Quality Labor Management, LLC","alternateName":"QLM","url":"https://myqlm.com","telephone":"+1-855-756-9675","email":"info@myqlm.com","description":"Skilled trades staffing company placing W-2 employees on commercial, industrial, marine, utility solar and civil construction projects.","address":{"@type":"PostalAddress","addressRegion":"FL","addressCountry":"US"},"sameAs":["https://myqlm.com"]}
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -264,6 +275,13 @@ header{gap:12px;}
 </style>
 </head>
 <body>
+<div id="qlm-trust" style="background:#e0f4fc;border-bottom:1px solid #b8dff0;padding:9px 18px;font-size:.8rem;color:#003a52;display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;text-align:center;">
+  <span>&#128274; Official site of <strong>Quality Labor Management, LLC</strong></span>
+  <span style="color:#94a3b8;">&middot;</span>
+  <a href="https://myqlm.com" target="_blank" rel="noopener" style="color:#0077a8;font-weight:600;text-decoration:none;">myqlm.com</a>
+  <span style="color:#94a3b8;">&middot;</span>
+  <a href="tel:8557569675" style="color:#0077a8;font-weight:600;text-decoration:none;">855-756-9675</a>
+</div>
 
 <header>
   <div class="logo">
@@ -570,7 +588,21 @@ header{gap:12px;}
   </div>
 </div>
 
-<footer>&#169; 2025 Quality Labor Management, LLC &middot; SPQ Assessment Tool &middot; Confidential &middot; myqlm.com</footer>
+<footer style="background:#003a52;color:#b8dff0;padding:26px 20px;text-align:center;font-size:.8rem;line-height:1.8;">
+  <div style="font-weight:700;color:#fff;font-size:.9rem;">Quality Labor Management, LLC</div>
+  <div>Skilled trades staffing &middot; Commercial, Industrial, Marine, Utility Solar &amp; Civil</div>
+  <div style="margin-top:7px;">
+    <a href="https://myqlm.com" target="_blank" rel="noopener" style="color:#0099d8;text-decoration:none;">myqlm.com</a>
+    &nbsp;&middot;&nbsp; <a href="tel:8557569675" style="color:#0099d8;text-decoration:none;">855-756-9675</a>
+    &nbsp;&middot;&nbsp; <a href="mailto:info@myqlm.com" style="color:#0099d8;text-decoration:none;">info@myqlm.com</a>
+  </div>
+  <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,153,216,.25);font-size:.76rem;color:#7ba8bd;max-width:640px;margin-left:auto;margin-right:auto;">
+    <strong style="color:#b8dff0;">About this assessment:</strong> This trade knowledge check is part of the QLM hiring process. Your answers are reviewed by your QLM recruiter and are used solely to evaluate your fit for open positions. We do not sell your information or share it with third parties for marketing.
+  </div>
+  <div style="margin-top:12px;font-size:.72rem;color:#4a7a95;">
+    &copy; 2025 Quality Labor Management, LLC &middot; Equal Opportunity Employer &middot; E-Verify participant
+  </div>
+</footer>
 
 <script>window.QLM_REQUIRE_AUTH = !new URLSearchParams(location.search).get('invite');</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3974,5 +4006,17 @@ function toggleSettings(){}
 // Auto-close settings panel after URL is saved successfully
 </script>
 <script>window.addEventListener('DOMContentLoaded',function(){ if(window.QLM) QLM.mountAuthBar('qlm-auth'); });</script>
+<script>
+// The public trust banner is for applicants and candidates. Staff already know who we are.
+window.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    if(!window.QLM || !QLM.getUser) return;
+    QLM.getUser().then(function(u){
+      if(u){ var t = document.getElementById('qlm-trust'); if(t) t.style.display = 'none'; }
+    });
+  }, 300);
+});
+function hideTrustForStaff(){}
+</script>
 </body>
 </html>
