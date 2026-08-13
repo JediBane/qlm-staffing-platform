@@ -122,7 +122,12 @@ footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padd
     <select class="btn" id="owner-filter" onchange="render()" style="padding:8px 12px;">
       <option value="all">All owners</option>
     </select>
+    <span id="filterbar" style="display:flex;gap:8px;flex-wrap:wrap;"></span>
     <button class="btn" id="stale-btn" onclick="toggleStale()">Show stale only</button>
+    <span style="display:flex;gap:4px;margin-left:auto;">
+      <button class="btn dark" id="view-board" onclick="setView('board')">&#9783; Board</button>
+      <button class="btn" id="view-list" onclick="setView('list')">&#9776; List</button>
+    </span>
   </div>
 
   <div class="board" id="board"></div>
@@ -269,7 +274,9 @@ function renderJobs(q, owner){
     var items = rows.filter(j=>(j.status||'open')===st.id);
     return '<div class="col"><div class="col-h"><span class="col-t">'+st.label+'</span>' +
       '<span class="col-n">'+items.length+'</span></div>' +
-      (items.length ? items.map(jobCard).join('') : '<div class="col-empty">'+st.hint+'</div>') + '</div>';
+      (items.length ? items.slice(0,25).map(jobCard).join('') +
+        (items.length > 25 ? '<div class="col-empty">+ ' + (items.length-25) + ' more \u2014 <a onclick="setView(\'list\')" style="color:#0099d8;cursor:pointer;font-weight:600;">open list view</a></div>' : '')
+        : '<div class="col-empty">'+st.hint+'</div>') + '</div>';
   }).join('');
 }
 
@@ -792,56 +799,6 @@ function renderToday(){
 //  GLOBAL SEARCH  ·  SUBMITTAL PACKET  ·  METRICS  ·  ALERTS
 // ═══════════════════════════════════════════════════════════════
 
-// ── Global search: one box across every record type ──
-function globalSearch(){
-  var q = (document.getElementById('gsearch').value||'').toLowerCase().trim();
-  var box = document.getElementById('gresults');
-  if(q.length < 2){ box.style.display = 'none'; return; }
-
-  var hits = [];
-  CANDIDATES.forEach(function(c,i){
-    var hay = [c.full_name,c.trade,c.title,c.city,c.email,c.phone,(c.skills||[]).join(' ')].join(' ').toLowerCase();
-    if(hay.indexOf(q) > -1) hits.push({ t:'Candidate', n:c.full_name, s:[prettyTrade(c.trade),c.city].filter(Boolean).join(' \u00b7 '), fn:'openCandidate('+i+')', icon:'\uD83D\uDC64' });
-  });
-  JOBS.forEach(function(j,i){
-    var hay = [j.title,companyName(j.company_id),j.city,prettyTrade(j.trade)].join(' ').toLowerCase();
-    if(hay.indexOf(q) > -1) hits.push({ t:'Job Order', n:j.title, s:companyName(j.company_id), fn:'openJob('+i+')', icon:'\uD83D\uDCBC' });
-  });
-  COMPANIES.forEach(function(c,i){
-    if([c.name,c.city,c.industry].join(' ').toLowerCase().indexOf(q) > -1)
-      hits.push({ t:'Company', n:c.name, s:[c.city,c.status].filter(Boolean).join(' \u00b7 '), fn:'openCompany('+i+')', icon:'\uD83C\uDFE2' });
-  });
-  CONTACTS.forEach(function(x){
-    if([x.name,x.title,x.email,x.phone].join(' ').toLowerCase().indexOf(q) > -1){
-      var ci = COMPANIES.findIndex(c=>c.id===x.company_id);
-      hits.push({ t:'Contact', n:x.name, s:[x.title,companyName(x.company_id)].filter(Boolean).join(' \u00b7 '), fn:'openCompany('+ci+')', icon:'\uD83D\uDCC7' });
-    }
-  });
-  PLACEMENTS.forEach(function(p,i){
-    if([candName(p.candidate_id),companyName(p.company_id)].join(' ').toLowerCase().indexOf(q) > -1)
-      hits.push({ t:'Placement', n:candName(p.candidate_id), s:companyName(p.company_id), fn:'openPlacement('+i+')', icon:'\u2705' });
-  });
-  LEADS.forEach(function(l,i){
-    if([l.company,l.location].join(' ').toLowerCase().indexOf(q) > -1)
-      hits.push({ t:'Lead', n:l.company, s:l.location, fn:'openLead('+i+')', icon:'\uD83C\uDFAF' });
-  });
-
-  if(!hits.length){
-    box.innerHTML = '<div style="padding:14px;color:#94a3b8;font-size:.85rem;">No matches for "' + esc(q) + '"</div>';
-  } else {
-    box.innerHTML = hits.slice(0,20).map(function(h){
-      return '<div onclick="closeSearch();' + h.fn + '" style="display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid #f1f5f9;cursor:pointer;">' +
-        '<span style="font-size:1rem;">' + h.icon + '</span>' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:.86rem;font-weight:600;color:#003a52;">' + esc(h.n||'') + '</div>' +
-          '<div style="font-size:.72rem;color:#94a3b8;">' + esc(h.s||'') + '</div>' +
-        '</div>' +
-        '<span style="font-size:.64rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#0077a8;">' + h.t + '</span>' +
-      '</div>';
-    }).join('');
-  }
-  box.style.display = 'block';
-}
 function closeSearch(){
   document.getElementById('gresults').style.display = 'none';
   document.getElementById('gsearch').value = '';
@@ -1062,13 +1019,364 @@ function alertRows(){
   return out;
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  SCALE: server-side paging, list views, filters, bulk actions
+//  Kanban stays for small sets; lists take over once volume grows.
+// ═══════════════════════════════════════════════════════════════
+var VIEW = 'board';            // 'board' | 'list'
+var PAGE = 0, PAGE_SIZE = 50, TOTAL = 0;
+var SORT = { col:'created_at', dir:'desc' };
+var FILTERS = { stage:'', owner:'all', mine:false, q:'' };
+var SELECTED = {};
+var COUNTS = {};
+
+var LIST_COLS = {
+  candidates: [
+    { k:'full_name',  t:'Name',       w:'180px' },
+    { k:'trade',      t:'Trade',      fmt:function(v){ return prettyTrade(v); } },
+    { k:'city',       t:'City' },
+    { k:'stage',      t:'Stage',      fmt:function(v){ return stageLabel('candidates', v); } },
+    { k:'_score',     t:'Score',      sortable:false },
+    { k:'phone',      t:'Phone' },
+    { k:'assigned_to',t:'Owner',      fmt:function(v){ return ownerName(v) || '\u2014'; } },
+    { k:'created_at', t:'Added',      fmt:function(v){ return v ? new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''; } }
+  ],
+  job_orders: [
+    { k:'title',      t:'Title',      w:'200px' },
+    { k:'company_id', t:'Company',    fmt:function(v){ return companyName(v); }, sortable:false },
+    { k:'city',       t:'City' },
+    { k:'status',     t:'Status',     fmt:function(v){ return stageLabel('job_orders', v); } },
+    { k:'_filled',    t:'Filled',     sortable:false },
+    { k:'bill_rate',  t:'Bill',       fmt:function(v){ return v ? '$'+v : ''; } },
+    { k:'priority',   t:'Priority' },
+    { k:'owner_id',   t:'Owner',      fmt:function(v){ return ownerName(v) || '\u2014'; } }
+  ],
+  companies: [
+    { k:'name',    t:'Company', w:'220px' },
+    { k:'city',    t:'City' },
+    { k:'status',  t:'Status' },
+    { k:'_orders', t:'Open orders', sortable:false },
+    { k:'phone',   t:'Phone' },
+    { k:'owner_id',t:'Owner', fmt:function(v){ return ownerName(v) || '\u2014'; } }
+  ]
+};
+
+function stageLabel(entity, v){
+  if(entity === 'candidates'){ var s = CAND_STAGES.find(x=>x.id===v); return s ? s.label : (v||''); }
+  if(entity === 'job_orders'){ var j = JOB_STAGES.find(x=>x.id===v); return j ? j.label : (v||''); }
+  return v || '';
+}
+
+function entityForTab(){
+  return TAB === 'candidates' ? 'candidates'
+       : TAB === 'jobs' ? 'job_orders'
+       : TAB === 'companies' ? 'companies' : null;
+}
+
+// ── Fetch one page from the database, not the whole table ──
+async function fetchPage(){
+  var entity = entityForTab();
+  if(!entity || !window.QLM || !QLM.client()) return { rows:[], count:0 };
+
+  var q = QLM.client().from(entity).select('*', { count:'exact' });
+
+  if(FILTERS.q){
+    var term = '%' + FILTERS.q + '%';
+    if(entity === 'candidates') q = q.or('full_name.ilike.'+term+',trade.ilike.'+term+',city.ilike.'+term+',email.ilike.'+term+',phone.ilike.'+term);
+    if(entity === 'job_orders') q = q.or('title.ilike.'+term+',trade.ilike.'+term+',city.ilike.'+term);
+    if(entity === 'companies')  q = q.or('name.ilike.'+term+',city.ilike.'+term+',industry.ilike.'+term);
+  }
+  if(FILTERS.stage){
+    q = entity === 'candidates' ? q.eq('stage', FILTERS.stage) : q.eq('status', FILTERS.stage);
+  }
+  var ownerCol = entity === 'candidates' ? 'assigned_to' : 'owner_id';
+  if(FILTERS.mine){
+    var u = await QLM.getUser();
+    if(u) q = q.eq(ownerCol, u.id);
+  } else if(FILTERS.owner !== 'all'){
+    q = FILTERS.owner === 'none' ? q.is(ownerCol, null) : q.eq(ownerCol, FILTERS.owner);
+  }
+
+  var sortCol = SORT.col;
+  if(sortCol.charAt(0) === '_') sortCol = 'created_at';
+  q = q.order(sortCol, { ascending: SORT.dir === 'asc', nullsFirst:false })
+       .range(PAGE * PAGE_SIZE, PAGE * PAGE_SIZE + PAGE_SIZE - 1);
+
+  var res = await q;
+  if(res.error){ console.warn(res.error); return { rows:[], count:0 }; }
+  return { rows: res.data || [], count: res.count || 0 };
+}
+
+async function renderList(){
+  var entity = entityForTab();
+  if(!entity) return;
+  var board = document.getElementById('board');
+  board.style.gridTemplateColumns = '1fr';
+  board.innerHTML = '<div class="col" style="background:#fff;border:1px solid var(--mid);"><div class="shim"></div><div class="shim"></div></div>';
+
+  var out = await fetchPage();
+  TOTAL = out.count;
+  var rows = out.rows;
+  var cols = LIST_COLS[entity];
+
+  // Keep helper caches in sync for lookups used by formatters
+  if(entity === 'candidates'){ rows.forEach(function(r){ if(!CANDIDATES.some(c=>c.id===r.id)) CANDIDATES.push(r); }); }
+  if(entity === 'job_orders'){ rows.forEach(function(r){ if(!JOBS.some(j=>j.id===r.id)) JOBS.push(r); }); }
+  if(entity === 'companies'){  rows.forEach(function(r){ if(!COMPANIES.some(c=>c.id===r.id)) COMPANIES.push(r); }); }
+
+  function cell(r, col){
+    if(col.k === '_score'){
+      var a = assessmentFor(r);
+      if(!a || a.score == null) return '<span style="color:#cbd5e1;">\u2014</span>';
+      var cls = a.score>=75?'g':a.score>=55?'a':'r';
+      return '<span class="pill '+cls+'">'+a.score+'</span>';
+    }
+    if(col.k === '_filled'){
+      var placed = subsFor(r.id).filter(s=>s.status==='placed').length;
+      return placed + '/' + (r.openings||1);
+    }
+    if(col.k === '_orders'){
+      return jobsFor(r.id).filter(j=>['open','filling'].indexOf(j.status)>-1).length;
+    }
+    var v = r[col.k];
+    return col.fmt ? col.fmt(v) : esc(v == null ? '' : String(v));
+  }
+
+  function openFn(r){
+    if(entity === 'candidates') return "openCandidate(" + CANDIDATES.findIndex(x=>x.id===r.id) + ")";
+    if(entity === 'job_orders') return "openJob(" + JOBS.findIndex(x=>x.id===r.id) + ")";
+    return "openCompany(" + COMPANIES.findIndex(x=>x.id===r.id) + ")";
+  }
+
+  var start = TOTAL ? PAGE*PAGE_SIZE + 1 : 0;
+  var end = Math.min(TOTAL, (PAGE+1)*PAGE_SIZE);
+  var selCount = Object.keys(SELECTED).filter(k=>SELECTED[k]).length;
+
+  board.innerHTML =
+    '<div class="col" style="background:#fff;border:1px solid var(--mid);padding:0;">' +
+
+      (selCount ? '<div style="display:flex;align-items:center;gap:9px;padding:10px 13px;background:#e0f4fc;border-bottom:1px solid var(--mid);flex-wrap:wrap;">' +
+        '<strong style="font-size:.84rem;color:#003a52;">' + selCount + ' selected</strong>' +
+        bulkControls(entity) +
+        '<button class="btn" onclick="clearSelection()">Clear</button>' +
+      '</div>' : '') +
+
+      '<div style="overflow-x:auto;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:.85rem;white-space:nowrap;">' +
+        '<thead><tr>' +
+          '<th style="padding:9px 11px;border-bottom:1px solid var(--blue-lt);width:34px;">' +
+            '<input type="checkbox" onchange="selectAllRows(this.checked)"></th>' +
+          cols.map(function(c){
+            var active = SORT.col === c.k;
+            var arrow = active ? (SORT.dir === 'asc' ? ' \u2191' : ' \u2193') : '';
+            var click = c.sortable === false ? '' : ' onclick="sortBy(\''+c.k+'\')" style="cursor:pointer;"';
+            return '<th' + click + ' style="text-align:left;padding:9px 11px;font-size:.62rem;letter-spacing:1.2px;text-transform:uppercase;color:' +
+              (active?'#0077a8':'#94a3b8') + ';border-bottom:1px solid var(--blue-lt);' + (c.w?'min-width:'+c.w+';':'') + 'cursor:pointer;">' +
+              c.t + arrow + '</th>';
+          }).join('') +
+        '</tr></thead><tbody>' +
+        (rows.length ? rows.map(function(r){
+          return '<tr>' +
+            '<td style="padding:8px 11px;border-bottom:1px solid #f5f8fa;">' +
+              '<input type="checkbox" ' + (SELECTED[r.id]?'checked':'') + ' onchange="toggleRow(\''+r.id+'\',this.checked)"></td>' +
+            cols.map(function(c, ci){
+              return '<td onclick="' + openFn(r) + '" style="padding:8px 11px;border-bottom:1px solid #f5f8fa;cursor:pointer;' +
+                (ci===0?'font-weight:600;color:#003a52;':'color:#64748b;') + '">' + cell(r, c) + '</td>';
+            }).join('') +
+          '</tr>';
+        }).join('') : '<tr><td colspan="' + (cols.length+1) + '" style="padding:22px;text-align:center;color:#94a3b8;">No records match.</td></tr>') +
+      '</tbody></table></div>' +
+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border-top:1px solid var(--blue-lt);flex-wrap:wrap;">' +
+        '<span style="font-size:.78rem;color:#64748b;">' + (TOTAL ? start + '\u2013' + end + ' of ' + TOTAL : 'No records') + '</span>' +
+        '<div style="display:flex;gap:6px;align-items:center;">' +
+          '<select class="btn" onchange="setPageSize(this.value)" style="padding:6px 9px;">' +
+            [25,50,100,200].map(function(n){ return '<option value="'+n+'"'+(PAGE_SIZE===n?' selected':'')+'>'+n+' per page</option>'; }).join('') +
+          '</select>' +
+          '<button class="btn" onclick="goPage(-1)"' + (PAGE===0?' disabled':'') + '>&larr; Prev</button>' +
+          '<button class="btn" onclick="goPage(1)"' + (end>=TOTAL?' disabled':'') + '>Next &rarr;</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function bulkControls(entity){
+  if(entity === 'candidates'){
+    return '<select class="btn" onchange="bulkStage(this.value)" style="padding:6px 10px;">' +
+      '<option value="">Move to stage...</option>' +
+      CAND_STAGES.map(s=>'<option value="'+s.id+'">'+s.label+'</option>').join('') +
+      '</select>' +
+      '<select class="btn" onchange="bulkOwner(this.value)" style="padding:6px 10px;">' +
+      '<option value="">Assign to...</option>' +
+      TEAM.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('') +
+      '</select>';
+  }
+  if(entity === 'job_orders'){
+    return '<select class="btn" onchange="bulkStage(this.value)" style="padding:6px 10px;">' +
+      '<option value="">Set status...</option>' +
+      JOB_STAGES.map(s=>'<option value="'+s.id+'">'+s.label+'</option>').join('') +
+      '</select>';
+  }
+  return '';
+}
+
+function toggleRow(id, on){ SELECTED[id] = on; renderList(); }
+function selectAllRows(on){
+  var entity = entityForTab();
+  var pool = entity==='candidates'?CANDIDATES:entity==='job_orders'?JOBS:COMPANIES;
+  pool.slice(0, PAGE_SIZE).forEach(function(r){ SELECTED[r.id] = on; });
+  renderList();
+}
+function clearSelection(){ SELECTED = {}; renderList(); }
+
+async function bulkStage(v){
+  if(!v) return;
+  var ids = Object.keys(SELECTED).filter(k=>SELECTED[k]);
+  if(!ids.length) return;
+  var entity = entityForTab();
+  var patch = entity === 'candidates' ? { stage:v } : { status:v };
+  var r = await QLM.client().from(entity).update(patch).in('id', ids);
+  if(r.error){ alert(r.error.message); return; }
+  SELECTED = {};
+  await loadAll();
+}
+
+async function bulkOwner(v){
+  if(!v) return;
+  var ids = Object.keys(SELECTED).filter(k=>SELECTED[k]);
+  if(!ids.length) return;
+  var entity = entityForTab();
+  var col = entity === 'candidates' ? 'assigned_to' : 'owner_id';
+  var patch = {}; patch[col] = v;
+  var r = await QLM.client().from(entity).update(patch).in('id', ids);
+  if(r.error){ alert(r.error.message); return; }
+  SELECTED = {};
+  await loadAll();
+}
+
+function sortBy(col){
+  if(SORT.col === col) SORT.dir = SORT.dir === 'asc' ? 'desc' : 'asc';
+  else { SORT.col = col; SORT.dir = 'asc'; }
+  PAGE = 0; renderList();
+}
+function goPage(d){ PAGE = Math.max(0, PAGE + d); renderList(); }
+function setPageSize(n){ PAGE_SIZE = parseInt(n)||50; PAGE = 0; renderList(); }
+
+function setView(v){
+  VIEW = v;
+  document.getElementById('view-board').className = 'btn' + (v==='board'?' dark':'');
+  document.getElementById('view-list').className  = 'btn' + (v==='list'?' dark':'');
+  PAGE = 0;
+  render();
+}
+
+// ── Filter bar that adapts to the tab ──
+function renderFilterBar(){
+  var entity = entityForTab();
+  var el = document.getElementById('filterbar');
+  if(!el) return;
+  if(!entity){ el.innerHTML = ''; return; }
+
+  var stages = entity === 'candidates' ? CAND_STAGES
+             : entity === 'job_orders' ? JOB_STAGES : [];
+  el.innerHTML =
+    (stages.length ? '<select class="btn" onchange="setFilter(\'stage\',this.value)" style="padding:8px 12px;">' +
+      '<option value="">All stages</option>' +
+      stages.map(s=>'<option value="'+s.id+'"'+(FILTERS.stage===s.id?' selected':'')+'>'+s.label +
+        (COUNTS[entity] && COUNTS[entity][s.id] ? ' ('+COUNTS[entity][s.id]+')' : '') + '</option>').join('') +
+      '</select>' : '') +
+    '<button class="btn' + (FILTERS.mine?' dark':'') + '" onclick="setFilter(\'mine\',!' + FILTERS.mine + ')">My records</button>';
+}
+
+function setFilter(k, v){
+  FILTERS[k] = v;
+  PAGE = 0;
+  renderFilterBar();
+  render();
+}
+
+// ── Server-side global search ──
+var _searchTimer = null;
+function globalSearch(){
+  clearTimeout(_searchTimer);
+  var q = (document.getElementById('gsearch').value||'').trim();
+  var box = document.getElementById('gresults');
+  if(q.length < 2){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div style="padding:13px;color:#94a3b8;font-size:.84rem;">Searching...</div>';
+
+  _searchTimer = setTimeout(async function(){
+    try{
+      var res = await QLM.client().rpc('crm_search', { p_q:q, p_limit:25 });
+      if(res.error) throw new Error(res.error.message);
+      var hits = res.data || [];
+      if(!hits.length){
+        box.innerHTML = '<div style="padding:13px;color:#94a3b8;font-size:.84rem;">No matches for "' + esc(q) + '"</div>';
+        return;
+      }
+      var icon = { candidate:'\uD83D\uDC64', job_order:'\uD83D\uDCBC', company:'\uD83C\uDFE2', contact:'\uD83D\uDCC7' };
+      var label = { candidate:'Candidate', job_order:'Job Order', company:'Company', contact:'Contact' };
+      box.innerHTML = hits.map(function(h){
+        return '<div onclick="openFromSearch(\''+h.kind+'\',\''+h.id+'\')" style="display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid #f1f5f9;cursor:pointer;">' +
+          '<span style="font-size:1rem;">'+(icon[h.kind]||'\uD83D\uDCC4')+'</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:.86rem;font-weight:600;color:#003a52;">'+esc(h.title||'')+'</div>' +
+            '<div style="font-size:.72rem;color:#94a3b8;">'+esc(h.subtitle||'')+(h.extra?' \u00b7 '+esc(h.extra):'')+'</div>' +
+          '</div>' +
+          '<span style="font-size:.63rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#0077a8;">'+(label[h.kind]||'')+'</span>' +
+        '</div>';
+      }).join('');
+    }catch(e){
+      box.innerHTML = '<div style="padding:13px;color:#b91c1c;font-size:.84rem;">Search failed: ' + esc(e.message) + '</div>';
+    }
+  }, 260);
+}
+
+async function openFromSearch(kind, id){
+  closeSearch();
+  if(kind === 'candidate'){
+    var i = CANDIDATES.findIndex(c=>c.id===id);
+    if(i === -1){
+      var r = await QLM.client().from('candidates').select('*').eq('id', id).single();
+      if(r.data){ CANDIDATES.push(r.data); i = CANDIDATES.length - 1; }
+    }
+    if(i > -1) openCandidate(i);
+  } else if(kind === 'job_order'){
+    var j = JOBS.findIndex(x=>x.id===id);
+    if(j === -1){
+      var rj = await QLM.client().from('job_orders').select('*').eq('id', id).single();
+      if(rj.data){ JOBS.push(rj.data); j = JOBS.length - 1; }
+    }
+    if(j > -1) openJob(j);
+  } else if(kind === 'company' || kind === 'contact'){
+    var cid = id;
+    if(kind === 'contact'){
+      var rc = await QLM.client().from('contacts').select('company_id').eq('id', id).single();
+      cid = rc.data ? rc.data.company_id : null;
+    }
+    var ci = COMPANIES.findIndex(x=>x.id===cid);
+    if(ci === -1 && cid){
+      var rco = await QLM.client().from('companies').select('*').eq('id', cid).single();
+      if(rco.data){ COMPANIES.push(rco.data); ci = COMPANIES.length - 1; }
+    }
+    if(ci > -1) openCompany(ci);
+  }
+}
+
+async function loadCounts(){
+  try{
+    var r = await QLM.client().rpc('crm_stage_counts');
+    if(!r.error && r.data) COUNTS = r.data;
+  }catch(e){}
+}
+
 // ═══════════ LOAD ═══════════
 async function loadAll(){
   document.getElementById('board').innerHTML = '<div>' + Array(4).fill('<div class="shim"></div>').join('') + '</div>';
   if(!window.QLM || !QLM.client()) return;
   try{
     var res = await Promise.all([
-      QLM.list('candidates'), QLM.list('leads'), QLM.list('assessments'),
+      QLM.list('candidates', null, {limit:500}), QLM.list('leads', null, {limit:500}), QLM.list('assessments', null, {limit:500}),
       QLM.list('market_reports', null, {limit:60}),
       QLM.client().from('profiles').select('id, full_name, email').then(function(r){ return r.data || []; })
     ]);
@@ -1082,6 +1390,7 @@ async function loadAll(){
       TEAM.map(function(t){ return '<option value="'+t.id+'">'+esc(t.name)+'</option>'; }).join('') +
       '<option value="none">Unassigned</option>';
     await loadAts();
+    await loadCounts();
     document.getElementById('src-note').textContent =
       '\u2601 ' + CANDIDATES.length + ' candidates \u00b7 ' + JOBS.length + ' job orders \u00b7 ' +
       COMPANIES.length + ' companies \u00b7 ' + PLACEMENTS.filter(function(p){return p.status==='active';}).length +
@@ -1127,6 +1436,19 @@ function toggleStale(){
 function render(){
   var q = (document.getElementById('search').value||'').toLowerCase().trim();
   var owner = document.getElementById('owner-filter').value;
+  renderFilterBar();
+  var listable = ['candidates','jobs','companies'].indexOf(TAB) > -1;
+
+  // Past a few hundred records a board is unusable — switch automatically
+  var vol = TAB === 'candidates' ? CANDIDATES.length : TAB === 'jobs' ? JOBS.length : COMPANIES.length;
+  if(listable && VIEW === 'board' && vol > 300){
+    VIEW = 'list';
+    document.getElementById('view-board').className = 'btn';
+    document.getElementById('view-list').className = 'btn dark';
+  }
+
+  if(listable && VIEW === 'list'){ FILTERS.q = q; renderList(); return; }
+
   if(TAB === 'today')           renderToday();
   else if(TAB === 'jobs')       renderJobs(q, owner);
   else if(TAB === 'candidates') renderCandidates(q, owner);
@@ -1169,7 +1491,9 @@ function renderCandidates(q, owner){
     var items = rows.filter(function(c){ return (c.stage || 'applied') === st.id; });
     return '<div class="col">' +
       '<div class="col-h"><span class="col-t">' + st.label + '</span><span class="col-n">' + items.length + '</span></div>' +
-      (items.length ? items.map(candCard).join('') : '<div class="col-empty">' + st.hint + '</div>') +
+      (items.length ? items.slice(0,25).map(candCard).join('') +
+        (items.length > 25 ? '<div class="col-empty">+ ' + (items.length-25) + ' more \u2014 <a onclick="setView(\'list\')" style="color:#0099d8;cursor:pointer;font-weight:600;">open list view</a></div>' : '')
+        : '<div class="col-empty">' + st.hint + '</div>') +
     '</div>';
   }).join('');
 }
