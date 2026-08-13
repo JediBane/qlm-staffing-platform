@@ -194,7 +194,7 @@
     var admin = false;
     try { admin = await isAdmin(); } catch(e) {}
     if(admin) return;
-    var sel = '.admin-only, [data-admin-only], a[href="/qlm-dashboard.html"], a[href="qlm-dashboard.html"]';
+    var sel = '.admin-only, [data-admin-only], a[href="/qlm-dashboard.html"], a[href="qlm-dashboard.html"], a[href="/qlm-crm.html"], a[href="qlm-crm.html"]';
     document.querySelectorAll(sel).forEach(function(el){ el.style.display = 'none'; });
   }
 
@@ -241,6 +241,7 @@
     { href:'/qlm-trades-assessment.html',  icon:'\u26A1',       label:'Assessment',     group:'Source & Screen' },
     { href:'/talent-card.html',            icon:'\uD83D\uDCC4', label:'Talent Card',    group:'Source & Screen' },
     { href:'/qlm-intake.html',             icon:'\uD83D\uDCCB', label:'Intake Form',    group:'Source & Screen' },
+    { href:'/qlm-crm.html',                icon:'\uD83D\uDCCA', label:'Pipeline (ATS/CRM)', group:'Measure', admin:true },
     { href:'/qlm-dashboard.html',          icon:'\uD83D\uDCC8', label:'Admin Dashboard',group:'Measure', admin:true }
   ];
 
