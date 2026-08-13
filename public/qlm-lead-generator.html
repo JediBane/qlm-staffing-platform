@@ -293,20 +293,110 @@ header{gap:12px;}
       </div>
       <div class="fl">
         <label>Trades to Search</label>
-        <div class="trade-tags">
-          <span class="ttag sel" onclick="toggleTrade(this,'Electrician')">Electrician</span>
-          <span class="ttag sel" onclick="toggleTrade(this,'Plumber')">Plumber</span>
-          <span class="ttag sel" onclick="toggleTrade(this,'Welder')">Welder</span>
-          <span class="ttag sel" onclick="toggleTrade(this,'HVAC')">HVAC</span>
-          <span class="ttag" onclick="toggleTrade(this,'Carpenter')">Carpenter</span>
-          <span class="ttag" onclick="toggleTrade(this,'Concrete')">Concrete</span>
-          <span class="ttag" onclick="toggleTrade(this,'Equipment Operator')">Equipment Op.</span>
-          <span class="ttag" onclick="toggleTrade(this,'Pipefitter')">Pipefitter</span>
-          <span class="ttag" onclick="toggleTrade(this,'Ironworker')">Ironworker</span>
-          <span class="ttag" onclick="toggleTrade(this,'Painter')">Painter</span>
-          <span class="ttag" onclick="toggleTrade(this,'Solar Installer')">Solar</span>
-          <span class="ttag" onclick="toggleTrade(this,'Foreman')">Foreman</span>
+
+        <div style="display:flex;gap:6px;margin-bottom:7px;">
+          <select id="trade-picker" onchange="addPickedTrade()" style="flex:1;min-width:0;">
+            <option value="">Add a trade from the list...</option>
+            <optgroup label="Electrical">
+              <option>Electrician</option><option>Commercial Electrician</option><option>Industrial Electrician</option>
+              <option>Residential Electrician</option><option>Journeyman Electrician</option><option>Master Electrician</option>
+              <option>Electrical Helper</option><option>Low Voltage Technician</option><option>Fire Alarm Technician</option>
+              <option>Lineman</option><option>Substation Technician</option><option>Electrical Foreman</option>
+            </optgroup>
+            <optgroup label="Mechanical / HVAC">
+              <option>HVAC</option><option>HVAC Technician</option><option>HVAC Installer</option>
+              <option>Refrigeration Technician</option><option>Chiller Technician</option><option>Controls Technician</option>
+              <option>Sheet Metal Worker</option><option>Ductwork Installer</option><option>Boilermaker</option>
+              <option>Millwright</option><option>Mechanical Foreman</option>
+            </optgroup>
+            <optgroup label="Plumbing / Piping">
+              <option>Plumber</option><option>Commercial Plumber</option><option>Journeyman Plumber</option>
+              <option>Plumbing Helper</option><option>Pipefitter</option><option>Industrial Pipefitter</option>
+              <option>Steamfitter</option><option>Sprinkler Fitter</option><option>Process Piping Installer</option>
+              <option>Gas Fitter</option><option>Pipe Foreman</option>
+            </optgroup>
+            <optgroup label="Welding">
+              <option>Welder</option><option>Structural Welder</option><option>Pipe Welder</option>
+              <option>TIG Welder</option><option>MIG Welder</option><option>Stick Welder</option>
+              <option>Flux Core Welder</option><option>Combo Welder</option><option>Welder Fabricator</option>
+              <option>Welding Inspector</option><option>Fitter Welder</option>
+            </optgroup>
+            <optgroup label="Structural / Steel">
+              <option>Ironworker</option><option>Structural Ironworker</option><option>Reinforcing Ironworker</option>
+              <option>Rodbuster</option><option>Steel Erector</option><option>Rigger</option>
+              <option>Metal Building Erector</option><option>Rebar Installer</option>
+            </optgroup>
+            <optgroup label="Concrete / Masonry">
+              <option>Concrete Finisher</option><option>Concrete Laborer</option><option>Form Carpenter</option>
+              <option>Formwork Installer</option><option>Mason</option><option>Bricklayer</option>
+              <option>Block Layer</option><option>Cement Mason</option><option>Tilt Wall Crew</option>
+              <option>Concrete Pump Operator</option><option>Grout Technician</option>
+            </optgroup>
+            <optgroup label="Carpentry / Framing">
+              <option>Carpenter</option><option>Commercial Carpenter</option><option>Rough Carpenter</option>
+              <option>Finish Carpenter</option><option>Framer</option><option>Drywall Installer</option>
+              <option>Drywall Finisher</option><option>Metal Stud Framer</option><option>Acoustic Ceiling Installer</option>
+              <option>Millwork Installer</option><option>Door Hardware Installer</option>
+            </optgroup>
+            <optgroup label="Heavy Equipment / Civil">
+              <option>Equipment Operator</option><option>Excavator Operator</option><option>Dozer Operator</option>
+              <option>Grader Operator</option><option>Loader Operator</option><option>Backhoe Operator</option>
+              <option>Skid Steer Operator</option><option>Crane Operator</option><option>Boom Lift Operator</option>
+              <option>Forklift Operator</option><option>Telehandler Operator</option><option>Paving Crew</option>
+              <option>Asphalt Raker</option><option>Underground Utility Installer</option><option>Pipe Layer</option>
+              <option>Grade Checker</option><option>Surveyor</option><option>Dump Truck Driver</option>
+              <option>CDL Driver</option>
+            </optgroup>
+            <optgroup label="Solar / Energy">
+              <option>Solar Installer</option><option>Solar Panel Installer</option><option>Solar Electrician</option>
+              <option>Torque Technician</option><option>Tracker Installer</option><option>Pile Driver Operator</option>
+              <option>Battery Storage Technician</option><option>Wind Technician</option>
+            </optgroup>
+            <optgroup label="Industrial / Plant">
+              <option>Instrumentation Technician</option><option>Instrument Fitter</option><option>E&amp;I Technician</option>
+              <option>Industrial Mechanic</option><option>Maintenance Technician</option><option>Turnaround Crew</option>
+              <option>Scaffold Builder</option><option>Insulator</option><option>Refractory Worker</option>
+              <option>Industrial Cleaner</option><option>Hydroblaster</option>
+            </optgroup>
+            <optgroup label="Marine / Shipyard">
+              <option>Shipfitter</option><option>Marine Welder</option><option>Marine Electrician</option>
+              <option>Marine Pipefitter</option><option>Shipyard Painter</option><option>Blaster</option>
+              <option>Marine Carpenter</option><option>Rigging Loft</option>
+            </optgroup>
+            <optgroup label="Finishes / Coatings">
+              <option>Painter</option><option>Industrial Painter</option><option>Sandblaster</option>
+              <option>Coatings Applicator</option><option>Flooring Installer</option><option>Tile Setter</option>
+              <option>Roofer</option><option>Waterproofing Technician</option><option>Glazier</option>
+              <option>Insulation Installer</option><option>Siding Installer</option>
+            </optgroup>
+            <optgroup label="Supervision / Field Leadership">
+              <option>Foreman</option><option>General Foreman</option><option>Superintendent</option>
+              <option>Assistant Superintendent</option><option>Project Manager</option><option>Field Engineer</option>
+              <option>Safety Manager</option><option>Safety Technician</option><option>QA/QC Inspector</option>
+              <option>Estimator</option><option>Scheduler</option>
+            </optgroup>
+            <optgroup label="General / Support">
+              <option>General Labor</option><option>Skilled Labor</option><option>Construction Helper</option>
+              <option>Apprentice</option><option>Material Handler</option><option>Warehouse Associate</option>
+              <option>Traffic Control</option><option>Flagger</option><option>Demolition Laborer</option>
+              <option>Site Cleanup Crew</option><option>Yard Hand</option>
+            </optgroup>
+            <optgroup label="Specialty">
+              <option>Display / Electronics Technician</option><option>Low Voltage Cabling</option>
+              <option>Fiber Optic Technician</option><option>Data Center Technician</option>
+              <option>Elevator Mechanic</option><option>Locksmith</option><option>Fence Installer</option>
+              <option>Landscape Crew</option><option>Irrigation Technician</option><option>Pool Technician</option>
+            </optgroup>
+          </select>
         </div>
+
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="trade-custom" placeholder="Or type any trade and press Enter" style="flex:1;min-width:0;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTrade();}">
+          <button type="button" onclick="addCustomTrade()" style="border:1.5px solid #b8dff0;background:#fff;color:#0077a8;border-radius:7px;padding:0 13px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;">Add</button>
+        </div>
+
+        <div class="trade-tags" id="trade-tags"></div>
+        <div style="font-size:.7rem;color:#94a3b8;margin-top:5px;" id="trade-count"></div>
       </div>
       <div class="fl"><label>Position Type</label>
         <select id="s-proj">
@@ -518,12 +608,52 @@ function getServerUrl(){ return ''; }
 function toggleSettings(){}
 function saveServerUrl(){}
 
-// ═══════ TRADE TAGS ═══════
+// ═══════ TRADE SELECTION ═══════
+function renderTradeTags(){
+  var wrap = document.getElementById('trade-tags');
+  if(!wrap) return;
+  wrap.innerHTML = selectedTrades.map(function(t){
+    return '<span class="ttag sel" onclick="removeTrade(\'' + t.replace(/'/g,"") + '\')" title="Remove">' +
+      t + ' <span style="opacity:.7;">&times;</span></span>';
+  }).join('') || '<span style="font-size:.74rem;color:#94a3b8;">No trades selected yet</span>';
+
+  var c = document.getElementById('trade-count');
+  if(c) c.textContent = selectedTrades.length
+    ? selectedTrades.length + ' selected \u00b7 tap a tag to remove'
+    : 'Pick from the list or type your own';
+}
+
+function addTrade(t){
+  t = (t||'').trim();
+  if(!t) return;
+  var exists = selectedTrades.some(function(x){ return x.toLowerCase() === t.toLowerCase(); });
+  if(!exists) selectedTrades.push(t);
+  renderTradeTags();
+}
+
+function removeTrade(t){
+  selectedTrades = selectedTrades.filter(function(x){ return x.toLowerCase() !== (t||'').toLowerCase(); });
+  renderTradeTags();
+}
+
+function addPickedTrade(){
+  var sel = document.getElementById('trade-picker');
+  if(!sel || !sel.value) return;
+  addTrade(sel.value);
+  sel.value = '';
+}
+
+function addCustomTrade(){
+  var inp = document.getElementById('trade-custom');
+  if(!inp) return;
+  inp.value.split(',').forEach(function(t){ addTrade(t); });
+  inp.value = '';
+}
+
+// Legacy chips call this — keep it working
 function toggleTrade(el, t){
-  el.classList.toggle('sel');
-  selectedTrades = el.classList.contains('sel')
-    ? [...selectedTrades, t]
-    : selectedTrades.filter(function(x){ return x!==t; });
+  if(selectedTrades.some(function(x){ return x.toLowerCase() === t.toLowerCase(); })) removeTrade(t);
+  else addTrade(t);
 }
 
 // ═══════ TABS ═══════
@@ -765,7 +895,7 @@ function nextAngle(){
   return pick;
 }
 
-function loadExclude(){ setTimeout(updateSeenCount,300); excludeList = JSON.parse(localStorage.getItem('qlm_exclude')||'[]'); renderExcludeTags(); }
+function loadExclude(){ setTimeout(updateSeenCount,300); setTimeout(renderTradeTags,100); excludeList = JSON.parse(localStorage.getItem('qlm_exclude')||'[]'); renderExcludeTags(); }
 function addExclude(){
   var v = document.getElementById('ex-input').value.trim();
   if(!v || excludeList.indexOf(v)!==-1) return;
@@ -803,11 +933,12 @@ function loadSavedSearch(s){
   document.getElementById('s-size').value = s.size || '';
   document.getElementById('s-count').value = s.count || '15';
   selectedTrades = s.trades.slice();
+  renderTradeTags();
   document.querySelectorAll('.ttag').forEach(function(el){
     var t = el.textContent.trim();
     var fullName = {'Equipment Op.':'Equipment Operator'};
     var name = fullName[t] || t;
-    el.classList.toggle('sel', selectedTrades.indexOf(name)!==-1);
+    if(el && el.classList) el.classList.toggle('sel', selectedTrades.indexOf(name)!==-1);
   });
 }
 function renderSavedSearches(){
