@@ -514,11 +514,15 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 // ── GENERATE ──
 function generateReport(){
-  var wageBasis = (document.getElementById('r-wage-basis')||{}).value || '';
-  var perDiem   = (document.getElementById('r-perdiem')||{}).value || '';
-  var contextNote =
-    (wageBasis ? 'WAGE BASIS: ' + wageBasis + '. Report the applicable prevailing or scale wage for this trade and classification, not just the open-market rate, and note that certified payroll applies.\n' : '') +
-    (perDiem ? 'TRAVEL: ' + perDiem + '. Factor this into the pay package and state it separately from the base hourly rate.\n' : '');
+  clearTimeout(window._genFailsafe);
+  window._genFailsafe = setTimeout(function(){
+    var b = document.getElementById('gen-btn');
+    if(b && b.disabled){
+      b.disabled = false;
+      try{ showSt('genStatus','error','That took too long. Try again, or switch to Full Market.'); }catch(e){}
+    }
+  }, 60000);
+
 
   var market=document.getElementById('r-market').value.trim()||'Tampa, FL';
   var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
@@ -539,7 +543,7 @@ function generateMarketReport(market,today){
   var trades=selectedTrades.join(', ');
   var markup=document.getElementById('r-markup').value;
 
-  var prompt = contextNote +'You are a construction staffing industry analyst helping QLM (Quality Labor Management) understand the '+market+' labor market.\n\n'+
+  var prompt = buildContextNote() + 'You are a construction staffing industry analyst helping QLM (Quality Labor Management) understand the '+market+' labor market.\n\n'+
     'Search the web for current '+market+' construction labor data: job postings, wages, staffing agency rates, and hiring trends for '+today+'.\n\n'+
     'Return ONLY a raw JSON object (no markdown). Structure:\n'+
     '{\n'+
@@ -583,6 +587,7 @@ function generateMarketReport(market,today){
       saveReportToCloud('Market \u00b7 ' + market, market, '', '', null, null, data,
         (document.getElementById('r-company')||{}).value || '');
     }catch(e){}
+    clearTimeout(window._genFailsafe);
     clearSt('genStatus');
   })
   .catch(function(e){
@@ -601,7 +606,7 @@ function generateDrillReport(market,today){
   var sector=document.getElementById('r-drill-sector').value||'commercial construction';
 
   var levelStr = level && level !== 'Any level' ? level : 'Journeyman';
-  var prompt=contextNote+'You are a construction staffing industry analyst helping QLM (Quality Labor Management) sell temp and temp-to-hire staffing services to clients in '+market+'.\n\n'+
+  var prompt = buildContextNote() + 'You are a construction staffing industry analyst helping QLM (Quality Labor Management) sell temp and temp-to-hire staffing services to clients in '+market+'.\n\n'+
     'QLM is a W2 staffing company. Workers are on QLM payroll. QLM covers ALL employer costs: FICA, FUTA, SUTA, workers comp insurance, general liability, benefits admin, and HR. Clients pay one all-inclusive bill rate with zero employer liability.\n\n'+
     'MARKUP RULES — THESE ARE ABSOLUTE CONSTRAINTS:\n'+
     '- Construction staffing standard markup range: 40-55% above pay rate\n'+
@@ -739,6 +744,7 @@ function generateDrillReport(market,today){
       saveReportToCloud(trade + ' \u00b7 ' + market, market, trade, level, payRate, billRate, data,
         (document.getElementById('r-company')||{}).value || '');
     }catch(e){}
+    clearTimeout(window._genFailsafe);
     clearSt('genStatus');
   })
   .catch(function(e){
@@ -1222,6 +1228,13 @@ function billForMargin(pay, targetMarginPct, trade){
 function payForBudget(bill, targetMarginPct, trade){
   var cost = bill * (1 - (targetMarginPct/100));
   return cost / (1 + burdenPct(trade));
+}
+
+function buildContextNote(){
+  var wageBasis = (document.getElementById('r-wage-basis')||{}).value || '';
+  var perDiem   = (document.getElementById('r-perdiem')||{}).value || '';
+  return (wageBasis ? 'WAGE BASIS: ' + wageBasis + '. Report the applicable prevailing or scale wage for this trade and classification, not just the open market rate, and note that certified payroll applies.\n' : '') +
+         (perDiem ? 'TRAVEL: ' + perDiem + '. Factor this into the pay package and state it separately from the base hourly rate.\n' : '');
 }
 
 function runDealCalc(){
