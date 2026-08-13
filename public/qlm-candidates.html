@@ -310,7 +310,8 @@ function render(rows){
       (!c.phone && !c.email ? '<div class="c-line" style="color:#cbd5e1;">&#9993;&#65039; No contact info on file</div>' : '') +
       ((c.certs||[]).length ? '<div class="c-line">&#127894; '+esc((c.certs||[]).slice(0,3).join(', '))+'</div>' : '') +
       '<div class="c-foot"><span class="c-date">'+fmtDate(c.created_at)+'</span>'+scoreChip+'</div>' +
-      '<div style="display:flex;gap:6px;margin-top:9px;" onclick="event.stopPropagation()">' +
+      '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;" onclick="event.stopPropagation()">' +
+        (c.recruiter_brief ? '<button onclick="viewProfileReport('+idx+')" style="flex:1 1 100%;background:#fff;color:#0077a8;border:1.5px solid #b8dff0;border-radius:7px;padding:7px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128100; Profile Report</button>' : '') +
         '<button onclick="marketCandidate('+idx+')" style="flex:1;background:#003a52;color:#fff;border:none;border-radius:7px;padding:7px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128140; Market</button>' +
         '<button onclick="' + ((c.source_tool==='talent_card' || (c.skills||[]).length) ? 'viewTalentCard('+idx+')' : 'createTalentCard('+idx+')') + '" style="flex:1;background:#fff;color:#0077a8;border:1.5px solid #b8dff0;border-radius:7px;padding:7px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;">' + ((c.source_tool==='talent_card' || (c.skills||[]).length) ? '&#128196; Card' : '&#10133; Card') + '</button>' +
       '</div>' +
@@ -372,7 +373,8 @@ function openCandidate(i){
   } else {
     acts.push('<button class="m-btn" onclick="createTalentCard('+i+')">&#10133; Create Talent Card</button>');
   }
-  if(a) acts.push('<button class="m-btn" onclick="viewCandidateReport('+i+')">&#128203; View Full Report</button>');
+  if(c.recruiter_brief) acts.push('<button class="m-btn" onclick="viewProfileReport('+i+')">&#128100; Profile Report</button>');
+  if(a) acts.push('<button class="m-btn" onclick="viewCandidateReport('+i+')">&#9889; Assessment Report</button>');
   if(c.phone) acts.push('<a class="m-btn" href="tel:'+esc(c.phone)+'">&#128222; Call</a>');
   if(c.phone) acts.push('<a class="m-btn" href="sms:'+esc(c.phone)+'">&#128241; Text</a>');
   if(c.email) acts.push('<a class="m-btn" href="mailto:'+esc(c.email)+'">&#9993;&#65039; Email</a>');
@@ -613,6 +615,93 @@ function assessmentLinkFor(c){
   // Only preselect a trade when it maps to a real assessment
   if(c.trade && TRADE_LABEL[c.trade]) p.set('trade', c.trade);
   return '/qlm-trades-assessment.html?' + p.toString();
+}
+
+
+// ═══════════════════════════════════════════════════
+//  TEAM MEMBER PROFILE REPORT (recruiter only)
+// ═══════════════════════════════════════════════════
+function viewProfileReport(i){
+  var c = CANDIDATES[i];
+  if(!c) return;
+  if(!c.recruiter_brief){
+    alert('No profile report stored for this candidate. Reports are generated when someone completes the intake application.');
+    return;
+  }
+  var e = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+
+  var raw = c.recruiter_brief;
+  var known = ['RECRUITER BRIEF','INTERVIEW QUESTIONS','FORMATTED RESUME'];
+  var sections = [];
+  known.forEach(function(title, idx){
+    var start = raw.indexOf(title);
+    if(start === -1) return;
+    var end = raw.length;
+    for(var j = idx+1; j < known.length; j++){
+      var nx = raw.indexOf(known[j]);
+      if(nx > start){ end = nx; break; }
+    }
+    var body = raw.slice(start + title.length, end).replace(/^[\s\-]{2,}/,'').replace(/[\s\-]{2,}$/,'').trim();
+    if(body) sections.push({ title: title, body: body });
+  });
+  if(!sections.length) sections.push({ title:'Profile Report', body: raw });
+
+  var icons = { 'RECRUITER BRIEF':'\uD83D\uDCCB', 'INTERVIEW QUESTIONS':'\u2753', 'FORMATTED RESUME':'\uD83D\uDCC4' };
+  var nice  = { 'RECRUITER BRIEF':'Recruiter Brief', 'INTERVIEW QUESTIONS':'Suggested Interview Questions', 'FORMATTED RESUME':'Formatted Resume' };
+
+  var html =
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Profile \u2014 ' + e(c.full_name||'') + '</title>' +
+'<style>' +
+'*{box-sizing:border-box;margin:0;padding:0;}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:26px 16px;line-height:1.7;}' +
+'.pg{max-width:800px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,58,82,.14);}' +
+'.hd{background:#003a52;padding:26px 32px;}' +
+'.badge{display:inline-block;background:#0099d8;color:#fff;font-weight:700;font-size:.7rem;letter-spacing:3px;padding:5px 13px;border-radius:5px;}' +
+'.hd h1{color:#fff;font-size:1.5rem;font-weight:700;margin-top:13px;}' +
+'.hd .sub{color:#b8dff0;font-size:.86rem;margin-top:5px;}' +
+'.hd .conf{color:#4a7a95;font-size:.7rem;letter-spacing:1.5px;text-transform:uppercase;margin-top:9px;}' +
+'.bd{padding:26px 32px;}' +
+'.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:22px;}' +
+'.m{background:#e0f4fc;border:1px solid #b8dff0;border-radius:9px;padding:11px 13px;}' +
+'.m .v{font-size:.9rem;font-weight:700;color:#003a52;}' +
+'.m .l{font-size:.61rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#0077a8;margin-top:3px;}' +
+'.sec{font-size:.64rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#0077a8;margin:24px 0 11px;padding-bottom:7px;border-bottom:1px solid #e0f4fc;}' +
+'pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;font-size:.9rem;line-height:1.85;color:#2a4a5a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:15px 17px;}' +
+'.ft{background:#003a52;padding:16px 32px;text-align:center;}' +
+'.ft .s{color:#0099d8;font-size:.66rem;font-weight:700;letter-spacing:2.5px;}' +
+'.ft .i{color:#b8dff0;font-size:.76rem;margin-top:5px;}' +
+'.tools{max-width:800px;margin:0 auto 13px;display:flex;gap:8px;justify-content:flex-end;}' +
+'.tools button{background:#003a52;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;}' +
+'.tools button.alt{background:#fff;color:#0077a8;border:1.5px solid #b8dff0;}' +
+'@media print{body{background:#fff;padding:0;}.tools{display:none;}.pg{box-shadow:none;border-radius:0;}' +
+'.hd,.ft,.m{-webkit-print-color-adjust:exact;print-color-adjust:exact;}pre{break-inside:avoid;}}' +
+'</style></head><body>' +
+'<div class="tools"><button class="alt" onclick="window.print()">&#128438; Print / PDF</button><button onclick="window.close()">Close</button></div>' +
+'<div class="pg">' +
+  '<div class="hd">' +
+    '<div class="badge">QLM</div>' +
+    '<h1>' + e(c.full_name||'Candidate') + '</h1>' +
+    '<div class="sub">' + e(prettyTrade(c.title || c.trade)) + (c.city ? ' \u00b7 ' + e(c.city) : '') + '</div>' +
+    '<div class="conf">Internal profile report \u00b7 not for client distribution</div>' +
+  '</div>' +
+  '<div class="bd">' +
+    '<div class="meta">' +
+      (c.phone ? '<div class="m"><div class="v">' + e(c.phone) + '</div><div class="l">Phone</div></div>' : '') +
+      (c.email ? '<div class="m"><div class="v" style="font-size:.8rem;word-break:break-all;">' + e(c.email) + '</div><div class="l">Email</div></div>' : '') +
+      (c.experience ? '<div class="m"><div class="v">' + e(c.experience) + '</div><div class="l">Experience</div></div>' : '') +
+      (c.availability ? '<div class="m"><div class="v">' + e(c.availability) + '</div><div class="l">Availability</div></div>' : '') +
+    '</div>' +
+    sections.map(function(s){
+      return '<div class="sec">' + (icons[s.title]||'') + ' ' + (nice[s.title] || s.title) + '</div><pre>' + e(s.body) + '</pre>';
+    }).join('') +
+  '</div>' +
+  '<div class="ft"><div class="s">SAFETY &middot; PRODUCTIVITY &middot; QUALITY</div>' +
+  '<div class="i">Quality Labor Management &middot; myqlm.com &middot; 855-756-9675</div></div>' +
+'</div></body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 function candidateToParams(c){
