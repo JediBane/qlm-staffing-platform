@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLM | Job Description Generator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--blue:#0099d8;--blue-md:#0077a8;--blue-dk:#005a7e;--blue-lt:#e0f4fc;--mid:#b8dff0;--navy:#003a52;--gray:#f4f7fb;--text:#2a4a5a;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--gray);min-height:100vh;color:var(--text);}
+header{background:var(--navy);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 2px 12px rgba(0,0,0,.3);gap:12px;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-badge{background:var(--blue);color:#fff;font-weight:700;font-size:.85rem;letter-spacing:2px;padding:5px 11px;border-radius:4px;}
+.logo-text{color:var(--mid);font-size:.78rem;letter-spacing:1px;white-space:nowrap;}
+.tool-nav{display:flex;align-items:center;gap:6px;}
+@media(max-width:900px){.logo-text{display:none;}}
+
+.hero{background:var(--navy);padding:26px 20px 30px;}
+.hero-in{max-width:1200px;margin:0 auto;}
+.hero h1{color:#fff;font-size:1.7rem;font-weight:700;}
+.hero h1 span{color:var(--blue);}
+.hero p{color:var(--mid);font-size:.9rem;margin-top:7px;max-width:640px;line-height:1.65;}
+
+.main{max-width:1200px;margin:0 auto;padding:22px 20px 70px;display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start;}
+@media(max-width:900px){.main{grid-template-columns:1fr;}}
+
+.pcard{background:#fff;border:1px solid var(--mid);border-radius:12px;border-top:3px solid var(--blue);padding:17px;margin-bottom:14px;}
+.pcard-title{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);margin-bottom:13px;}
+.fl{margin-bottom:12px;}
+.fl label{display:block;font-size:.63rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:5px;}
+.fl input,.fl select,.fl textarea{width:100%;border:1px solid var(--mid);border-radius:8px;padding:9px 12px;font-size:.87rem;font-family:inherit;outline:none;background:#fff;}
+.fl input:focus,.fl select:focus,.fl textarea:focus{border-color:var(--blue);}
+.fl textarea{min-height:70px;resize:vertical;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.btn-g{width:100%;background:var(--navy);color:#fff;border:none;border-radius:9px;padding:12px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.4px;}
+.btn-g:hover{background:var(--blue-dk);}
+.btn-g:disabled{opacity:.55;cursor:not-allowed;}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{padding:9px 17px;border-radius:9px;font-size:.82rem;font-weight:600;border:1.5px solid var(--mid);background:#fff;color:#64748b;cursor:pointer;font-family:inherit;}
+.tab.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+.out{background:#fff;border:1px solid var(--mid);border-radius:12px;padding:20px 22px;min-height:340px;}
+.out-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--blue-lt);}
+.out-t{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue-md);}
+.btn{background:#fff;border:1.5px solid var(--mid);color:var(--blue-md);border-radius:8px;padding:7px 13px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn:hover{border-color:var(--blue);background:var(--blue-lt);}
+.btn.dark{background:var(--navy);border-color:var(--navy);color:#fff;}
+pre.body{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;font-size:.9rem;line-height:1.85;color:var(--text);}
+.sms{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:15px 17px;font-size:.92rem;line-height:1.75;white-space:pre-wrap;}
+.count{font-size:.72rem;color:#94a3b8;margin-top:7px;}
+.count.over{color:#b91c1c;font-weight:600;}
+.empty{text-align:center;padding:56px 20px;color:#94a3b8;}
+.empty-icon{font-size:2.4rem;margin-bottom:12px;}
+.status{padding:10px 13px;border-radius:9px;font-size:.85rem;margin-bottom:12px;display:none;line-height:1.6;}
+.status.show{display:block;}
+.status.load{background:var(--blue-lt);border:1px solid var(--mid);color:var(--blue-md);}
+.status.err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;}
+.status.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;}
+footer{background:var(--navy);color:rgba(255,255,255,.35);text-align:center;padding:13px;font-size:.7rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-badge">QLM</div><div class="logo-text">Quality Labor Management</div></div>
+  <div class="tool-nav"><span id="qlm-auth" style="display:inline-flex;align-items:center;margin-right:6px;"></span></div>
+</header>
+
+<div class="hero"><div class="hero-in">
+  <h1>Job Description <span>Generator</span></h1>
+  <p>Start from a proven description or build your own. Produces a full posting for job boards and a short version you can text to candidates &mdash; both QLM branded.</p>
+</div></div>
+
+<div class="main">
+  <div>
+    <div class="pcard">
+      <div class="pcard-title">&#128203; Start From</div>
+      <div class="fl">
+        <label>Preset Description</label>
+        <select id="preset" onchange="applyPreset()">
+          <option value="">Build my own from scratch</option>
+        </select>
+      </div>
+      <div id="preset-note" style="font-size:.75rem;color:#94a3b8;line-height:1.6;"></div>
+    </div>
+
+    <div class="pcard">
+      <div class="pcard-title">&#9881;&#65039; Job Details</div>
+      <div class="fl"><label>Job Title *</label><input id="f-title" placeholder="e.g. Journeyman Electrician"></div>
+      <div class="row2">
+        <div class="fl"><label>Level</label>
+          <select id="f-level">
+            <option value="">Any level</option>
+            <option>Helper / Apprentice</option><option>Journeyman</option>
+            <option>Senior / Master</option><option>Foreman / Lead</option><option>Superintendent</option>
+          </select>
+        </div>
+        <div class="fl"><label>Openings</label><input type="number" id="f-openings" value="1"></div>
+      </div>
+      <div class="fl"><label>Location *</label><input id="f-location" placeholder="e.g. Melbourne, FL"></div>
+      <div class="row2">
+        <div class="fl"><label>Pay Rate</label><input id="f-pay" placeholder="e.g. $28-34/hr"></div>
+        <div class="fl"><label>Schedule</label><input id="f-schedule" placeholder="e.g. Mon-Fri, 6a-4:30p"></div>
+      </div>
+      <div class="row2">
+        <div class="fl"><label>Duration</label><input id="f-duration" placeholder="e.g. 6 months"></div>
+        <div class="fl"><label>Start Date</label><input id="f-start" placeholder="e.g. ASAP"></div>
+      </div>
+      <div class="fl"><label>Project Type</label>
+        <select id="f-project">
+          <option value="">Not specified</option>
+          <option>Commercial Construction</option><option>Industrial / Manufacturing</option>
+          <option>Data Center / Mission Critical</option><option>Utility Solar</option>
+          <option>Marine / Shipyard</option><option>Civil / Heavy Highway</option>
+          <option>Healthcare / Institutional</option><option>Oil and Gas / Petrochemical</option>
+        </select>
+      </div>
+      <div class="fl"><label>Required Certifications</label><input id="f-certs" placeholder="e.g. OSHA 10, TWIC, valid DL"></div>
+      <div class="fl"><label>Must-Have Experience</label><textarea id="f-must" placeholder="e.g. 3+ years commercial conduit bending, able to read blueprints"></textarea></div>
+      <div class="fl"><label>Anything Else</label><textarea id="f-extra" placeholder="e.g. per diem available, OT expected, drug screen required"></textarea></div>
+    </div>
+
+    <div id="status" class="status"></div>
+    <button class="btn-g" id="gen-btn" onclick="generate()">&#9998; Generate Job Description</button>
+  </div>
+
+  <div>
+    <div class="tabs">
+      <button class="tab on" id="tab-post" onclick="setOut('post')">&#128196; Job Posting</button>
+      <button class="tab" id="tab-sms"  onclick="setOut('sms')">&#128241; SMS / Text</button>
+      <button class="tab" id="tab-short" onclick="setOut('short')">&#128172; Short Ad</button>
+    </div>
+
+    <div class="out" id="out">
+      <div class="empty">
+        <div class="empty-icon">&#128221;</div>
+        <p style="font-size:.93rem;line-height:1.7;">Pick a preset or fill in the details, then click <strong>Generate Job Description</strong>.</p>
+        <p style="font-size:.83rem;color:#cbd5e1;margin-top:8px;">You get a full posting for job boards, a text-length version for candidates, and a short ad for social.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>&copy; 2025 Quality Labor Management, LLC &middot; Job Description Generator &middot; myqlm.com</footer>
+
+<script>window.QLM_REQUIRE_AUTH = true;</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/qlm-data.js"></script>
+<script>
+var OUT = 'post';
+var RESULT = { post:'', sms:'', short:'' };
+
+// ═══════════ PRESET LIBRARY ═══════════
+var PRESETS = {
+  electrician: { title:'Commercial Electrician', level:'Journeyman', certs:'OSHA 10, valid driver license',
+    must:'Commercial and industrial electrical installation, conduit bending, panel and gear work, ability to read blueprints and one-line diagrams, NEC code knowledge',
+    project:'Commercial Construction' },
+  electrician_helper: { title:'Electrical Helper', level:'Helper / Apprentice', certs:'OSHA 10 preferred',
+    must:'Willingness to learn the trade, reliable transportation, able to lift 50 lbs and work on ladders, basic hand tools',
+    project:'Commercial Construction' },
+  lineman: { title:'Journeyman Lineman', level:'Journeyman', certs:'CDL-A, OSHA 10, first aid and CPR',
+    must:'Overhead and underground distribution, bucket and digger derrick operation, rubber gloving, storm response availability' },
+  plumber: { title:'Commercial Plumber', level:'Journeyman', certs:'OSHA 10, valid driver license',
+    must:'Commercial rough-in and finish, DWV systems, copper and PEX, cast iron, ability to read isometrics and plumbing plans',
+    project:'Commercial Construction' },
+  pipefitter: { title:'Industrial Pipefitter', level:'Journeyman', certs:'OSHA 10, TWIC preferred',
+    must:'Process piping, isometric drawings, threading and grooving, flange alignment and bolt-up, rigging awareness',
+    project:'Industrial / Manufacturing' },
+  welder_pipe: { title:'Pipe Welder', level:'Journeyman', certs:'Current weld certifications, OSHA 10, TWIC preferred',
+    must:'6G pipe welding, TIG root and stick fill and cap, ability to pass a weld test on arrival, carbon and stainless experience',
+    project:'Industrial / Manufacturing' },
+  welder_structural: { title:'Structural Welder', level:'Journeyman', certs:'AWS D1.1 certification, OSHA 10',
+    must:'Flux core and stick welding on structural steel, ability to pass a weld test, blueprint reading, work at heights',
+    project:'Commercial Construction' },
+  hvac: { title:'Commercial HVAC Technician', level:'Journeyman', certs:'EPA 608 Universal, OSHA 10, valid driver license',
+    must:'Commercial rooftop units, split systems, refrigerant recovery and charging, electrical troubleshooting, controls basics',
+    project:'Commercial Construction' },
+  sheetmetal: { title:'Sheet Metal Worker', level:'Journeyman', certs:'OSHA 10',
+    must:'Commercial duct fabrication and installation, hanger layout, ability to read mechanical drawings, work from lifts' },
+  carpenter: { title:'Commercial Carpenter', level:'Journeyman', certs:'OSHA 10',
+    must:'Metal stud framing, drywall, doors and hardware, blueprint reading, layout from control lines, own hand tools',
+    project:'Commercial Construction' },
+  concrete: { title:'Concrete Finisher', level:'Journeyman', certs:'OSHA 10',
+    must:'Flatwork finishing, power trowel operation, forming and stripping, screeding, early start times' },
+  ironworker: { title:'Structural Ironworker', level:'Journeyman', certs:'OSHA 10, fall protection training',
+    must:'Structural steel erection, connecting, bolting up, rigging and signaling, comfortable working at heights',
+    project:'Commercial Construction' },
+  operator: { title:'Heavy Equipment Operator', level:'Journeyman', certs:'OSHA 10, valid driver license, CDL a plus',
+    must:'Excavator, dozer, loader or skid steer operation, grade checking, daily equipment inspections, site safety awareness',
+    project:'Civil / Heavy Highway' },
+  solar: { title:'Solar Installer', level:'Helper / Apprentice', certs:'OSHA 10, valid driver license',
+    must:'Utility scale solar module and racking installation, torque procedures, outdoor work in all conditions, reliable transportation',
+    project:'Utility Solar' },
+  instrumentation: { title:'Instrumentation Technician', level:'Senior / Master', certs:'OSHA 10, TWIC, NCCER preferred',
+    must:'Loop checks, calibration, 4-20 mA systems, transmitter installation, P&ID reading, plant experience',
+    project:'Oil and Gas / Petrochemical' },
+  millwright: { title:'Industrial Millwright', level:'Journeyman', certs:'OSHA 10, TWIC preferred',
+    must:'Precision alignment, conveyor and pump work, bearing replacement, rigging, plant turnaround experience',
+    project:'Industrial / Manufacturing' },
+  painter: { title:'Industrial Painter / Blaster', level:'Journeyman', certs:'OSHA 10, respirator fit test',
+    must:'Surface preparation, abrasive blasting, airless spray application, coating thickness measurement, confined space awareness',
+    project:'Industrial / Manufacturing' },
+  foreman: { title:'Construction Foreman', level:'Foreman / Lead', certs:'OSHA 30, first aid and CPR, valid driver license',
+    must:'Running a crew of 5 or more, daily toolbox talks, reading plans and coordinating with the GC, tracking production and manpower',
+    project:'Commercial Construction' },
+  superintendent: { title:'Field Superintendent', level:'Superintendent', certs:'OSHA 30, first aid and CPR',
+    must:'Managing multiple crews and subcontractors, schedule and manpower planning, quality control, client communication',
+    project:'Commercial Construction' },
+  general_labor: { title:'General Laborer', level:'Helper / Apprentice', certs:'OSHA 10 preferred',
+    must:'Reliable transportation, able to lift 50 lbs, jobsite cleanup, material handling, assisting trades, steel toe boots' },
+  skilled_labor: { title:'Skilled Laborer', level:'Journeyman', certs:'OSHA 10',
+    must:'Multi-trade support, tape measure and hand tool proficiency, layout basics, able to work independently on assigned tasks' },
+  display_tech: { title:'Display / Electronics Technician', level:'Journeyman', certs:'Valid driver license, OSHA 10 preferred',
+    must:'Commercial flat panel display installation and troubleshooting, mounting hardware, low voltage cabling, customer-facing service work' }
+};
+
+var PRESET_LABELS = {
+  electrician:'Commercial Electrician', electrician_helper:'Electrical Helper', lineman:'Journeyman Lineman',
+  plumber:'Commercial Plumber', pipefitter:'Industrial Pipefitter', welder_pipe:'Pipe Welder',
+  welder_structural:'Structural Welder', hvac:'HVAC Technician', sheetmetal:'Sheet Metal Worker',
+  carpenter:'Commercial Carpenter', concrete:'Concrete Finisher', ironworker:'Structural Ironworker',
+  operator:'Heavy Equipment Operator', solar:'Solar Installer', instrumentation:'Instrumentation Technician',
+  millwright:'Industrial Millwright', painter:'Industrial Painter / Blaster', foreman:'Construction Foreman',
+  superintendent:'Field Superintendent', general_labor:'General Laborer', skilled_labor:'Skilled Laborer',
+  display_tech:'Display / Electronics Technician'
+};
+
+function initPresets(){
+  var sel = document.getElementById('preset');
+  Object.keys(PRESET_LABELS).sort(function(a,b){
+    return PRESET_LABELS[a].localeCompare(PRESET_LABELS[b]);
+  }).forEach(function(k){
+    var o = document.createElement('option');
+    o.value = k; o.textContent = PRESET_LABELS[k];
+    sel.appendChild(o);
+  });
+}
+
+function applyPreset(){
+  var k = document.getElementById('preset').value;
+  var note = document.getElementById('preset-note');
+  if(!k){ note.textContent = 'Fill in the details below and the description is written from scratch.'; return; }
+  var p = PRESETS[k];
+  document.getElementById('f-title').value = p.title || '';
+  document.getElementById('f-level').value = p.level || '';
+  document.getElementById('f-certs').value = p.certs || '';
+  document.getElementById('f-must').value  = p.must || '';
+  if(p.project) document.getElementById('f-project').value = p.project;
+  note.textContent = 'Loaded the ' + PRESET_LABELS[k] + ' template. Adjust anything below before generating.';
+}
+
+function setOut(t){
+  OUT = t;
+  ['post','sms','short'].forEach(function(x){
+    document.getElementById('tab-'+x).className = 'tab' + (x===t ? ' on' : '');
+  });
+  renderOut();
+}
+
+function st(type, msg){
+  var el = document.getElementById('status');
+  el.className = 'status show ' + type;
+  el.innerHTML = msg;
+}
+function clearSt(){ document.getElementById('status').className = 'status'; }
+
+// ═══════════ GENERATE ═══════════
+async function generate(){
+  var v = function(id){ return (document.getElementById(id)||{}).value || ''; };
+  var title = v('f-title').trim();
+  var location = v('f-location').trim();
+  if(!title){ st('err','Enter a job title.'); document.getElementById('f-title').focus(); return; }
+  if(!location){ st('err','Enter a location.'); document.getElementById('f-location').focus(); return; }
+
+  var btn = document.getElementById('gen-btn');
+  btn.disabled = true; btn.textContent = 'Writing...';
+  st('load','Writing the posting, the text version and the short ad...');
+
+  var facts = [
+    'Job title: ' + title,
+    v('f-level') ? 'Level: ' + v('f-level') : '',
+    'Location: ' + location,
+    v('f-openings') ? 'Openings: ' + v('f-openings') : '',
+    v('f-pay') ? 'Pay rate: ' + v('f-pay') : '',
+    v('f-schedule') ? 'Schedule: ' + v('f-schedule') : '',
+    v('f-duration') ? 'Duration: ' + v('f-duration') : '',
+    v('f-start') ? 'Start: ' + v('f-start') : '',
+    v('f-project') ? 'Project type: ' + v('f-project') : '',
+    v('f-certs') ? 'Required certifications: ' + v('f-certs') : '',
+    v('f-must') ? 'Must-have experience: ' + v('f-must') : '',
+    v('f-extra') ? 'Other notes: ' + v('f-extra') : ''
+  ].filter(Boolean).join('\n');
+
+  var prompt =
+    'You write job postings for Quality Labor Management (QLM), a W-2 skilled trades staffing company placing workers on commercial, industrial, marine, utility solar and civil construction projects across the Southeast. QLM values are Safety, Productivity and Quality.\n\n' +
+    'Write three versions of a job posting from these facts. Use ONLY what is given. Do not invent pay rates, benefits, certifications or requirements that are not listed.\n\n' +
+    facts + '\n\n' +
+    'Write for a tradesperson, not an HR department. Plain, direct language. No corporate filler, no "rockstar" or "ninja", no long paragraphs. Short lines a person can scan on a phone at a jobsite.\n\n' +
+    'Return ONLY raw JSON in this shape, no markdown, no apostrophes inside values:\n' +
+    '{"posting":"the full job posting","sms":"the text message version","short":"the short ad"}\n\n' +
+    'POSTING: a complete job board posting. Structure it as:\n' +
+    '  - One line hook naming the role and city\n' +
+    '  - WHAT YOU WILL BE DOING: 4 to 6 bullet points starting with a dash\n' +
+    '  - WHAT YOU NEED: 4 to 6 bullet points starting with a dash\n' +
+    '  - THE DETAILS: pay, schedule, duration and start if provided\n' +
+    '  - WHY QLM: 3 bullets covering W-2 employment with workers comp and payroll taxes covered, weekly pay, and steady work across multiple sites rather than one job at a time\n' +
+    '  - HOW TO APPLY: apply online or call 855-756-9675\n' +
+    'Do not include an equal opportunity statement, it is added separately.\n\n' +
+    'SMS: under 300 characters total. Must include the role, the city, the pay if given, and a call to action. Write it as if texting a tradesperson you already know. No emojis, no links longer than needed.\n\n' +
+    'SHORT: 40 to 60 words for a social post or a quick ad. Punchy. Lead with the trade and the pay if given.';
+
+  try{
+    var res = await fetch('/.netlify/functions/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ max_tokens: 1800, messages:[{ role:'user', content: prompt }] })
+    });
+    var d = await res.json();
+    if(d.error) throw new Error(d.error.message || 'Generation failed');
+    var text = (d.content||[]).filter(function(b){ return b.type==='text'; }).map(function(b){ return b.text; }).join('');
+    var m = text.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('Could not read the response. Try again.');
+    var data = JSON.parse(m[0].replace(/[\u2018\u2019]/g, ''));
+
+    RESULT.post  = data.posting || '';
+    RESULT.sms   = data.sms || '';
+    RESULT.short = data.short || '';
+    clearSt();
+    st('ok','\u2713 Generated. Review each version before posting.');
+    setTimeout(clearSt, 3500);
+    renderOut();
+  }catch(e){
+    st('err', e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '\u270E Generate Job Description';
+  }
+}
+
+// ═══════════ OUTPUT ═══════════
+function renderOut(){
+  var el = document.getElementById('out');
+  if(!RESULT.post && !RESULT.sms && !RESULT.short){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">&#128221;</div>' +
+      '<p style="font-size:.93rem;line-height:1.7;">Pick a preset or fill in the details, then click <strong>Generate Job Description</strong>.</p></div>';
+    return;
+  }
+
+  if(OUT === 'post'){
+    el.innerHTML =
+      '<div class="out-h"><span class="out-t">Full Job Posting</span>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+          '<button class="btn" onclick="copyOut(\'post\',this)">&#128203; Copy</button>' +
+          '<button class="btn dark" onclick="printPosting()">&#128438; Branded PDF</button>' +
+        '</div></div>' +
+      '<pre class="body" id="body-post">' + esc(RESULT.post) + '</pre>' +
+      '<div style="margin-top:16px;padding-top:14px;border-top:1px solid #f1f5f9;font-size:.78rem;color:#94a3b8;line-height:1.7;">' +
+        'Quality Labor Management is an Equal Opportunity Employer and an E-Verify participant. This line is included automatically on the branded PDF.' +
+      '</div>';
+  } else if(OUT === 'sms'){
+    var len = RESULT.sms.length;
+    el.innerHTML =
+      '<div class="out-h"><span class="out-t">SMS / Text Version</span>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button class="btn" onclick="copyOut(\'sms\',this)">&#128203; Copy</button>' +
+          '<button class="btn dark" onclick="sendSms()">&#128241; Open in Messages</button>' +
+        '</div></div>' +
+      '<div class="sms" id="body-sms">' + esc(RESULT.sms) + '</div>' +
+      '<div class="count' + (len > 320 ? ' over' : '') + '">' + len + ' characters \u00b7 ' +
+        (len <= 160 ? 'one text message' : len <= 320 ? 'two text messages' : 'three or more messages \u2014 consider trimming') + '</div>' +
+      '<div style="margin-top:16px;font-size:.8rem;color:#64748b;line-height:1.75;">' +
+        'Keeping it under 160 characters sends as a single message and is far more likely to be read. Paste it straight into your phone or a bulk texting tool.' +
+      '</div>';
+  } else {
+    el.innerHTML =
+      '<div class="out-h"><span class="out-t">Short Ad</span>' +
+        '<button class="btn" onclick="copyOut(\'short\',this)">&#128203; Copy</button></div>' +
+      '<div class="sms" id="body-short">' + esc(RESULT.short) + '</div>' +
+      '<div style="margin-top:16px;font-size:.8rem;color:#64748b;line-height:1.75;">' +
+        'Sized for a Facebook or Instagram post, a Craigslist headline block, or the summary field on a job board.' +
+      '</div>';
+  }
+}
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function copyOut(which, btn){
+  navigator.clipboard.writeText(RESULT[which] || '').then(function(){
+    var o = btn.innerHTML; btn.innerHTML = '\u2713 Copied';
+    setTimeout(function(){ btn.innerHTML = o; }, 1800);
+  });
+}
+
+function sendSms(){
+  window.location.href = 'sms:?&body=' + encodeURIComponent(RESULT.sms || '');
+}
+
+// ═══════════ BRANDED POSTING ═══════════
+function printPosting(){
+  var v = function(id){ return (document.getElementById(id)||{}).value || ''; };
+  var title = v('f-title'), loc = v('f-location');
+  var today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  var body = esc(RESULT.post);
+
+  var html =
+'<!DOCTYPE html><html><head><meta charset="utf-8"><title>QLM Job Posting \u2014 ' + esc(title) + '</title>' +
+'<style>' +
+'*{box-sizing:border-box;margin:0;padding:0;}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f4f7fb;color:#2a4a5a;padding:26px 16px;line-height:1.7;}' +
+'.pg{max-width:740px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,58,82,.14);}' +
+'.hd{background:#003a52;padding:30px 34px;position:relative;overflow:hidden;}' +
+'.hd::after{content:"";position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;background:rgba(0,153,216,.15);}' +
+'.badge{display:inline-block;background:#0099d8;color:#fff;font-weight:700;font-size:.72rem;letter-spacing:3px;padding:6px 14px;border-radius:5px;}' +
+'.kicker{color:#b8dff0;font-size:.67rem;letter-spacing:2.5px;text-transform:uppercase;margin-top:13px;position:relative;z-index:1;}' +
+'.hd h1{color:#fff;font-size:1.65rem;font-weight:700;margin-top:7px;position:relative;z-index:1;line-height:1.25;}' +
+'.hd .sub{color:#b8dff0;font-size:.92rem;margin-top:8px;position:relative;z-index:1;}' +
+'.bd{padding:28px 34px;}' +
+'pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;font-size:.94rem;line-height:1.9;color:#2a4a5a;}' +
+'.eeo{margin-top:24px;padding-top:18px;border-top:1px solid #e0f4fc;font-size:.8rem;color:#64748b;line-height:1.75;}' +
+'.ft{background:#003a52;padding:22px 34px;text-align:center;}' +
+'.ft .s{color:#0099d8;font-size:.68rem;font-weight:700;letter-spacing:2.5px;}' +
+'.ft .i{color:#b8dff0;font-size:.82rem;margin-top:6px;}' +
+'.tools{max-width:740px;margin:0 auto 13px;display:flex;gap:8px;justify-content:flex-end;}' +
+'.tools button{background:#003a52;color:#fff;border:none;border-radius:7px;padding:9px 17px;font-size:.79rem;font-weight:600;cursor:pointer;font-family:inherit;}' +
+'.tools button.alt{background:#fff;color:#0077a8;border:1.5px solid #b8dff0;}' +
+'@media print{body{background:#fff;padding:0;}.tools{display:none;}.pg{box-shadow:none;border-radius:0;}' +
+'.hd,.ft{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
+'</style></head><body>' +
+'<div class="tools"><button class="alt" onclick="window.print()">&#128438; Print / PDF</button><button onclick="window.close()">Close</button></div>' +
+'<div class="pg">' +
+  '<div class="hd"><div class="badge">QLM</div>' +
+    '<div class="kicker">Now Hiring</div>' +
+    '<h1>' + esc(title) + '</h1>' +
+    '<div class="sub">' + esc(loc) + (v('f-pay') ? ' &nbsp;\u00b7&nbsp; ' + esc(v('f-pay')) : '') + '</div></div>' +
+  '<div class="bd"><pre>' + body + '</pre>' +
+    '<div class="eeo">Quality Labor Management, LLC is an Equal Opportunity Employer and an E-Verify participant. ' +
+    'All QLM team members are W-2 employees. Workers compensation, general liability and payroll taxes are carried by QLM. ' +
+    'Posted ' + today + '.</div>' +
+  '</div>' +
+  '<div class="ft"><div class="s">SAFETY &middot; PRODUCTIVITY &middot; QUALITY</div>' +
+    '<div class="i">Quality Labor Management &middot; myqlm.com &middot; 855-756-9675</div></div>' +
+'</div></body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+window.addEventListener('DOMContentLoaded', function(){
+  if(window.QLM) QLM.mountAuthBar('qlm-auth');
+  initPresets();
+  applyPreset();
+});
+</script>
+</body>
+</html>
