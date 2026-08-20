@@ -241,6 +241,7 @@
     { href:'/qlm-trades-assessment.html',  icon:'\u26A1',       label:'Assessment',     group:'Source & Screen' },
     { href:'/talent-card.html',            icon:'\uD83D\uDCC4', label:'Talent Card',    group:'Source & Screen' },
     { href:'/qlm-intake.html',             icon:'\uD83D\uDCCB', label:'Intake Form',    group:'Source & Screen' },
+    { href:'/qlm-job-description.html',    icon:'\u270D\uFE0F', label:'Job Descriptions', group:'Source & Screen' },
     { href:'/qlm-crm.html',                icon:'\uD83D\uDCCA', label:'Pipeline (ATS/CRM)', group:'Measure', admin:true },
     { href:'/qlm-dashboard.html',          icon:'\uD83D\uDCC8', label:'Admin Dashboard',group:'Measure', admin:true }
   ];
